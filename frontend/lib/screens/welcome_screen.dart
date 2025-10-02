@@ -1,0 +1,140 @@
+import 'package:flutter/material.dart';
+import '../widgets/login_sheet.dart';
+import '../widgets/register_sheet.dart';
+
+class WelcomeScreen extends StatelessWidget {
+  const WelcomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Scaffold(
+      appBar: AppBar(title: const Text(''), backgroundColor: Colors.white),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            children: [
+              const SizedBox(height: 16),
+              // Logo
+              Image.asset(
+                'assets/images/logo.jpg',
+                height: 80,
+                fit: BoxFit.contain,
+              ),
+              const SizedBox(height: 24),
+              Card(
+                color: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Text(
+                        'You are not logged in',
+                        style: Theme.of(context).textTheme.titleMedium!
+                            .copyWith(
+                              fontWeight: FontWeight.bold, // BOLD
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Please log in or create account',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Create account (rojo estático)
+                      ElevatedButton(
+                        onPressed: () => _openRegisterSheet(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFDC3A3A), // rojo fijo
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(44),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text('Create account'),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Log in (outlined)
+                      OutlinedButton(
+                        onPressed: () => _openLoginSheet(context),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(44),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text('Log in'),
+                      ),
+                      const SizedBox(height: 16),
+
+                      TextButton(
+                        onPressed: () {},
+                        child: Text(
+                          'Privacy Settings',
+                          style: Theme.of(context).textTheme.bodyMedium!
+                              .copyWith(
+                                fontWeight: FontWeight.bold, // BOLD
+                                color: cs.primary,
+                              ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'By using Aerocaribe’s service, you agree to our Terms & Conditions and applicable Privacy Policy',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const Spacer(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ======= SHEETS A PANTALLA COMPLETA + SAFE AREA =======
+  void _openLoginSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, // puede usar toda la altura
+      useSafeArea: true, // respeta notch/barras
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(0)),
+      ),
+      builder: (_) {
+        return const SizedBox.expand(
+          // ocupa toda la pantalla
+          child: LoginSheet(),
+        );
+      },
+    );
+  }
+
+  void _openRegisterSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(0)),
+      ),
+      builder: (_) {
+        return const SizedBox.expand(child: RegisterSheet());
+      },
+    );
+  }
+}
