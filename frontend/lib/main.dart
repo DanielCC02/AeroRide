@@ -29,3 +29,25 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+// import 'package:flutter/material.dart';
+// import 'core/styles.dart';
+// import 'screens/welcome_screen.dart';
+
+// void main() {
+//   runApp(const AeroCaribeApp());
+// }
+
+// class AeroCaribeApp extends StatelessWidget {
+//   const AeroCaribeApp({super.key});
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return MaterialApp(
+//       title: 'AeroRide',
+//       theme: AppTheme.light(),
+//       debugShowCheckedModeBanner: false,
+//       home: const WelcomeScreen(),
+//     );
+//   }
+// }

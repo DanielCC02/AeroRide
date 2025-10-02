@@ -41,7 +41,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
           children: [
             // Logo de Aeroride
             Image.asset(
-              "assets/logo.jpg", // tu logo aquí
+              "assets/images/logo.jpg", // tu logo aquí
               height: 40,
             ),
             const SizedBox(width: 8),
