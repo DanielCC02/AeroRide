@@ -21,3 +21,26 @@ final mockUpcomingTrips = [
     imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e',
   ),
 ];
+
+/// Historial (trips ya completados). Reutiliza el mismo modelo y card.
+/// En producción, la API debería diferenciar por estatus/fecha < ahora.
+final mockPastTrips = [
+  Trip(
+    id: 'p1',
+    departure: DateTime(2025, 5, 12, 7, 10),
+    origin: 'Nosara',
+    originCode: 'NOB',
+    destination: 'San José',
+    destinationCode: 'SYQ',
+    imageUrl: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e',
+  ),
+  Trip(
+    id: 'p2',
+    departure: DateTime(2025, 6, 3, 15, 20),
+    origin: 'Tamarindo',
+    originCode: 'TNO',
+    destination: 'San José',
+    destinationCode: 'SYQ',
+    imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e',
+  ),
+];

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/search_form.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../screens/trips_screen.dart';
+import '../screens/map_screen.dart';
 
 class HomePageScreen extends StatefulWidget {
   const HomePageScreen({super.key});
@@ -20,7 +21,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
       child: SearchForm(), // Book
     ),
     TripsScreen(), // Trips
-    Center(child: Text("Map screen placeholder")), // Map
+    MapScreen(), // Map
     Center(child: Text("Profile screen placeholder")), // Profile
   ];
 

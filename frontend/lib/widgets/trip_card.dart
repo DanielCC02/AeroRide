@@ -16,11 +16,11 @@ import '../models/trip.dart';
 /// - Aplica un `LinearGradient` sobre la imagen para mejorar contraste.
 /// - Mantiene un `AspectRatio 16:9` para consistencia visual.
 /// - TODO(theme): mover colores duros a Theme/ColorScheme (Material 3).
-class UpcomingTripCard extends StatelessWidget {
+class TripCard extends StatelessWidget {
   final Trip trip;
   final VoidCallback? onDetails;
 
-  const UpcomingTripCard({
+  const TripCard({
     super.key,
     required this.trip,
     this.onDetails,

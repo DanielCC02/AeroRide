@@ -45,5 +45,13 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Usamos la ubicación solo cuando la app está en uso -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We use your location to show nearby airports on the map.</string>
+
+	<!-- Solo si alguna vez pidieras ubicación en background (no necesario ahora):
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>We use your location to show nearby airports even in background.</string>
+	-->
 </dict>
 </plist>

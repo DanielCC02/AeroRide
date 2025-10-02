@@ -30,12 +30,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  
+  cupertino_icons: ^1.0.8
   table_calendar: ^3.0.9
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
+  # --- Mapa y ubicación ---
+  google_maps_flutter: ^2.9.0      # Renderiza el mapa nativo
+  geolocator: ^12.0.0              # Obtiene ubicación + permisos
+
 
 dev_dependencies:
   flutter_test:
