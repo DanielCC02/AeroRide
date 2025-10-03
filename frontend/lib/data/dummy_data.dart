@@ -9,7 +9,7 @@ const planes = <Plane>[
     seats: 12,
     maxWeightKg: 1500,
     priceUsd: 1200,
-    image: 'lib/assets/images/avioneta_CESSNACARAVAN.jpg',
+    image: 'assets/images/avioneta_CESSNACARAVAN.jpg',
   ),
   Plane(
     id: 'p2',
@@ -17,7 +17,7 @@ const planes = <Plane>[
     seats: 5,
     maxWeightKg: 600,
     priceUsd: 700,
-    image: 'lib/assets/images/avioneta_CESSNA206.jpg',
+    image: 'assets/images/avioneta_CESSNA206.jpg',
   ),
   Plane(
     id: 'p3',
@@ -25,13 +25,11 @@ const planes = <Plane>[
     seats: 5,
     maxWeightKg: 650,
     priceUsd: 850,
-    image: 'lib/assets/images/avioneta_piperPA-34.jpg',
+    image: 'assets/images/avioneta_piperPA-34.jpg',
   ),
 ];
 
 /// AEROPUERTOS (con imagen)
-/// - SJO y LIR por ahora usan una imagen placeholder (main_menu_pic.jpg).
-/// - Destinos con fotos tuyas: Tamarindo (TNO), Santa Teresa ~ Tambor (TMU), Quepos (XQP), Nosara (NOB).
 final airports = <Airport>[
   Airport(
     codeIata: 'SJO',
@@ -76,3 +74,23 @@ final airports = <Airport>[
     image: 'lib/assets/images/destino_nosara.jpg',
   ),
 ];
+
+/// ----------------- Helpers para resolver aeropuertos -----------------
+
+/// Busca por IATA (case-insensitive). Lanza si no existe.
+Airport findAirport(String iata) =>
+    airports.firstWhere((a) => a.codeIata.toUpperCase() == iata.toUpperCase());
+
+/// Intenta por IATA o por nombre (case-insensitive). Retorna null si no encuentra.
+Airport? findAirportByCodeOrName(String query) {
+  final q = query.trim().toUpperCase();
+  // 1) por IATA exacto
+  for (final a in airports) {
+    if (a.codeIata.toUpperCase() == q) return a;
+  }
+  // 2) por nombre contiene
+  for (final a in airports) {
+    if (a.name.toUpperCase().contains(q)) return a;
+  }
+  return null;
+}

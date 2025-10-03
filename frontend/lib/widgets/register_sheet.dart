@@ -99,7 +99,7 @@ class _RegisterSheetState extends State<RegisterSheet> {
                     const SizedBox(height: 12),
 
                     DropdownButtonFormField<String>(
-                      value: _country,
+                      initialValue: _country,
                       decoration: const InputDecoration(labelText: 'Country*'),
                       items: const [
                         DropdownMenuItem(

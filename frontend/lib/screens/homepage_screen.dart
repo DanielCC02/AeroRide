@@ -14,7 +14,6 @@ class HomePageScreen extends StatefulWidget {
 class _HomePageScreenState extends State<HomePageScreen> {
   int _selectedIndex = 0;
 
-  // Lista de pantallas que corresponden a cada ítem del BottomNavigationBar
   final List<Widget> _screens = const [
     Padding(
       padding: EdgeInsets.all(16.0),
@@ -25,7 +24,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
     Center(child: Text("Profile screen placeholder")), // Profile
   ];
 
-  // Cambiar el índice de la pantalla según el ícono seleccionado
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -39,13 +37,11 @@ class _HomePageScreenState extends State<HomePageScreen> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Logo de Aeroride
             Image.asset(
-              "assets/images/logo.jpg", // tu logo aquí
+              "assets/images/logo.jpg",
               height: 40,
             ),
             const SizedBox(width: 8),
-            // Nombre de la app separando 'Aero' y 'Ride'
             RichText(
               text: TextSpan(
                 children: [
@@ -53,19 +49,20 @@ class _HomePageScreenState extends State<HomePageScreen> {
                     text: "AERO",
                     style: TextStyle(
                       color: const Color.fromARGB(255, 252, 102, 92),
-                      fontWeight: FontWeight.w600, // semi-bold
+                      fontWeight: FontWeight.w600,
                       fontSize: 20,
                     ),
                   ),
-                  TextSpan(
+                  const TextSpan(
                     text: "RIDE",
                     style: TextStyle(
                       color: Colors.red,
-                      fontWeight: FontWeight.bold, // bold
+                      fontWeight: FontWeight.bold,
                       fontSize: 20,
                     ),
                   ),
                 ],
+                style: DefaultTextStyle.of(context).style,
               ),
             ),
           ],
@@ -73,9 +70,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
         centerTitle: true,
         elevation: 0,
       ),
-      // Mostrar pantalla según el índice seleccionado
-      body: _screens[_selectedIndex],
-      // Barra de navegación inferior
+      body: SafeArea(child: _screens[_selectedIndex]),
       bottomNavigationBar: CustomBottomNav(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
