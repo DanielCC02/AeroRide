@@ -1,0 +1,84 @@
+﻿namespace AeroRide.API.Models.Domain
+{
+    /// <summary>
+    /// Entidad que representa un vuelo registrado en el sistema AeroRide.
+    /// Puede corresponder a un vuelo reservado por un cliente o a un
+    /// "Empty Leg" (pierna vacía) disponible para oferta.
+    /// Incluye información de horarios, aeropuertos, aeronave y reservas asociadas.
+    /// </summary>
+    public class Flight
+    {
+        /// <summary>
+        /// Identificador único del vuelo.
+        /// </summary>
+        public int Id { get; set; }
+
+        /// <summary>
+        /// Identificador de la reserva asociada (opcional).
+        /// Si el valor es <c>null</c>, el vuelo está disponible como "Empty Leg".
+        /// </summary>
+        public int? ReservationId { get; set; }
+
+        /// <summary>
+        /// Identificador de la aeronave asignada al vuelo.
+        /// </summary>
+        public int AircraftId { get; set; }
+
+        /// <summary>
+        /// Identificador del aeropuerto de origen.
+        /// </summary>
+        public int DepartureAirportId { get; set; }
+
+        /// <summary>
+        /// Identificador del aeropuerto de destino.
+        /// </summary>
+        public int ArrivalAirportId { get; set; }
+
+        /// <summary>
+        /// Fecha y hora de salida del vuelo (en UTC o zona definida).
+        /// </summary>
+        public DateTime DepartureTime { get; set; }
+
+        /// <summary>
+        /// Fecha y hora de llegada del vuelo.
+        /// </summary>
+        public DateTime ArrivalTime { get; set; }
+
+        /// <summary>
+        /// Indica si el vuelo es un "Empty Leg" (vuelo vacío disponible para promoción o reserva).
+        /// </summary>
+        public bool IsEmptyLeg { get; set; }
+
+        // ======================================================
+        // 🔗 Relaciones de navegación
+        // ======================================================
+
+        /// <summary>
+        /// Reserva a la que pertenece este vuelo.
+        /// Puede ser <c>null</c> si el vuelo aún no ha sido reservado.
+        /// </summary>
+        public Reservation? Reservation { get; set; }
+
+        /// <summary>
+        /// Aeronave asignada al vuelo.
+        /// Representa una relación de muchos a uno (<c>N:1</c>) con <see cref="Aircraft"/>.
+        /// </summary>
+        public Aircraft Aircraft { get; set; } = null!;
+
+        /// <summary>
+        /// Aeropuerto de salida asociado al vuelo.
+        /// </summary>
+        public Airport DepartureAirport { get; set; } = null!;
+
+        /// <summary>
+        /// Aeropuerto de llegada asociado al vuelo.
+        /// </summary>
+        public Airport ArrivalAirport { get; set; } = null!;
+
+        /// <summary>
+        /// Colección de asignaciones de pilotos o personal a este vuelo.
+        /// Representa una relación uno a muchos (<c>1:N</c>) entre <see cref="Flight"/> y <see cref="FlightAssignment"/>.
+        /// </summary>
+        public ICollection<FlightAssignment> Assignments { get; set; } = new List<FlightAssignment>();
+    }
+}
