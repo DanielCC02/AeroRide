@@ -4,6 +4,30 @@ import '../data/dummy_data.dart';
 import '../models/search_criteria.dart';
 import '../screens/plane_list_screen.dart';
 
+/// SearchForm
+/// ---------------------------------------------------------------------------
+/// Formulario principal del flujo de reserva en Home:
+/// - Tipo de viaje (One-way / Round trip)
+/// - Selección de aeropuertos (From / To)
+/// - Fecha y hora (usa `DateTimePickerModal`)
+/// - Número de pasajeros (stepper)
+/// - Botón Search (navega a `PlaneListScreen` con `SearchCriteria`)
+///
+/// DETALLES DE UX / UI:
+/// - El encabezado “Flight” (icono + texto) está **centrado** (requisito).
+/// - El “hero” superior usa la imagen `assets/images/main_menu_pic.jpg`.
+/// - Los campos “From/To” son de texto simple (mock); se resuelven con
+///   `findAirportByCodeOrName` (IATA o nombre completo).
+///
+/// NAVEGACIÓN:
+/// - Al pulsar “Search” se valida que haya origen, destino y fecha/hora
+///   de salida; se construye un `SearchCriteria` y se hace push a
+///   `PlaneListScreen(criteria: ...)`.
+///
+/// POSIBLES MEJORAS FUTURAS:
+/// - Cambiar “From/To” por pickers de aeropuertos con lista sugerida.
+/// - Internacionalización de fechas/meses con `intl`.
+/// - Mover límites de pasajeros a configuración/tema.
 class SearchForm extends StatefulWidget {
   const SearchForm({super.key});
 
@@ -12,10 +36,11 @@ class SearchForm extends StatefulWidget {
 }
 
 class _SearchFormState extends State<SearchForm> {
+  // ---- Estado del formulario ------------------------------------------------
   bool _isRoundTrip = false;
 
-  DateTime? _departureDateTime; // salida
-  DateTime? _returnDateTime;    // regreso (si aplica)
+  DateTime? _departureDateTime; // Fecha/hora de salida
+  DateTime? _returnDateTime;    // Fecha/hora de regreso (si aplica)
 
   final _fromCtrl = TextEditingController();
   final _toCtrl = TextEditingController();
@@ -28,6 +53,10 @@ class _SearchFormState extends State<SearchForm> {
     super.dispose();
   }
 
+  // ---- Selectores / modales -------------------------------------------------
+
+  /// Abre el modal de selección de fecha y hora (salida o regreso).
+  /// Devuelve el valor elegido a través de `onSelected` del modal.
   Future<void> _openDatePicker({required bool isReturn}) async {
     final fromAp = findAirportByCodeOrName(_fromCtrl.text.trim());
     final toAp   = findAirportByCodeOrName(_toCtrl.text.trim());
@@ -58,6 +87,9 @@ class _SearchFormState extends State<SearchForm> {
     );
   }
 
+  // ---- Acción principal -----------------------------------------------------
+
+  /// Valida campos requeridos y navega a `PlaneListScreen` con `SearchCriteria`.
   void _search() {
     FocusScope.of(context).unfocus();
 
@@ -95,6 +127,23 @@ class _SearchFormState extends State<SearchForm> {
     );
   }
 
+  // ---- Utilidades de formato ------------------------------------------------
+
+  /// Devuelve un texto estilo “october 8, 2025  9:40 a.m.” o vacío si `null`.
+  String _formatDT(DateTime? dt) {
+    if (dt == null) return '';
+    final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final ampm = dt.hour >= 12 ? 'p.m.' : 'a.m.';
+    final mm = dt.minute.toString().padLeft(2, '0');
+    final months = [
+      'january','february','march','april','may','june',
+      'july','august','september','october','november','december'
+    ];
+    final month = months[dt.month - 1];
+    return '$month ${dt.day}, ${dt.year}  $h:$mm $ampm';
+  }
+
+  // ---- Build ---------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -115,21 +164,27 @@ class _SearchFormState extends State<SearchForm> {
 
         const SizedBox(height: 10),
 
-        // Título "Flight" con ícono
-        Row(
-          children: [
-            Icon(Icons.flight_takeoff, color: Colors.red.shade700, size: 20),
-            const SizedBox(width: 6),
-            Text('Flight',
+        // ===== Encabezado "Flight" centrado (icono + texto) =====
+        SizedBox(
+          width: double.infinity,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.flight_takeoff, color: Colors.red.shade700, size: 20),
+              const SizedBox(width: 6),
+              Text(
+                'Flight',
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: Colors.red.shade700,
                   fontWeight: FontWeight.w600,
-                )),
-          ],
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 8),
 
-        // Card del formulario
+        // Card del formulario (contenedor con sombra suave)
         Container(
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
@@ -145,30 +200,35 @@ class _SearchFormState extends State<SearchForm> {
           padding: const EdgeInsets.all(12),
           child: Column(
             children: [
-              // One-way / Round trip
+              // One-way / Round trip (píldoras)
               Row(
                 children: [
-                  Expanded(child: _TripPill(
-                    label: 'One-way',
-                    selected: !_isRoundTrip,
-                    onTap: () => setState(() => _isRoundTrip = false),
-                  )),
+                  Expanded(
+                    child: _TripPill(
+                      label: 'One-way',
+                      selected: !_isRoundTrip,
+                      onTap: () => setState(() => _isRoundTrip = false),
+                    ),
+                  ),
                   const SizedBox(width: 8),
-                  Expanded(child: _TripPill(
-                    label: 'Round trip',
-                    selected: _isRoundTrip,
-                    onTap: () => setState(() => _isRoundTrip = true),
-                  )),
+                  Expanded(
+                    child: _TripPill(
+                      label: 'Round trip',
+                      selected: _isRoundTrip,
+                      onTap: () => setState(() => _isRoundTrip = true),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
 
+              // From / To (mock textfields)
               _TextFieldMock(label: 'From', controller: _fromCtrl),
               const SizedBox(height: 8),
               _TextFieldMock(label: 'To', controller: _toCtrl),
               const SizedBox(height: 8),
 
-              // Date / Time
+              // Date / Time (salida y, si aplica, regreso)
               _DateField(
                 label: _isRoundTrip ? 'Departure date and time' : 'Date and time',
                 valueText: _formatDT(_departureDateTime),
@@ -188,10 +248,12 @@ class _SearchFormState extends State<SearchForm> {
               // Passengers + stepper
               Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Passengers',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.black54,
-                    )),
+                child: Text(
+                  'Passengers',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.black54,
+                  ),
+                ),
               ),
               const SizedBox(height: 6),
               _Stepper(
@@ -201,7 +263,7 @@ class _SearchFormState extends State<SearchForm> {
 
               const SizedBox(height: 14),
 
-              // Search
+              // Search (acción principal)
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -223,21 +285,13 @@ class _SearchFormState extends State<SearchForm> {
       ],
     );
   }
-
-  String _formatDT(DateTime? dt) {
-    if (dt == null) return '';
-    final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-    final ampm = dt.hour >= 12 ? 'p.m.' : 'a.m.';
-    final mm = dt.minute.toString().padLeft(2, '0');
-    final months = [
-      'january','february','march','april','may','june',
-      'july','august','september','october','november','december'
-    ];
-    final month = months[dt.month - 1];
-    return '$month ${dt.day}, ${dt.year}  $h:$mm $ampm';
-  }
 }
 
+// -----------------------------------------------------------------------------
+// Sub-widgets de UI (píldoras, campos y stepper). Mantienen el archivo ordenado.
+// -----------------------------------------------------------------------------
+
+/// Botón “píldora” para One-way / Round trip.
 class _TripPill extends StatelessWidget {
   final String label;
   final bool selected;
@@ -268,6 +322,7 @@ class _TripPill extends StatelessWidget {
   }
 }
 
+/// Mock de TextField para “From/To” (sin buscador aún).
 class _TextFieldMock extends StatelessWidget {
   final String label;
   final TextEditingController controller;
@@ -288,6 +343,7 @@ class _TextFieldMock extends StatelessWidget {
   }
 }
 
+/// Campo de fecha/hora con estilo de “falso TextField” y onTap externo.
 class _DateField extends StatelessWidget {
   final String label;
   final String valueText;
@@ -321,6 +377,7 @@ class _DateField extends StatelessWidget {
   }
 }
 
+/// Stepper simple para número de pasajeros.
 class _Stepper extends StatelessWidget {
   final int value;
   final ValueChanged<int> onChanged;
@@ -342,7 +399,11 @@ class _Stepper extends StatelessWidget {
         children: [
           IconButton(onPressed: dec, icon: const Icon(Icons.remove)),
           Expanded(
-            child: Text('$value', textAlign: TextAlign.center, style: const TextStyle(fontSize: 16)),
+            child: Text(
+              '$value',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16),
+            ),
           ),
           IconButton(onPressed: inc, icon: const Icon(Icons.add)),
         ],

@@ -1,7 +1,33 @@
 import 'package:flutter/material.dart';
 import '../data/dummy_data.dart';
 import '../models/search_criteria.dart';
+import '../models/reservation.dart';
+import 'reservation_screen.dart';
 
+/// PlaneListScreen
+/// ---------------------------------------------------------------------------
+/// Pantalla de “Select Aircraft”.
+///
+/// ENTRADAS:
+/// - [SearchCriteria] en `widget.criteria` con: from, to, departure y passengers.
+///
+/// RESPONSABILIDADES:
+/// - Filtrar la lista de aviones dummy (`planes`) por:
+///   * Capacidad (>= passengers del criterio).
+///   * Rango de precio (`RangeSlider` local).
+/// - Renderizar tarjetas con foto, modelo, seats, peso máx y precio.
+/// - Al tocar una tarjeta:
+///   * Construye una [Reservation] con los datos del criterio + avión elegido.
+///   * Navega a [ReservationScreen] vía `MaterialPageRoute`.
+///
+/// NOTAS / MOCKS:
+/// - Se usa EFT fijo de 40 min (dummy).
+/// - Las imágenes usan `errorBuilder` para evitar crasheos si falta un asset.
+///
+/// FUTURO (integración):
+/// - Reemplazar `planes` por provider/repositorio (capa data + estados).
+/// - Traer disponibilidad real por fecha/hora.
+/// - Mover estilos fijos a Theme/ColorScheme.
 class PlaneListScreen extends StatefulWidget {
   final SearchCriteria criteria;
   const PlaneListScreen({super.key, required this.criteria});
@@ -11,12 +37,12 @@ class PlaneListScreen extends StatefulWidget {
 }
 
 class _PlaneListScreenState extends State<PlaneListScreen> {
+  // Único filtro que permanece aquí (precio). Capacidad viene desde criteria.
   RangeValues price = const RangeValues(300, 1500);
 
   @override
   void initState() {
     super.initState();
-    // Log de diagnóstico: verifica que sí llegan los criterios
     final c = widget.criteria;
     // ignore: avoid_print
     print('[PlaneListScreen] from=${c.from.codeIata} to=${c.to.codeIata} '
@@ -27,7 +53,7 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
   Widget build(BuildContext context) {
     final c = widget.criteria;
 
-    // Filtra por capacidad + rango precio. Si la lista queda vacía, igual dibuja UI.
+    // Filtra por capacidad + rango precio.
     final filtered = planes.where((p) {
       final okCap = p.seats >= c.passengers;
       final okPrice = p.priceUsd >= price.start && p.priceUsd <= price.end;
@@ -50,7 +76,7 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
         ),
         body: Column(
           children: [
-            // ---------- Filtro de precio ----------
+            // ---------- Filtro de precio (único filtro en esta pantalla) ----------
             ExpansionTile(
               title: const Text('Price filter'),
               initiallyExpanded: true,
@@ -73,6 +99,7 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
                         onChanged: (v) => setState(() => price = v),
                       ),
                       const SizedBox(height: 6),
+                      // Muestra el criterio aplicado (lectura, no editable aquí).
                       Text(
                         'From: ${c.from.codeIata} • To: ${c.to.codeIata} • Pax: ${c.passengers} • ${_fmtDateTime(c.departure)}',
                         style: const TextStyle(fontSize: 12, color: Colors.black54),
@@ -104,19 +131,31 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
                           elevation: 1.5,
                           child: InkWell(
                             onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Selected ${p.model} | ${c.from.codeIata}→${c.to.codeIata} '
-                                    '| ${_fmtDateTime(c.departure)} | ${c.passengers} pax',
-                                  ),
+                              // Crea la reserva (mock EFT 40m) y navega.
+                              final res = Reservation(
+                                id: 'res-${DateTime.now().millisecondsSinceEpoch}',
+                                plane: p,
+                                from: c.from,
+                                to: c.to,
+                                date: c.departure,
+                                passengers: c.passengers,
+                                estFlightTimeMin: 40.0,
+                                totalWeightKg: 0,
+                                priceUsd: p.priceUsd,
+                                lapInfant: false,
+                                dog: false,
+                              );
+
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => ReservationScreen(reservation: res),
                                 ),
                               );
                             },
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Imagen con fallback para evitar crasheos silenciosos
+                                // Imagen con fallback.
                                 AspectRatio(
                                   aspectRatio: 16 / 9,
                                   child: Image.asset(
@@ -208,7 +247,7 @@ class _InfoChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        color: Colors.black12, // uso color fijo para evitar temas raros
+        color: Colors.black12,
       ),
       child: Row(
         children: [
