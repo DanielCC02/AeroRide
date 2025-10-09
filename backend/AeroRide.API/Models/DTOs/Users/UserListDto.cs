@@ -1,0 +1,36 @@
+﻿/// <summary>
+/// Objeto de transferencia que representa la información básica de un usuario.
+/// Utilizado principalmente en listados administrativos o reportes.
+/// </summary>
+public class UserListDto
+{
+    /// <summary>
+    /// Identificador único del usuario.
+    /// </summary>
+    public int Id { get; set; }
+
+    /// <summary>
+    /// Nombre completo del usuario (Nombre + Apellido).
+    /// </summary>
+    public string FullName { get; set; } = null!;
+
+    /// <summary>
+    /// Correo electrónico del usuario.
+    /// </summary>
+    public string Email { get; set; } = null!;
+
+    /// <summary>
+    /// Número de teléfono o contacto principal.
+    /// </summary>
+    public string PhoneNumber { get; set; } = null!;
+
+    /// <summary>
+    /// Rol asignado (Admin, Broker, Pilot o User).
+    /// </summary>
+    public string Role { get; set; } = null!;
+
+    /// <summary>
+    /// Indica si el usuario se encuentra activo o desactivado.
+    /// </summary>
+    public bool IsActive { get; set; }
+}

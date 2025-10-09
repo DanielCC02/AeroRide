@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36518.9 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AeroRide.API", "AeroRide.API\AeroRide.API.csproj", "{A1E80CAD-4AA7-4D54-9651-38F0165EB417}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A1E80CAD-4AA7-4D54-9651-38F0165EB417}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1E80CAD-4AA7-4D54-9651-38F0165EB417}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1E80CAD-4AA7-4D54-9651-38F0165EB417}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1E80CAD-4AA7-4D54-9651-38F0165EB417}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9214F27C-DFD1-45B2-B2F0-236742861E2F}
+	EndGlobalSection
+EndGlobal
