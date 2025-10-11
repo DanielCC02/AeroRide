@@ -1,53 +1,48 @@
-import 'package:frontend/screens/homepage_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/homepage_screen.dart';
+import 'package:frontend/screens/welcome_screen.dart';
+import 'package:frontend/services/token_storage.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  Widget _defaultScreen = const CircularProgressIndicator();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final token = await TokenStorage.getAccessToken();
+    setState(() {
+      _defaultScreen =
+          token != null ? const HomePageScreen() : const WelcomeScreen();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false, // quita el banner de debug
+      debugShowCheckedModeBanner: false,
       title: 'Aeroride',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: Colors.white,
-        inputDecorationTheme: const InputDecorationTheme(
-          border: OutlineInputBorder(),
-        ),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          selectedItemColor: Colors.red,
-          unselectedItemColor: Colors.grey,
-          showUnselectedLabels: true,
-        ),
       ),
-      home: const HomePageScreen(),
+      home: Scaffold(
+        body: Center(child: _defaultScreen),
+      ),
     );
   }
 }
-
-// import 'package:flutter/material.dart';
-// import 'core/styles.dart';
-// import 'screens/welcome_screen.dart';
-
-// void main() {
-//   runApp(const AeroCaribeApp());
-// }
-
-// class AeroCaribeApp extends StatelessWidget {
-//   const AeroCaribeApp({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       title: 'AeroRide',
-//       theme: AppTheme.light(),
-//       debugShowCheckedModeBanner: false,
-//       home: const WelcomeScreen(),
-//     );
-//   }
-// }

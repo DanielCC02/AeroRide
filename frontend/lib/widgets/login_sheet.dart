@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../screens/homepage_screen.dart';
+import '../services/api_config.dart';
+import '../services/token_storage.dart';
 
 class LoginSheet extends StatefulWidget {
   const LoginSheet({super.key});
@@ -12,6 +17,41 @@ class _LoginSheetState extends State<LoginSheet> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _obscure = true;
+
+Future<bool> _loginUser(String email, String password) async {
+  try {
+    final url = Uri.parse('${ApiConfig.baseUrl}/auth/login');
+
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email, 'password': password}),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      // 🧠 Tu backend devuelve: token y refreshToken
+      final token = data['token'] ?? '';
+      final refreshToken = data['refreshToken'] ?? '';
+
+      if (token.isNotEmpty) {
+        await TokenStorage.saveTokens(token, refreshToken);
+        print('✅ Login exitoso: token guardado correctamente');
+      } else {
+        print('⚠️ Login exitoso pero el token vino vacío');
+      }
+
+      return true;
+    } else {
+      print('❌ Error: ${response.statusCode} - ${response.body}');
+      return false;
+    }
+  } catch (e) {
+    print('❗ Error de conexión: $e');
+    return false;
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -73,10 +113,39 @@ class _LoginSheetState extends State<LoginSheet> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           if (_formKey.currentState!.validate()) {
-                            // TODO: integrar auth real
-                            Navigator.of(context).pop(); // cerrar sheet
+                            final success = await _loginUser(
+                              _email.text.trim(),
+                              _password.text.trim(),
+                            );
+
+                            if (success) {
+                              // ✅ Cerrar el sheet
+                              if (mounted) Navigator.pop(context);
+
+                              // ✅ Ir al HomePageScreen
+                              if (mounted) {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const HomePageScreen(),
+                                  ),
+                                );
+                              }
+                            } else {
+                              // ❌ Mostrar error si el login falla
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Correo o contraseña incorrectos',
+                                    ),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
                           }
                         },
                         child: const Text('Log in'),
