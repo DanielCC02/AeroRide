@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/homepage_admin.dart';
+import 'package:frontend/screens/homepage_pilot.dart';
+import 'package:frontend/screens/homepage_screen.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../screens/homepage_screen.dart';
 import '../services/api_config.dart';
 import '../services/token_storage.dart';
 
@@ -18,40 +20,80 @@ class _LoginSheetState extends State<LoginSheet> {
   final _password = TextEditingController();
   bool _obscure = true;
 
-Future<bool> _loginUser(String email, String password) async {
-  try {
-    final url = Uri.parse('${ApiConfig.baseUrl}/auth/login');
+  Future<bool> _loginUser(String email, String password) async {
+    try {
+      final url = Uri.parse('${ApiConfig.baseUrl}/auth/login');
 
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
-    );
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'password': password}),
+      );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final token = data['token'] ?? '';
+        final refreshToken = data['refreshToken'] ?? '';
 
-      // 🧠 Tu backend devuelve: token y refreshToken
-      final token = data['token'] ?? '';
-      final refreshToken = data['refreshToken'] ?? '';
+        if (token.isEmpty) return false;
 
-      if (token.isNotEmpty) {
         await TokenStorage.saveTokens(token, refreshToken);
-        print('✅ Login exitoso: token guardado correctamente');
-      } else {
-        print('⚠️ Login exitoso pero el token vino vacío');
-      }
 
-      return true;
-    } else {
-      print('❌ Error: ${response.statusCode} - ${response.body}');
+        // 🔹 Obtener perfil de usuario autenticado
+        final meUrl = Uri.parse('${ApiConfig.baseUrl}/api/users/me');
+        final meResponse = await http.get(
+          meUrl,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        );
+
+        if (meResponse.statusCode == 200) {
+          final userData = jsonDecode(meResponse.body);
+          final roleName = (userData['role'] ?? '').toString().toLowerCase();
+
+          print('👤 Usuario autenticado con rol: $roleName');
+
+          if (context.mounted) {
+            Navigator.of(context).pop(); // Cierra el BottomSheet
+
+            Future.delayed(const Duration(milliseconds: 200), () {
+              // 🔹 Este Navigator opera sobre el árbol raíz del MaterialApp
+              final navigator = Navigator.of(context, rootNavigator: true);
+
+              if (roleName == 'admin') {
+                navigator.pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const HomePageAdmin()),
+                  (route) => false,
+                );
+              } else if (roleName == 'pilot') {
+                navigator.pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const HomePagePilot()),
+                  (route) => false,
+                );
+              } else {
+                navigator.pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const HomePageScreen()),
+                  (route) => false,
+                );
+              }
+            });
+          }
+          return true;
+        } else {
+          print('⚠️ No se pudo obtener perfil de usuario: ${meResponse.body}');
+          return false;
+        }
+      } else {
+        print('❌ Error: ${response.statusCode} - ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print('❗ Error de conexión: $e');
       return false;
     }
-  } catch (e) {
-    print('❗ Error de conexión: $e');
-    return false;
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -120,31 +162,15 @@ Future<bool> _loginUser(String email, String password) async {
                               _password.text.trim(),
                             );
 
-                            if (success) {
-                              // ✅ Cerrar el sheet
-                              if (mounted) Navigator.pop(context);
-
-                              // ✅ Ir al HomePageScreen
-                              if (mounted) {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const HomePageScreen(),
+                            if (!success && mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Correo o contraseña incorrectos',
                                   ),
-                                );
-                              }
-                            } else {
-                              // ❌ Mostrar error si el login falla
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Correo o contraseña incorrectos',
-                                    ),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
                             }
                           }
                         },

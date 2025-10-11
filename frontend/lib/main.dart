@@ -1,4 +1,9 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:frontend/services/api_config.dart';
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/homepage_admin.dart';
+import 'package:frontend/screens/homepage_pilot.dart';
 import 'package:frontend/screens/homepage_screen.dart';
 import 'package:frontend/screens/welcome_screen.dart';
 import 'package:frontend/services/token_storage.dart';
@@ -15,7 +20,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  Widget _defaultScreen = const CircularProgressIndicator();
+  Widget _defaultScreen = const Center(child: CircularProgressIndicator());
 
   @override
   void initState() {
@@ -23,12 +28,48 @@ class _MyAppState extends State<MyApp> {
     _checkLoginStatus();
   }
 
+  /// Verifica si hay un token guardado para decidir la pantalla inicial.
   Future<void> _checkLoginStatus() async {
     final token = await TokenStorage.getAccessToken();
-    setState(() {
-      _defaultScreen =
-          token != null ? const HomePageScreen() : const WelcomeScreen();
-    });
+
+    if (token == null) {
+      setState(() => _defaultScreen = const WelcomeScreen());
+      return;
+    }
+
+    try {
+      // Llama al endpoint para obtener el perfil
+      final url = Uri.parse('${ApiConfig.baseUrl}/api/users/me');
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final roleName = (data['role'] ?? '').toString().toLowerCase();
+
+        setState(() {
+          if (roleName == 'admin') {
+            _defaultScreen = const HomePageAdmin();
+          } else if (roleName == 'pilot') {
+            _defaultScreen = const HomePagePilot();
+          } else {
+            _defaultScreen = const HomePageScreen();
+          }
+        });
+      } else {
+        // Token inválido o expirado
+        await TokenStorage.clearTokens();
+        setState(() => _defaultScreen = const WelcomeScreen());
+      }
+    } catch (e) {
+      print('⚠️ Error al verificar token: $e');
+      setState(() => _defaultScreen = const WelcomeScreen());
+    }
   }
 
   @override
@@ -39,10 +80,20 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: Colors.white,
+
+        /// 🔹 Restauramos tu configuración original del BottomNavigationBar
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          selectedItemColor: Colors.red,
+          unselectedItemColor: Colors.grey,
+          showUnselectedLabels: true,
+        ),
       ),
-      home: Scaffold(
-        body: Center(child: _defaultScreen),
-      ),
+      home: _defaultScreen,
+      routes: {
+        '/user': (_) => const HomePageScreen(),
+        '/pilot': (_) => const HomePagePilot(),
+        '/admin': (_) => const HomePageAdmin(),
+      },
     );
   }
 }

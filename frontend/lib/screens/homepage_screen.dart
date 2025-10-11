@@ -61,7 +61,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
                     ),
                   ),
                 ],
-                style: DefaultTextStyle.of(context).style,
               ),
             ),
           ],
@@ -75,15 +74,12 @@ class _HomePageScreenState extends State<HomePageScreen> {
             icon: const Icon(Icons.logout, color: Colors.red),
             tooltip: 'Cerrar sesión',
             onPressed: () async {
-              // Borrar tokens guardados
               await TokenStorage.clearTokens();
-
-              // Redirigir a la pantalla de bienvenida
-              if (mounted) {
+              if (context.mounted) {
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                  (route) => false,
+                  (route) => false, // 🔹 borra todo el stack anterior
                 );
               }
             },
