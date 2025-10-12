@@ -56,12 +56,12 @@ namespace AeroRide.API.Models.DTOs.Users
         /// Indica si el usuario ha aceptado los Términos de Uso.
         /// Por defecto se establece en <c>true</c> en la creación manual.
         /// </summary>
-        public bool TermsOfUse { get; set; } = true;
+        //public bool TermsOfUse { get; set; } = true;
 
-        /// <summary>
-        /// Indica si el usuario ha aceptado el Aviso de Privacidad.
-        /// Por defecto se establece en <c>true</c> en la creación manual.
-        /// </summary>
-        public bool PrivacyNotice { get; set; } = true;
+        ///// <summary>
+        ///// Indica si el usuario ha aceptado el Aviso de Privacidad.
+        ///// Por defecto se establece en <c>true</c> en la creación manual.
+        ///// </summary>
+        //public bool PrivacyNotice { get; set; } = true;
     }
 }

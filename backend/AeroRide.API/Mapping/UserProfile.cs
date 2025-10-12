@@ -22,12 +22,14 @@ namespace AeroRide.API.Mappings
 
             // 1️⃣ Listado general de usuarios
             CreateMap<User, UserListDto>()
-                .ForMember(dest => dest.FullName,
-                    opt => opt.MapFrom(src => $"{src.Name} {src.LastName}"))
+                .ForMember(dest => dest.Name,
+                    opt => opt.MapFrom(src => src.Name))
+                .ForMember(dest => dest.LastName,
+                    opt => opt.MapFrom(src => src.LastName))
                 .ForMember(dest => dest.Role,
                     opt => opt.MapFrom(src => src.Role != null ? src.Role.Name : "Sin rol"))
                 .ForMember(dest => dest.IsActive,
-                    opt => opt.MapFrom(src => src.IsActive)); // ✅ nuevo campo mapeado
+                    opt => opt.MapFrom(src => src.IsActive));
 
             // 2️⃣ Detalle de usuario individual
             CreateMap<User, UserDetailDto>()
@@ -44,9 +46,7 @@ namespace AeroRide.API.Mappings
                     opt => opt.MapFrom(src => src.Role != null ? src.Role.Name : "Sin rol"));
 
             // 4️⃣ Respuesta estándar del usuario (registro o creación)
-            CreateMap<User, UserResponseDto>()
-                .ForMember(dest => dest.FullName,
-                    opt => opt.MapFrom(src => $"{src.Name} {src.LastName}"))
+            CreateMap<User, UserResponseDto>()                
                 .ForMember(dest => dest.Role,
                     opt => opt.MapFrom(src => src.Role != null ? src.Role.Name : "User"));
 
@@ -66,7 +66,11 @@ namespace AeroRide.API.Mappings
             CreateMap<CreateUserDto, User>()
                 .ForMember(dest => dest.Password, opt => opt.MapFrom(src => src.Password))
                 .ForMember(dest => dest.RegistrationDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
-                .ForMember(dest => dest.IsVerified, opt => opt.MapFrom(_ => true)); // Creado por admin → verificado automáticamente
+                .ForMember(dest => dest.IsVerified, opt => opt.MapFrom(_ => true)) // Creado por admin → verificado automáticamente
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true))
+                .ForMember(dest => dest.PrivacyNotice, opt => opt.MapFrom(_ => true))
+                .ForMember(dest => dest.TermsOfUse, opt => opt.MapFrom(_ => true));
+
 
             // ======================================================
             // ✏️ ACTUALIZACIONES
@@ -81,7 +85,12 @@ namespace AeroRide.API.Mappings
 
             // 8️⃣ Actualización por administrador (parcial, solo campos enviados)
             CreateMap<UserUpdateAdminDto, User>()
+                .ForMember(dest => dest.IsActive, opt => opt.Ignore()) //Recordar comentarlo con tomas
+                .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email))
+                .ForMember(dest => dest.RoleId, opt => opt.MapFrom(src => src.RoleId))
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
+
+                
         }
     }
 }

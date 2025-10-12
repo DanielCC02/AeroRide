@@ -48,6 +48,8 @@ namespace AeroRide.API.Services.Implementations
         {
             return await _db.Users
                 .Include(u => u.Role)
+                .IgnoreQueryFilters()
+                .OrderBy(u => u.Id)
                 .ProjectTo<UserListDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();
         }
@@ -240,7 +242,7 @@ namespace AeroRide.API.Services.Implementations
         /// <exception cref="Exception">
         /// Se lanza si el rol especificado no existe.
         /// </exception>
-        public async Task<UserResponseDto?> UpdateUserByAdminAsync(int id, UserUpdateAdminDto dto)
+        public async Task<UserProfileDto?> UpdateUserByAdminAsync(int id, UserUpdateAdminDto dto)
         {
             var user = await _db.Users
                 .IgnoreQueryFilters()
@@ -264,7 +266,26 @@ namespace AeroRide.API.Services.Implementations
             // Recargar la relación con Role
             await _db.Entry(user).Reference(u => u.Role).LoadAsync();
 
-            return _mapper.Map<UserResponseDto>(user);
+            return _mapper.Map<UserProfileDto>(user);
         }
+
+        /// <summary>
+        /// Obtiene todos los usuarios activos cuyo rol es "Pilot".
+        /// </summary>
+        /// <returns>Lista de usuarios mapeados al DTO <see cref="UserListDto"/>.</returns>
+        public async Task<IEnumerable<UserListDto>> GetAllPilotsAsync()
+        {
+            // 🔹 Consulta usuarios con su relación de rol
+            var pilots = await _db.Users
+                .Include(u => u.Role)
+                .Where(u => u.IsActive && u.Role.Name == "Pilot")
+                .OrderBy(u => u.Id)
+                .AsNoTracking()
+                .ToListAsync();
+
+            // 🔹 Mapear con AutoMapper (usa tu UserProfile)
+            return _mapper.Map<IEnumerable<UserListDto>>(pilots);
+        }
+
     }
 }

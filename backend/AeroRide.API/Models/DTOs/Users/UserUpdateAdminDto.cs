@@ -11,6 +11,8 @@ public class UserUpdateAdminDto
     /// <summary>Nuevo apellido del usuario (opcional).</summary>
     public string? LastName { get; set; }
 
+    public string? Email { get; set; }
+
     /// <summary>Nuevo número de teléfono del usuario (opcional).</summary>
     public string? PhoneNumber { get; set; }
 

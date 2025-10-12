@@ -89,6 +89,13 @@ namespace AeroRide.API.Services.Interfaces
         /// Un objeto <see cref="UserResponseDto"/> con los datos actualizados,
         /// o <c>null</c> si el usuario no se encuentra.
         /// </returns>
-        Task<UserResponseDto?> UpdateUserByAdminAsync(int id, UserUpdateAdminDto dto);
+        Task<UserProfileDto?> UpdateUserByAdminAsync(int id, UserUpdateAdminDto dto);
+
+        /// <summary>
+        /// Obtiene la lista de usuarios que poseen el rol de piloto.
+        /// </summary>
+        /// <returns>Una colección de usuarios con el rol "Pilot".</returns>
+        Task<IEnumerable<UserListDto>> GetAllPilotsAsync();
+
     }
 }
