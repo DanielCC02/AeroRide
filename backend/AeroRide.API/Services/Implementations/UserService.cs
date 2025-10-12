@@ -48,6 +48,7 @@ namespace AeroRide.API.Services.Implementations
         {
             return await _db.Users
                 .Include(u => u.Role)
+                .IgnoreQueryFilters()
                 .ProjectTo<UserListDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();
         }

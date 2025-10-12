@@ -40,6 +40,12 @@ class AdminActionsPanel extends StatelessWidget {
                   ),
                 ),
                 onPressed: () {
+                  final label = action['label'] as String;
+
+                  if (label == 'User Management') {
+                    Navigator.pushNamed(context, '/admin/users');
+                    return;
+                  }
                   // 🔹 Aquí se agregará la navegación futura
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(

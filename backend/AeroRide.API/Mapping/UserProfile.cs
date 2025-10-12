@@ -66,8 +66,8 @@ namespace AeroRide.API.Mappings
             CreateMap<CreateUserDto, User>()
                 .ForMember(dest => dest.Password, opt => opt.MapFrom(src => src.Password))
                 .ForMember(dest => dest.RegistrationDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
-                .ForMember(dest => dest.IsVerified, opt => opt.MapFrom(_ => true)); // Creado por admin → verificado automáticamente
-
+                .ForMember(dest => dest.IsVerified, opt => opt.MapFrom(_ => true)) // Creado por admin → verificado automáticamente
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true)); // Creado por admin → verificado automáticamente
             // ======================================================
             // ✏️ ACTUALIZACIONES
             // ======================================================
@@ -79,8 +79,11 @@ namespace AeroRide.API.Mappings
                 .ForMember(dest => dest.RoleId, opt => opt.Ignore())
                 .ForMember(dest => dest.Password, opt => opt.Ignore());
 
-            // 8️⃣ Actualización por administrador (parcial, solo campos enviados)
+            // 8️⃣ Actualización por administrador (puede modificar correo y rol)
             CreateMap<UserUpdateAdminDto, User>()
+                .ForMember(dest => dest.IsActive, opt => opt.Ignore())   // Mantiene el estado activo
+                .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email)) // Permite actualizar email
+                .ForMember(dest => dest.RoleId, opt => opt.MapFrom(src => src.RoleId)) // Permite actualizar rol
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
         }
     }
