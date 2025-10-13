@@ -17,14 +17,16 @@ class _EditUserScreenState extends State<EditUserScreen> {
   final _userService = UserService();
   bool _isLoading = false;
 
-  late TextEditingController _fullName;
+  late TextEditingController _firstName;
+  late TextEditingController _lastName;
   late TextEditingController _email;
   late String _role;
 
   @override
   void initState() {
     super.initState();
-    _fullName = TextEditingController(text: widget.user.fullName);
+    _firstName = TextEditingController(text: widget.user.name ?? '');
+    _lastName = TextEditingController(text: widget.user.lastName ?? '');
     _email = TextEditingController(text: widget.user.email);
     _role = widget.user.role;
   }
@@ -37,7 +39,8 @@ class _EditUserScreenState extends State<EditUserScreen> {
     try {
       await _userService.updateUserByAdmin(
         id: widget.user.id,
-        fullName: _fullName.text.trim(),
+        name: _firstName.text.trim(),
+        lastName: _lastName.text.trim(),
         email: _email.text.trim(),
         role: _role,
       );
@@ -70,10 +73,17 @@ class _EditUserScreenState extends State<EditUserScreen> {
           child: Column(
             children: [
               TextFormField(
-                controller: _fullName,
-                decoration: const InputDecoration(labelText: 'Full Name'),
+                controller: _firstName,
+                decoration: const InputDecoration(labelText: 'First Name'),
                 validator: (v) =>
-                    v == null || v.isEmpty ? 'Enter a valid name' : null,
+                    v == null || v.isEmpty ? 'Enter first name' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _lastName,
+                decoration: const InputDecoration(labelText: 'Last Name'),
+                validator: (v) =>
+                    v == null || v.isEmpty ? 'Enter last name' : null,
               ),
               const SizedBox(height: 12),
               TextFormField(

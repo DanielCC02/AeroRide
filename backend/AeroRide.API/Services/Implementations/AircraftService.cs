@@ -109,6 +109,7 @@ namespace AeroRide.API.Services
         public async Task<AircraftResponseDto?> GetByIdAsync(int id)
         {
             var aircraft = await _db.Aircrafts
+                .IgnoreQueryFilters() // 👈 Ignora el filtro IsActive
                 .AsNoTracking()
                 .FirstOrDefaultAsync(a => a.Id == id);
 

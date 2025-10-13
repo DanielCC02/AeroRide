@@ -58,99 +58,91 @@ class UserService {
   }
 
   /// Crea un nuevo usuario en el sistema (solo administradores).
-  Future<void> createUser({
-    required String name,
-    required String lastName,
-    required String email,
-    required String phoneNumber,
-    required String password,
-    required int roleId,
-    required bool termsOfUse,
-    required bool privacyNotice,
-  }) async {
-    final token = await TokenStorage.getAccessToken();
-    if (token == null) throw Exception('Token no disponible');
+Future<void> createUser({
+  required String name,
+  required String lastName,
+  required String email,
+  required String phoneNumber,
+  required String password,
+  required int roleId,
+}) async {
+  final token = await TokenStorage.getAccessToken();
+  if (token == null) throw Exception('Token no disponible');
 
-    final url = Uri.parse('${ApiConfig.baseUrl}/api/users');
+  final url = Uri.parse('${ApiConfig.baseUrl}/api/users');
 
-    final body = {
-      'name': name,
-      'lastName': lastName,
-      'email': email,
-      'phoneNumber': phoneNumber,
-      'password': password,
-      'roleId': roleId,
-      'termsOfUse': termsOfUse,
-      'privacyNotice': privacyNotice,
-    };
+  final body = {
+    'name': name,
+    'lastName': lastName,
+    'email': email,
+    'phoneNumber': phoneNumber,
+    'password': password,
+    'roleId': roleId,
+  };
 
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode(body),
-    );
+  final response = await http.post(
+    url,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+    body: jsonEncode(body),
+  );
 
-    if (response.statusCode == 201) {
-      print('✅ Usuario creado correctamente');
-    } else {
-      print('❌ Error al crear usuario: ${response.body}');
-      throw Exception('Error al crear el usuario');
-    }
+  if (response.statusCode == 201) {
+    print('✅ Usuario creado correctamente');
+  } else {
+    print('❌ Error al crear usuario: ${response.body}');
+    throw Exception('Error al crear el usuario');
   }
+}
 
   /// Actualiza la información de un usuario específico (solo para administradores).
-  Future<void> updateUserByAdmin({
-    required int id,
-    required String fullName,
-    required String email,
-    required String role, // 'Admin', 'Pilot', 'User'
-  }) async {
-    final token = await TokenStorage.getAccessToken();
-    if (token == null) throw Exception('Token no disponible');
+Future<void> updateUserByAdmin({
+  required int id,
+  required String name,
+  required String lastName,
+  required String email,
+  required String role, // 'Admin', 'Pilot', 'User'
+}) async {
+  final token = await TokenStorage.getAccessToken();
+  if (token == null) throw Exception('Token no disponible');
 
-    final url = Uri.parse('${ApiConfig.baseUrl}/api/users/$id');
+  final url = Uri.parse('${ApiConfig.baseUrl}/api/users/$id');
 
-    // 👇 Dividir nombre y apellido
-    final parts = fullName.trim().split(' ');
-    final name = parts.isNotEmpty ? parts.first : '';
-    final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+  // 👇 Convertir nombre de rol → id
+  final Map<String, int> roleIds = {
+    'Admin': 1,
+    'Broker': 2,
+    'Pilot': 3,
+    'User': 4,
+  };
 
-    // 👇 Convertir nombre de rol → id
-    final Map<String, int> roleIds = {
-      'Admin': 1,
-      'Broker': 2,
-      'Pilot': 3,
-      'User': 4,
-    };
+  final roleId = roleIds[role] ?? 4; // Por defecto: User
 
-    final roleId = roleIds[role] ?? 4; // Por defecto: User
+  final body = {
+    'name': name,
+    'lastName': lastName,
+    'email': email,
+    'roleId': roleId,
+  };
 
-    final body = {
-      'name': name,
-      'lastName': lastName,
-      'email': email,
-      'roleId': roleId, // 👈 Enviamos ID, no nombre
-    };
+  final response = await http.put(
+    url,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+    body: jsonEncode(body),
+  );
 
-    final response = await http.put(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode(body),
-    );
-
-    if (response.statusCode == 200) {
-      print('✅ Usuario actualizado correctamente');
-    } else {
-      print('❌ Error al actualizar usuario: ${response.body}');
-      throw Exception('Error al actualizar usuario');
-    }
+  if (response.statusCode == 200) {
+    print('✅ Usuario actualizado correctamente');
+  } else {
+    print('❌ Error al actualizar usuario: ${response.body}');
+    throw Exception('Error al actualizar usuario');
   }
+}
 
   /// Desactiva un usuario (soft delete) — solo para administradores.
   Future<void> deactivateUser(int id) async {

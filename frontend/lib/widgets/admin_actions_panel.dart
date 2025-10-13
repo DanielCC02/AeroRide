@@ -46,7 +46,13 @@ class AdminActionsPanel extends StatelessWidget {
                     Navigator.pushNamed(context, '/admin/users');
                     return;
                   }
-                  // 🔹 Aquí se agregará la navegación futura
+
+                  if (label == 'Fleet Management') {
+                    Navigator.pushNamed(context, '/admin/fleet');
+                    return;
+                  }
+
+                  // 🔹 Si todavía no hay implementación para esa acción
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('${action['label']} (coming soon)'),

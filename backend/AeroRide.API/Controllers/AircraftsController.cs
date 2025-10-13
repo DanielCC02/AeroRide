@@ -60,7 +60,7 @@ namespace AeroRide.API.Controllers
         [HttpGet]
         [Authorize(Roles = "Admin,Broker,Pilot,User")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetAllAircrafts()
         {
             var aircrafts = await _aircraftService.GetAllAsync();
@@ -78,7 +78,7 @@ namespace AeroRide.API.Controllers
         [HttpGet("all")]
         [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetAllIncludingInactive()
         {
             var aircrafts = await _aircraftService.GetAllIncludingInactiveAsync();
