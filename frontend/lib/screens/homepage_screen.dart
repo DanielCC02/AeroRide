@@ -3,6 +3,8 @@ import '../widgets/search_form.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../screens/trips_screen.dart';
 import '../screens/map_screen.dart';
+import '../services/token_storage.dart';
+import '../screens/welcome_screen.dart';
 
 class HomePageScreen extends StatefulWidget {
   const HomePageScreen({super.key});
@@ -37,10 +39,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              "assets/images/logo.jpg",
-              height: 40,
-            ),
+            Image.asset("assets/images/logo.jpg", height: 40),
             const SizedBox(width: 8),
             RichText(
               text: TextSpan(
@@ -62,13 +61,30 @@ class _HomePageScreenState extends State<HomePageScreen> {
                     ),
                   ),
                 ],
-                style: DefaultTextStyle.of(context).style,
               ),
             ),
           ],
         ),
         centerTitle: true,
         elevation: 0,
+
+        // 👇 Agregamos este bloque
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.red),
+            tooltip: 'Cerrar sesión',
+            onPressed: () async {
+              await TokenStorage.clearTokens();
+              if (context.mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                  (route) => false, // 🔹 borra todo el stack anterior
+                );
+              }
+            },
+          ),
+        ],
       ),
       body: SafeArea(child: _screens[_selectedIndex]),
       bottomNavigationBar: CustomBottomNav(

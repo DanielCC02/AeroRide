@@ -134,6 +134,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // ======================================================
+// 🌐 CONFIGURACIÓN DE CORS (Cross-Origin Resource Sharing)
+// ======================================================
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: MyAllowSpecificOrigins,
+        policy =>
+        {
+            policy
+                .AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        });
+});
+
+
+// ======================================================
 // ⚙️ CONSTRUCCIÓN DE LA APLICACIÓN
 // ======================================================
 
@@ -166,7 +184,9 @@ if (app.Environment.IsDevelopment())
 /// <summary>
 /// Fuerza HTTPS para todas las solicitudes entrantes.
 /// </summary>
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
+
+app.UseCors(MyAllowSpecificOrigins);
 
 /// <summary>
 /// Aplica autenticación y autorización a nivel global.

@@ -83,7 +83,7 @@ namespace AeroRide.API.Mappings
                 .ForMember(dest => dest.RoleId, opt => opt.Ignore())
                 .ForMember(dest => dest.Password, opt => opt.Ignore());
 
-            // 8️⃣ Actualización por administrador (parcial, solo campos enviados)
+            // 8️⃣ Actualización por administrador (puede modificar correo y rol)
             CreateMap<UserUpdateAdminDto, User>()
                 .ForMember(dest => dest.IsActive, opt => opt.Ignore()) //Recordar comentarlo con tomas
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email))
