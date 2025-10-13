@@ -224,5 +224,28 @@ namespace AeroRide.API.Controllers
                 return BadRequest(new { error = ex.Message });
             }
         }
+
+        // ============================================================
+        // GET /api/users/pilots
+        // ============================================================
+
+        /// <summary>
+        /// Obtiene la lista de todos los usuarios con el rol de piloto.
+        /// Solo los administradores pueden acceder a este listado.
+        /// </summary>
+        [HttpGet("pilots")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<IActionResult> GetAllPilots()
+        {
+            var pilots = await _userService.GetAllPilotsAsync();
+
+            if (!pilots.Any())
+                return NoContent();
+
+            return Ok(pilots);
+        }
+
     }
 }

@@ -142,6 +142,10 @@ namespace AeroRide.API.Data
                 // e.Property(a => a.Price).HasColumnType("decimal(18,2)");
             });
 
+            // 🔹 Filtra automáticamente las aeronaves inactivas
+            modelBuilder.Entity<Aircraft>()
+                .HasQueryFilter(a => a.IsActive);
+
             // ======================================================
             // 🌎 AIRPORTS (PostGIS)
             // ======================================================

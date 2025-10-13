@@ -50,6 +50,13 @@
         public string Image { get; set; } = null!;
 
         /// <summary>
+        /// Indica si la aeronave está activa o desactivada dentro del sistema.
+        /// Cuando se marca como <c>false</c>, se considera eliminada lógicamente.
+        /// </summary>
+        public bool IsActive { get; set; } = true;
+
+
+        /// <summary>
         /// Colección de vuelos asociados a la aeronave.
         /// Representa una relación uno a muchos (<c>1:N</c>) entre <see cref="Aircraft"/> y <see cref="Flight"/>.
         /// </summary>

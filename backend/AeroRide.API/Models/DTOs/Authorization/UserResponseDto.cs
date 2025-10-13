@@ -17,7 +17,9 @@ namespace AeroRide.API.Models.DTOs.Authorization
         /// <summary>
         /// Nombre completo del usuario (Nombre + Apellido).
         /// </summary>
-        public string FullName { get; set; } = null!;
+        public string Name { get; set; } = null!;
+
+        public string LastName { get; set; } = null!;
 
         /// <summary>
         /// Correo electrónico del usuario.

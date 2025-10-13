@@ -1,5 +1,8 @@
 ﻿using AeroRide.API.Data;
+using AeroRide.API.Helpers;
+using AeroRide.API.Interfaces;
 using AeroRide.API.Mappings;
+using AeroRide.API.Services;
 using AeroRide.API.Services.Implementations;
 using AeroRide.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -15,6 +18,8 @@ using System.Text;
 /// AutoMapper y middlewares globales para el correcto funcionamiento del backend.
 /// </summary>
 var builder = WebApplication.CreateBuilder(args);
+
+
 
 // ======================================================
 // 🧩 REGISTRO DE SERVICIOS (DEPENDENCY INJECTION)
@@ -37,6 +42,10 @@ builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 /// </summary>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IAircraftService, AircraftService>();
+builder.Services.AddScoped<IImageService, ImageService>();
+
+
 // 🔹 Aquí podrás registrar otros servicios en el futuro, como IFlightService, IReservationService, etc.
 
 /// <summary>
@@ -48,6 +57,9 @@ builder.Services.AddDbContext<AeroRideDbContext>(options =>
         o => o.UseNetTopologySuite()
     )
 );
+
+builder.Services.AddSingleton<BlobStorageService>();
+
 
 // ======================================================
 // 🔐 CONFIGURACIÓN DE AUTENTICACIÓN JWT
