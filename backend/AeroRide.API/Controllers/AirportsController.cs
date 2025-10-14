@@ -179,5 +179,25 @@ namespace AeroRide.API.Controllers
                 return BadRequest(new { error = ex.Message });
             }
         }
+
+        // ======================================================
+        // 🔍 SEARCH (AUTOCOMPLETE)
+        // ======================================================
+
+        /// <summary>
+        /// Busca aeropuertos por nombre, país o código IATA.
+        /// Ideal para autocompletado o filtros dinámicos en el frontend.
+        /// </summary>
+        /// <param name="query">Texto parcial ingresado por el usuario.</param>
+        /// <returns>Lista de aeropuertos que coinciden con el texto.</returns>
+        [HttpGet("search")]
+        [Authorize(Roles = "Admin,Broker,Pilot,User")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> SearchAirports([FromQuery] string query)
+        {
+            var results = await _airportService.SearchAsync(query);
+            return Ok(results);
+        }
+
     }
 }

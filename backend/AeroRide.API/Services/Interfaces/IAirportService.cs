@@ -29,5 +29,14 @@ namespace AeroRide.API.Services.Interfaces
         /// <summary>Reactiva un aeropuerto previamente desactivado.</summary>
         Task<bool> ReactivateAsync(int id);
 
+        /// <summary>
+        /// Busca aeropuertos que coincidan parcial o totalmente con el nombre,
+        /// país o código IATA. Utilizado para autocompletado.
+        /// </summary>
+        /// <param name="query">Texto parcial a buscar.</param>
+        /// <returns>Lista de aeropuertos que coinciden con el texto.</returns>
+        Task<IEnumerable<AirportListDto>> SearchAsync(string query);
+
+
     }
 }

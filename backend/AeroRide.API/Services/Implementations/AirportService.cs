@@ -144,5 +144,38 @@ namespace AeroRide.API.Services
             await _db.SaveChangesAsync();
             return true;
         }
+
+        // ======================================================
+        // 🔍 SEARCH (AUTOCOMPLETE)
+        // ======================================================
+
+        /// <summary>
+        /// Busca aeropuertos que coincidan parcial o totalmente con el nombre,
+        /// país o código IATA. Ideal para autocompletado en el frontend.
+        /// </summary>
+        /// <param name="query">Texto parcial ingresado por el usuario.</param>
+        /// <returns>Listado de aeropuertos coincidentes (máx. 10 resultados).</returns>
+        public async Task<IEnumerable<AirportListDto>> SearchAsync(string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return Enumerable.Empty<AirportListDto>();
+
+            var normalized = query.Trim().ToLower();
+
+            var results = await _db.Airports
+                .Where(a =>
+                    a.IsActive && (
+                        a.Name.ToLower().Contains(normalized) ||
+                        a.Country.ToLower().Contains(normalized) ||
+                        a.CodeIATA.ToLower().Contains(normalized)
+                    ))
+                .OrderBy(a => a.Name)
+                .Take(10) // 🔹 límite de resultados para autocompletado
+                .ProjectTo<AirportListDto>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+
+            return results;
+        }
+
     }
 }

@@ -76,7 +76,18 @@ namespace AeroRide.API.Interfaces
         /// </returns>
         Task<(bool Success, string Message)> UpdateStateAsync(int id, string newState);
 
+        // ======================================================
+        // 🔹 FILTERS
+        // ======================================================
 
+        /// <summary>
+        /// Filtra las aeronaves activas por número de asientos.
+        /// Permite establecer un mínimo y un máximo para el filtro.
+        /// </summary>
+        /// <param name="minSeats">Cantidad mínima de asientos requerida.</param>
+        /// <param name="maxSeats">Cantidad máxima de asientos (opcional).</param>
+        /// <returns>Lista de aeronaves que cumplen con el filtro.</returns>
+        Task<IEnumerable<AircraftResponseDto>> FilterBySeatsAsync(int minSeats, int? maxSeats);
 
     }
 }
