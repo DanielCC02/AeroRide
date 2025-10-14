@@ -4,6 +4,7 @@ using AeroRide.API.Models.Domain;
 using AeroRide.API.Models.DTOs.Aircrafts;
 using AeroRide.API.Models.Enums;
 using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 
@@ -258,6 +259,34 @@ namespace AeroRide.API.Services
             }
 
             return (true, string.Empty);
+        }
+
+        // ======================================================
+        // 🔍 FILTER BY SEATS AND STATE = "Disponible"
+        // ======================================================
+
+        /// <summary>
+        /// Devuelve aeronaves activas y disponibles filtradas por número de asientos.
+        /// Ideal para mostrar avionetas listas para reserva según la selección del usuario.
+        /// </summary>
+        /// <param name="minSeats">Cantidad mínima de asientos requerida.</param>
+        /// <param name="maxSeats">Cantidad máxima de asientos (opcional).</param>
+        /// <returns>Lista de aeronaves disponibles que cumplen con el filtro.</returns>
+        public async Task<IEnumerable<AircraftResponseDto>> FilterBySeatsAsync(int minSeats, int? maxSeats)
+        {
+            // Base query: aeronaves activas y disponibles
+            var query = _db.Aircrafts
+                .Where(a => a.IsActive && a.State.ToLower() == "disponible" && a.Seats >= minSeats);
+
+            // Filtro adicional: cantidad máxima de asientos
+            if (maxSeats.HasValue)
+                query = query.Where(a => a.Seats <= maxSeats.Value);
+
+            // Ordenar por cantidad de asientos
+            return await query
+                .OrderBy(a => a.Seats)
+                .ProjectTo<AircraftResponseDto>(_mapper.ConfigurationProvider)
+                .ToListAsync();
         }
 
 

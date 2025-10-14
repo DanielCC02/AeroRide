@@ -255,5 +255,26 @@ namespace AeroRide.API.Controllers
             return Ok(new { message = result.Message });
         }
 
+        // ======================================================
+        // 🔍 FILTER BY SEATS
+        // ======================================================
+
+        /// <summary>
+        /// Filtra las aeronaves según el número mínimo o máximo de asientos.
+        /// Ideal para mostrar solo avionetas disponibles según la selección del usuario.
+        /// </summary>
+        /// <param name="minSeats">Cantidad mínima de asientos requeridos.</param>
+        /// <param name="maxSeats">Cantidad máxima de asientos (opcional).</param>
+        /// <returns>Lista de aeronaves que cumplen con el filtro.</returns>
+        [HttpGet("filter")]
+        [Authorize(Roles = "Admin,Broker,Pilot,User")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> FilterAircrafts([FromQuery] int minSeats, [FromQuery] int? maxSeats)
+        {
+            var results = await _aircraftService.FilterBySeatsAsync(minSeats, maxSeats);
+            return Ok(results);
+        }
+
+
     }
 }
