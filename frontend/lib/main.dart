@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:frontend/screens/admin/fleet_management_screen.dart';
 import 'package:frontend/screens/admin/user_management_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:frontend/services/api_config.dart';
@@ -94,9 +95,10 @@ class _MyAppState extends State<MyApp> {
         '/user': (_) => const HomePageScreen(),
         '/pilot': (_) => const HomePagePilot(),
         '/admin': (_) => const HomePageAdmin(),
-
         // Ruta para gestión de usuarios (ADMIN)
         '/admin/users': (_) => const UserManagementScreen(),
+        // Ruta para gestión de la flota (ADMIN)
+        '/admin/fleet': (_) => const FleetManagementScreen(),
       },
     );
   }

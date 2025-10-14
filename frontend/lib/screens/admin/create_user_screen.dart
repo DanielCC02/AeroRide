@@ -20,8 +20,6 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
   final _password = TextEditingController();
 
   int _selectedRoleId = 4; // 1=Admin, 3=Pilot, 4=User
-  bool _termsAccepted = true;
-  bool _privacyAccepted = true;
   bool _isLoading = false;
 
   Future<void> _submit() async {
@@ -37,8 +35,6 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
         phoneNumber: _phone.text.trim(),
         password: _password.text.trim(),
         roleId: _selectedRoleId,
-        termsOfUse: _termsAccepted,
-        privacyNotice: _privacyAccepted,
       );
 
       if (mounted) {
@@ -46,7 +42,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
           const SnackBar(content: Text('✅ Usuario creado correctamente')),
         );
 
-       // Devuelve un valor “true” para que UserManagementScreen sepa recargar
+        // Devuelve un valor “true” para que UserManagementScreen sepa recargar
         Navigator.pop(context, true);
       }
     } catch (e) {
@@ -120,19 +116,6 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
                   DropdownMenuItem(value: 4, child: Text('User')),
                 ],
                 onChanged: (v) => setState(() => _selectedRoleId = v ?? 4),
-              ),
-              const SizedBox(height: 16),
-
-              // 🔹 Checkboxes de políticas
-              CheckboxListTile(
-                value: _termsAccepted,
-                title: const Text('Terms of Use Accepted'),
-                onChanged: (v) => setState(() => _termsAccepted = v ?? false),
-              ),
-              CheckboxListTile(
-                value: _privacyAccepted,
-                title: const Text('Privacy Notice Accepted'),
-                onChanged: (v) => setState(() => _privacyAccepted = v ?? false),
               ),
               const SizedBox(height: 24),
 

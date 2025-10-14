@@ -6,6 +6,7 @@
     /// </summary>
     public class AircraftUpdateDto
     {
+        public string? Patent { get; set; }
         /// <summary>Nuevo modelo o tipo de aeronave (opcional).</summary>
         public string? Model { get; set; }
 
