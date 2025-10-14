@@ -28,6 +28,7 @@ namespace AeroRide.API.Data
         public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
         public DbSet<RevokedToken> RevokedTokens { get; set; } = null!;
 
+
         /// <summary>
         /// Configuración de relaciones, índices, constraints y valores por defecto.
         /// </summary>
