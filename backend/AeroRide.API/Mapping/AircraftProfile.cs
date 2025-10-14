@@ -22,17 +22,14 @@ namespace AeroRide.API.Profiles
 
             // 🔹 DTO → Entidad (para actualización parcial)
             CreateMap<AircraftUpdateDto, Aircraft>()
-    .ForAllMembers(opt =>
-        opt.Condition((src, dest, srcMember) =>
-        {
-            if (srcMember is int i && i == 0) return false;
-            if (srcMember is double d && d == 0.0) return false;
-            if (srcMember is bool b && !b) return false;
-            return srcMember != null;
-        }));
-
-
-
+                .ForAllMembers(opt =>
+                    opt.Condition((src, dest, srcMember) =>
+                    {
+                        if (srcMember is int i && i == 0) return false;
+                        if (srcMember is double d && d == 0.0) return false;
+                        if (srcMember is bool b && !b) return false;
+                        return srcMember != null;
+                    }));
 
             // 🔹 Entidad → DTO (para respuestas al cliente)
             CreateMap<Aircraft, AircraftResponseDto>();

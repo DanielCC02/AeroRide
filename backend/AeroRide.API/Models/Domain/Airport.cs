@@ -15,19 +15,17 @@ namespace AeroRide.API.Models.Domain
         public int Id { get; set; }
 
         /// <summary>
-        /// Nombre oficial del aeropuerto (por ejemplo: <c>Aeropuerto Internacional Juan Santamaría</c>).
+        /// Nombre oficial del aeropuerto (por ejemplo: Aeropuerto Internacional Juan Santamaría).
         /// </summary>
         public string Name { get; set; } = null!;
 
         /// <summary>
-        /// Código IATA (International Air Transport Association) de tres letras.
-        /// Ejemplo: <c>SJO</c>.
+        /// Código IATA (International Air Transport Association) de tres letras. Ejemplo: SJO.
         /// </summary>
         public string CodeIATA { get; set; } = null!;
 
         /// <summary>
-        /// Código OACI (Organización de Aviación Civil Internacional) de cuatro letras.
-        /// Ejemplo: <c>MROC</c>.
+        /// Código OACI (Organización de Aviación Civil Internacional) de cuatro letras. Ejemplo: MROC.
         /// </summary>
         public string CodeOACI { get; set; } = null!;
 
@@ -43,7 +41,6 @@ namespace AeroRide.API.Models.Domain
 
         /// <summary>
         /// Hora de apertura del aeropuerto (opcional).
-        /// Algunos aeropuertos operan las 24 horas, por lo que este campo puede ser <c>null</c>.
         /// </summary>
         public TimeSpan? OpeningTime { get; set; }
 
@@ -63,13 +60,12 @@ namespace AeroRide.API.Models.Domain
         public decimal Longitude { get; set; }
 
         /// <summary>
-        /// Representación geoespacial del aeropuerto como punto en PostGIS.
-        /// Utiliza el sistema de referencia WGS84 (<c>SRID 4326</c>).
+        /// Representación geoespacial del aeropuerto como punto en PostGIS (SRID 4326).
         /// </summary>
         public Point Ubication { get; set; } = null!;
 
         /// <summary>
-        /// Imagen o recurso gráfico representativo del aeropuerto (puede ser URL o ruta local).
+        /// Imagen o recurso gráfico representativo del aeropuerto (URL o ruta local).
         /// </summary>
         public string Image { get; set; } = null!;
 
@@ -79,8 +75,12 @@ namespace AeroRide.API.Models.Domain
         public double Tax { get; set; }
 
         /// <summary>
+        /// Indica si el aeropuerto se encuentra activo en el sistema.
+        /// </summary>
+        public bool IsActive { get; set; } = true;
+
+        /// <summary>
         /// Colección de vuelos que despegan desde este aeropuerto.
-        /// Representa la relación uno a muchos (<c>1:N</c>) entre <see cref="Airport"/> y <see cref="Flight"/>.
         /// </summary>
         public ICollection<Flight> DepartureFlights { get; set; } = new List<Flight>();
 
