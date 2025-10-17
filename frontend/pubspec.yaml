@@ -33,6 +33,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   table_calendar: ^3.0.9
 
+  http: ^1.2.2
+
   # --- Mapa y ubicación ---
   google_maps_flutter: ^2.9.0      # Renderiza el mapa nativo
   geolocator: ^14.0.2              # Obtiene ubicación + permisos

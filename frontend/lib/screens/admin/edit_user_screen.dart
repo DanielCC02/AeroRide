@@ -99,7 +99,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
               // 🔹 Dropdown para rol
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'Role'),
-                value: _role,
+                initialValue: _role,
                 items: const [
                   DropdownMenuItem(value: 'Admin', child: Text('Admin')),
                   DropdownMenuItem(value: 'Pilot', child: Text('Pilot')),

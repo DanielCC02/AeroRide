@@ -71,9 +71,9 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('⚠️ Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('⚠️ Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -100,16 +100,16 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
               TextFormField(
                 controller: _model,
                 decoration: const InputDecoration(labelText: 'Model'),
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Enter model' : null,
+                validator: (v) => v == null || v.isEmpty ? 'Enter model' : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _price,
                 decoration: const InputDecoration(labelText: 'Price'),
                 keyboardType: TextInputType.number,
-                validator: (v) =>
-                    v == null || double.tryParse(v) == null ? 'Enter price' : null,
+                validator: (v) => v == null || double.tryParse(v) == null
+                    ? 'Enter price'
+                    : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -133,12 +133,21 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
               // 🔹 Dropdown de estado
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'State'),
-                value: _state,
+                initialValue: _state,
                 items: const [
-                  DropdownMenuItem(value: 'Disponible', child: Text('Disponible')),
+                  DropdownMenuItem(
+                    value: 'Disponible',
+                    child: Text('Disponible'),
+                  ),
                   DropdownMenuItem(value: 'EnVuelo', child: Text('En vuelo')),
-                  DropdownMenuItem(value: 'EnMantenimiento', child: Text('En mantenimiento')),
-                  DropdownMenuItem(value: 'FueraDeServicio', child: Text('Fuera de servicio')),
+                  DropdownMenuItem(
+                    value: 'EnMantenimiento',
+                    child: Text('En mantenimiento'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'FueraDeServicio',
+                    child: Text('Fuera de servicio'),
+                  ),
                 ],
                 onChanged: (v) => setState(() => _state = v ?? 'Disponible'),
               ),
@@ -148,11 +157,7 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
               if (_selectedImage != null)
                 Column(
                   children: [
-                    Image.file(
-                      _selectedImage!,
-                      height: 150,
-                      fit: BoxFit.cover,
-                    ),
+                    Image.file(_selectedImage!, height: 150, fit: BoxFit.cover),
                     const SizedBox(height: 8),
                   ],
                 ),

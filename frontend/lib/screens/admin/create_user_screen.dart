@@ -109,7 +109,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
               // 🔹 Selector de rol
               DropdownButtonFormField<int>(
                 decoration: const InputDecoration(labelText: 'Role'),
-                value: _selectedRoleId,
+                initialValue: _selectedRoleId,
                 items: const [
                   DropdownMenuItem(value: 1, child: Text('Admin')),
                   DropdownMenuItem(value: 3, child: Text('Pilot')),
