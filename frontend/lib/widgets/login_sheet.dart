@@ -14,13 +14,15 @@ class LoginSheet extends StatefulWidget {
   State<LoginSheet> createState() => _LoginSheetState();
 }
 
+enum LoginResult { success, unverified, invalid }
+
 class _LoginSheetState extends State<LoginSheet> {
   final _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _obscure = true;
 
-  Future<bool> _loginUser(String email, String password) async {
+  Future<LoginResult> _loginUser(String email, String password) async {
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/auth/login');
 
@@ -30,81 +32,117 @@ class _LoginSheetState extends State<LoginSheet> {
         body: jsonEncode({'email': email, 'password': password}),
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final token = data['token'] ?? '';
-        final refreshToken = data['refreshToken'] ?? '';
-
-        if (token.isEmpty) return false;
-
-        await TokenStorage.saveTokens(token, refreshToken);
-
-        // 🔹 Obtener perfil de usuario autenticado
-        final meUrl = Uri.parse('${ApiConfig.baseUrl}/api/users/me');
-        final meResponse = await http.get(
-          meUrl,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-        );
-
-        if (meResponse.statusCode == 200) {
-          final userData = jsonDecode(meResponse.body);
-          final roleName = (userData['role'] ?? '').toString().toLowerCase();
-
-          print('👤 Usuario autenticado con rol: $roleName');
-
-          if (context.mounted) {
-            Navigator.of(context).pop(); // Cierra el BottomSheet
-
-            Future.delayed(const Duration(milliseconds: 200), () {
-              // 🔹 Este Navigator opera sobre el árbol raíz del MaterialApp
-              final navigator = Navigator.of(context, rootNavigator: true);
-
-              if (roleName == 'admin') {
-                navigator.pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const HomePageAdmin()),
-                  (route) => false,
-                );
-              } else if (roleName == 'pilot') {
-                navigator.pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const HomePagePilot()),
-                  (route) => false,
-                );
-              } else {
-                navigator.pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const HomePageScreen()),
-                  (route) => false,
-                );
-              }
-            });
+      // ❌ Error de login
+      if (response.statusCode != 200) {
+        String msg = '';
+        try {
+          final body = jsonDecode(response.body);
+          if (body is Map && body['message'] is String) {
+            msg = (body['message'] as String).toLowerCase();
           }
-          return true;
-        } else {
-          print('⚠️ No se pudo obtener perfil de usuario: ${meResponse.body}');
-          return false;
+        } catch (_) {}
+
+        // Detectar "cuenta no verificada" (ES/EN) y típicos códigos 401/403
+        final isUnverified =
+            (response.statusCode == 401 || response.statusCode == 403) &&
+            (msg.contains('no ha sido verificada') ||
+                msg.contains('no verificada') ||
+                msg.contains('not verified') ||
+                msg.contains('verify your email'));
+
+        return isUnverified ? LoginResult.unverified : LoginResult.invalid;
+      }
+
+      // ✅ Login OK → guardar tokens
+      final data = jsonDecode(response.body);
+      final token = data['token'] ?? '';
+      final refreshToken = data['refreshToken'] ?? '';
+      if (token.isEmpty) return LoginResult.invalid;
+
+      await TokenStorage.saveTokens(token, refreshToken);
+
+      // 🔎 Obtener perfil (fallback /api/users/me → /users/me)
+      Future<http.Response> _getMe(String path) => http.get(
+        Uri.parse('${ApiConfig.baseUrl}$path'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      http.Response meResponse = await _getMe('/api/users/me');
+      if (meResponse.statusCode == 404 || meResponse.statusCode == 405) {
+        meResponse = await _getMe('/users/me');
+      }
+
+      if (meResponse.statusCode == 200) {
+        final userData = jsonDecode(meResponse.body);
+        final roleName = (userData['role'] ?? '').toString().toLowerCase();
+
+        if (context.mounted) {
+          Navigator.of(context).pop(); // Cierra el BottomSheet
+
+          Future.delayed(const Duration(milliseconds: 200), () {
+            final navigator = Navigator.of(context, rootNavigator: true);
+
+            if (roleName == 'admin') {
+              navigator.pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const HomePageAdmin()),
+                (route) => false,
+              );
+            } else if (roleName == 'pilot') {
+              navigator.pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const HomePagePilot()),
+                (route) => false,
+              );
+            } else {
+              navigator.pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const HomePageScreen()),
+                (route) => false,
+              );
+            }
+          });
         }
+        return LoginResult.success;
       } else {
-        print('❌ Error: ${response.statusCode} - ${response.body}');
-        return false;
+        return LoginResult.invalid;
       }
     } catch (e) {
-      print('❗ Error de conexión: $e');
-      return false;
+      // ignore: avoid_print
+      print('❗ Connection error: $e');
+      return LoginResult.invalid;
     }
+  }
+
+  Future<void> _showDialog({
+    required String title,
+    required String message,
+  }) async {
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Usamos AnimatedPadding para levantar el contenido cuando sale el teclado
     final bottom = MediaQuery.of(context).viewInsets.bottom;
     return AnimatedPadding(
       duration: const Duration(milliseconds: 150),
       padding: EdgeInsets.only(bottom: bottom),
       child: Column(
         children: [
-          // Header con back + título
+          // Header
           Row(
             children: [
               IconButton(
@@ -119,7 +157,7 @@ class _LoginSheetState extends State<LoginSheet> {
             ],
           ),
 
-          // El resto debe poder hacer scroll si es necesario
+          // Body
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -157,21 +195,26 @@ class _LoginSheetState extends State<LoginSheet> {
                       child: ElevatedButton(
                         onPressed: () async {
                           if (_formKey.currentState!.validate()) {
-                            final success = await _loginUser(
+                            final result = await _loginUser(
                               _email.text.trim(),
                               _password.text.trim(),
                             );
 
-                            if (!success && mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Correo o contraseña incorrectos',
-                                  ),
-                                  backgroundColor: Colors.red,
-                                ),
+                            if (!mounted) return;
+
+                            if (result == LoginResult.unverified) {
+                              await _showDialog(
+                                title: 'Account not verified',
+                                message:
+                                    'Please verify your email to continue. We just sent you a new confirmation email.',
+                              );
+                            } else if (result == LoginResult.invalid) {
+                              await _showDialog(
+                                title: 'Login failed',
+                                message: 'Incorrect email or password.',
                               );
                             }
+                            // success → navegación ya se hace dentro de _loginUser
                           }
                         },
                         child: const Text('Log in'),

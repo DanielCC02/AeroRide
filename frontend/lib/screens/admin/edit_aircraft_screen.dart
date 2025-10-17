@@ -231,7 +231,7 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
                 // 🔹 Dropdown para estado operativo (enum)
                 DropdownButtonFormField<String>(
                   decoration: const InputDecoration(labelText: 'State'),
-                  value: _state,
+                  initialValue: _state,
                   items: const [
                     DropdownMenuItem(
                       value: 'Disponible',

@@ -41,25 +41,25 @@ class _PassengersFormScreenState extends State<PassengersFormScreen> {
   late final List<TextEditingController> _nameCtrls;
   late final List<TextEditingController> _passportCtrls;
   late final List<TextEditingController> _birthTextCtrls; // visible en UI
-  late final List<DateTime?> _birthDates;                 // valor real
+  late final List<DateTime?> _birthDates; // valor real
 
   @override
   void initState() {
     super.initState();
     final n = widget.passengersCount;
 
-    _nameCtrls      = List.generate(n, (_) => TextEditingController());
-    _passportCtrls  = List.generate(n, (_) => TextEditingController());
+    _nameCtrls = List.generate(n, (_) => TextEditingController());
+    _passportCtrls = List.generate(n, (_) => TextEditingController());
     _birthTextCtrls = List.generate(n, (_) => TextEditingController());
-    _birthDates     = List<DateTime?>.filled(n, null);
+    _birthDates = List<DateTime?>.filled(n, null);
 
     // Prefill si llega información previa
     final init = widget.initialPassengers;
     if (init != null && init.isNotEmpty) {
       for (int i = 0; i < n && i < init.length; i++) {
-        _nameCtrls[i].text      = init[i].fullName;
-        _passportCtrls[i].text  = init[i].passport;
-        _birthDates[i]          = init[i].birthDate;
+        _nameCtrls[i].text = init[i].fullName;
+        _passportCtrls[i].text = init[i].passport;
+        _birthDates[i] = init[i].birthDate;
         _birthTextCtrls[i].text = _fmtDate(init[i].birthDate);
       }
     }
@@ -67,9 +67,15 @@ class _PassengersFormScreenState extends State<PassengersFormScreen> {
 
   @override
   void dispose() {
-    for (final c in _nameCtrls) c.dispose();
-    for (final c in _passportCtrls) c.dispose();
-    for (final c in _birthTextCtrls) c.dispose();
+    for (final c in _nameCtrls) {
+      c.dispose();
+    }
+    for (final c in _passportCtrls) {
+      c.dispose();
+    }
+    for (final c in _birthTextCtrls) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -77,11 +83,14 @@ class _PassengersFormScreenState extends State<PassengersFormScreen> {
     final now = DateTime.now();
     final first = DateTime(now.year - 120, 1, 1);
     final last = now;
-    final initial = _birthDates[i] ?? DateTime(now.year - 30, now.month, now.day);
+    final initial =
+        _birthDates[i] ?? DateTime(now.year - 30, now.month, now.day);
 
     final picked = await showDatePicker(
       context: context,
-      initialDate: initial.isBefore(first) || initial.isAfter(last) ? last : initial,
+      initialDate: initial.isBefore(first) || initial.isAfter(last)
+          ? last
+          : initial,
       firstDate: first,
       lastDate: last,
     );
@@ -101,7 +110,9 @@ class _PassengersFormScreenState extends State<PassengersFormScreen> {
     for (int i = 0; i < _birthDates.length; i++) {
       if (_birthDates[i] == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Please select birth date for passenger ${i + 1}')),
+          SnackBar(
+            content: Text('Please select birth date for passenger ${i + 1}'),
+          ),
         );
         return;
       }
@@ -128,10 +139,7 @@ class _PassengersFormScreenState extends State<PassengersFormScreen> {
       appBar: AppBar(
         title: const Text(
           'Passengers Information',
-          style: TextStyle(
-            color: red,
-            fontWeight: FontWeight.w800,
-          ),
+          style: TextStyle(color: red, fontWeight: FontWeight.w800),
         ),
         iconTheme: const IconThemeData(color: Colors.black87),
       ),
@@ -152,8 +160,10 @@ class _PassengersFormScreenState extends State<PassengersFormScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Passenger ${i + 1}',
-                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  Text(
+                    'Passenger ${i + 1}',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _nameCtrls[i],
@@ -211,7 +221,10 @@ class _PassengersFormScreenState extends State<PassengersFormScreen> {
               elevation: 0,
             ),
             onPressed: _submit,
-            child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w700)),
+            child: const Text(
+              'Done',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
         ),
       ),
