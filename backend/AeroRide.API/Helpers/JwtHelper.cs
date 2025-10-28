@@ -30,6 +30,16 @@ namespace AeroRide.API.Helpers
         /// <returns>Un string con el token JWT firmado.</returns>
         public static string GenerateToken(User user, string secretKey, string issuer, string audience, int expireMinutes = 60)
         {
+
+            if (string.IsNullOrWhiteSpace(secretKey))
+                throw new ArgumentNullException(nameof(secretKey), "La clave secreta no puede ser nula o vacía.");
+
+            if (string.IsNullOrWhiteSpace(issuer))
+                throw new ArgumentNullException(nameof(issuer), "El issuer no puede ser nulo o vacío.");
+
+            if (string.IsNullOrWhiteSpace(audience))
+                throw new ArgumentNullException(nameof(audience), "El audience no puede ser nulo o vacío.");
+
             // Claims = información que va dentro del token
             var claims = new[]
             {

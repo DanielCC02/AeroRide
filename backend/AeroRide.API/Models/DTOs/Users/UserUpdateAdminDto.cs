@@ -22,6 +22,11 @@ public class UserUpdateAdminDto
     public int? RoleId { get; set; }
 
     /// <summary>
+    /// Identificador de la empresa.
+    /// </summary>
+    public int? CompanyId { get; set; }
+
+    /// <summary>
     /// Indica si el usuario debe estar activo o desactivado.
     /// Permite control administrativo directo sobre el estado.
     /// </summary>

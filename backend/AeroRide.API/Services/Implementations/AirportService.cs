@@ -166,6 +166,7 @@ namespace AeroRide.API.Services
                 .Where(a =>
                     a.IsActive && (
                         a.Name.ToLower().Contains(normalized) ||
+                        a.City.ToLower().Contains(normalized) ||
                         a.Country.ToLower().Contains(normalized) ||
                         a.CodeIATA.ToLower().Contains(normalized)
                     ))
@@ -176,6 +177,23 @@ namespace AeroRide.API.Services
 
             return results;
         }
+
+        public async Task<IEnumerable<AirportListDto>> GetByCountryAsync(string country)
+        {
+            if (string.IsNullOrWhiteSpace(country))
+                return Enumerable.Empty<AirportListDto>();
+
+            var normalized = country.Trim().ToLower();
+
+            var results = await _db.Airports
+                .Where(a => a.IsActive && a.Country.ToLower() == normalized)
+                .OrderBy(a => a.Name)
+                .ProjectTo<AirportListDto>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+
+            return results;
+        }
+
 
     }
 }

@@ -45,6 +45,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAircraftService, AircraftService>();
 builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<IAirportService, AirportService>();
+builder.Services.AddScoped<ICompanyService, CompanyService>();
 
 
 // 🔹 Aquí podrás registrar otros servicios en el futuro, como IFlightService, IReservationService, etc.

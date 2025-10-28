@@ -17,14 +17,33 @@
         public int Id { get; set; }
 
         /// <summary>
+        /// Código único de la reserva (por ejemplo: "AERO-2025-00123").
+        /// Útil para identificación pública o confirmaciones por correo.
+        /// </summary>
+        public string ReservationCode { get; set; } = null!;
+
+        /// <summary>
         /// Identificador del usuario que realizó la reserva.
         /// </summary>
         public int UserId { get; set; }
 
         /// <summary>
+        /// Identificador de la empresa operadora de la reserva.
+        /// </summary>
+        public int CompanyId { get; set; }
+
+        //Plata que nos toca, a la sociedad
+        public double PorcentPrice { get; set; }
+
+        /// <summary>
         /// Precio total de la reserva, incluyendo tarifas, impuestos, tasas y servicios adicionales.
         /// </summary>
-        public double Price { get; set; }
+        public double TotalPrice { get; set; }
+
+        /// <summary>
+        /// Indica si la reserva es de tipo ida y vuelta (Round Trip) o solo de ida (One Way).
+        /// </summary>
+        public bool IsRoundTrip { get; set; }
 
         /// <summary>
         /// Indica si entre los pasajeros viaja un infante en regazo (sin asiento asignado).
@@ -36,14 +55,39 @@
         /// </summary>
         public bool AssistanceAnimal { get; set; }
 
+        /// <summary>
+        /// Estado actual de la reserva (Pendiente, Confirmada, Cancelada).
+        /// </summary>
+        public string Status { get; set; } = "Pendiente";
+
+        /// <summary>
+        /// Observaciones o comentarios asociados a la reserva.
+        /// </summary>
+        public string? Notes { get; set; }
+
+        /// <summary>
+        /// Fecha y hora en que se creó la reserva.
+        /// </summary>
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Fecha y hora de la última actualización de la reserva.
+        /// </summary>
+        public DateTime? UpdatedAt { get; set; }
+
         // ======================================================
-        // 🔗 Relaciones de navegación
+        // 🔗 RELACIONES DE NAVEGACIÓN
         // ======================================================
 
         /// <summary>
         /// Usuario propietario de la reserva.
         /// </summary>
         public User User { get; set; } = null!;
+
+        /// <summary>
+        /// Empresa o aerolínea responsable de la operación de los vuelos en esta reserva.
+        /// </summary>
+        public Company Company { get; set; } = null!;
 
         /// <summary>
         /// Colección de vuelos asociados a la reserva.
@@ -53,8 +97,8 @@
 
         /// <summary>
         /// Lista de pasajeros registrados en la reserva.
-        /// Cada pasajero se almacena en la entidad <see cref="PassengerDetails"/>.
+        /// Cada pasajero se almacena en la entidad <see cref="PassengerDetail"/>.
         /// </summary>
-        public ICollection<PassengerDetails> Passengers { get; set; } = new List<PassengerDetails>();
+        public ICollection<PassengerDetail> Passengers { get; set; } = new List<PassengerDetail>();
     }
 }

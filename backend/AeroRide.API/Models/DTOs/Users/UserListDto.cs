@@ -40,5 +40,10 @@
         /// Indica si el usuario se encuentra activo o desactivado.
         /// </summary>
         public bool IsActive { get; set; }
+
+        /// <summary>
+        /// Indica a que empresa pertence el usuario.
+        /// </summary>
+        public string? CompanyName { get; set; }
     }
 }

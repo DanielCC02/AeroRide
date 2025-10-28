@@ -20,9 +20,6 @@
         /// <summary>País del aeropuerto.</summary>
         public string Country { get; set; } = null!;
 
-        /// <summary>Tasa aeroportuaria aplicada a vuelos.</summary>
-        public double Tax { get; set; }
-
         /// <summary>URL de la imagen principal del aeropuerto.</summary>
         public string Image { get; set; } = null!;
 

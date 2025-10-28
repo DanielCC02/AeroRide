@@ -36,6 +36,11 @@ public class UserProfileDto
     public string Role { get; set; } = null!;
 
     /// <summary>
+    /// Compañia actual asignado al usuario (AeroCaribe, etc...).
+    /// </summary>
+    public string? CompanyName { get; set; }
+
+    /// <summary>
     /// Fecha de registro en la plataforma.
     /// </summary>
     public DateTime RegistrationDate { get; set; }

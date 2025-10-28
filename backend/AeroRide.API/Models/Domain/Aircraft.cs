@@ -2,7 +2,7 @@
 {
     /// <summary>
     /// Entidad que representa una aeronave registrada en el sistema AeroRide.
-    /// Incluye información técnica, capacidad, estado operativo y relación con los vuelos asignados.
+    /// Incluye información técnica, capacidad, estado operativo y relación con la empresa propietaria.
     /// </summary>
     public class Aircraft
     {
@@ -12,13 +12,17 @@
         /// </summary>
         public int Id { get; set; }
 
+        // ======================================================
+        // ✈️ INFORMACIÓN GENERAL Y TÉCNICA
+        // ======================================================
+
         /// <summary>
         /// Matrícula o patente de la aeronave (por ejemplo: <c>TI-ABC</c>).
         /// </summary>
         public string Patent { get; set; } = null!;
 
         /// <summary>
-        /// Modelo o tipo de aeronave (por ejemplo: <c>Cessna 208B</c>).
+        /// Modelo o tipo de aeronave (por ejemplo: <c>Cessna 208B Grand Caravan</c>).
         /// </summary>
         public string Model { get; set; } = null!;
 
@@ -39,10 +43,25 @@
         public int MaxWeight { get; set; }
 
         /// <summary>
-        /// Estado actual operativo de la aeronave.
-        /// Ejemplos: <c>Disponible</c>, <c>En mantenimiento</c>, <c>En vuelo</c>.
+        /// Velocidad promedio de crucero (en kilómetros por hora).
         /// </summary>
-        public string State { get; set; } = null!;
+        public double CruisingSpeed { get; set; }
+
+        /// <summary>
+        /// Indica si la aeronave está autorizada para realizar vuelos internacionales.
+        /// </summary>
+        public bool CanFlyInternational { get; set; } = false;
+
+        /// <summary>
+        /// Estado actual operativo de la aeronave.
+        /// Ejemplos: <c>Disponible</c>, <c>En mantenimiento</c>, <c>Reservado</c>.
+        /// </summary>
+        public string State { get; set; } = "Disponible";
+
+        /// <summary>
+        /// Fecha y hora de la última actualización del estado o ubicación de la aeronave.
+        /// </summary>
+        public DateTime StatusLastUpdated { get; set; } = DateTime.UtcNow;
 
         /// <summary>
         /// Ruta o URL de la imagen representativa de la aeronave.
@@ -55,6 +74,33 @@
         /// </summary>
         public bool IsActive { get; set; } = true;
 
+        // ======================================================
+        // 🌎 UBICACIÓN Y RELACIONES
+        // ======================================================
+
+        /// <summary>
+        /// Aeropuerto en el que actualmente se encuentra la aeronave (opcional).
+        /// </summary>
+        public int? CurrentAirportId { get; set; }
+
+        /// <summary>
+        /// Relación de navegación hacia el aeropuerto actual.
+        /// </summary>
+        public Airport? CurrentAirport { get; set; }
+
+        /// <summary>
+        /// Identificador de la empresa propietaria de la aeronave.
+        /// </summary>
+        public int CompanyId { get; set; }
+
+        /// <summary>
+        /// Empresa o aerolínea propietaria de la aeronave.
+        /// </summary>
+        public Company Company { get; set; } = null!;
+
+        // ======================================================
+        // 🔗 RELACIONES DE NAVEGACIÓN
+        // ======================================================
 
         /// <summary>
         /// Colección de vuelos asociados a la aeronave.

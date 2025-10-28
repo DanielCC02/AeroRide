@@ -47,21 +47,17 @@ namespace AeroRide.API.Models.DTOs.Users
         public string Password { get; set; } = null!;
 
         /// <summary>
-        /// Identificador del rol asignado al usuario (Admin, Pilot, Broker, User, etc.).
+        /// Rol asignado al usuario.
+        /// - AdminGeneral puede definir cualquiera.
+        /// - CompanyAdmin solo puede asignar "Pilot" o "CompanyAdmin".
         /// </summary>
         [Required(ErrorMessage = "Debe especificar un rol para el usuario.")]
         public int RoleId { get; set; }
 
         /// <summary>
-        /// Indica si el usuario ha aceptado los Términos de Uso.
-        /// Por defecto se establece en <c>true</c> en la creación manual.
+        /// Identificador de la empresa a la que pertenece el usuario (opcional para AdminGeneral).
+        /// Si lo crea un CompanyAdmin, este valor debe ser forzado al CompanyId del creador.
         /// </summary>
-        //public bool TermsOfUse { get; set; } = true;
-
-        ///// <summary>
-        ///// Indica si el usuario ha aceptado el Aviso de Privacidad.
-        ///// Por defecto se establece en <c>true</c> en la creación manual.
-        ///// </summary>
-        //public bool PrivacyNotice { get; set; } = true;
+        public int? CompanyId { get; set; }
     }
 }

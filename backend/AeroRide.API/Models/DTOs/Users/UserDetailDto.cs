@@ -56,9 +56,19 @@
         public bool PrivacyNotice { get; set; }
 
         /// <summary>
+        /// Indica si el usuario se encuentra verificado (true) o no (false).
+        /// </summary>
+        public bool IsVerified { get; set; }
+
+        /// <summary>
         /// Indica si el usuario se encuentra activo (true) o desactivado (false).
         /// </summary>
         public bool IsActive { get; set; }
+
+        /// <summary>
+        /// Nombre de la empresa asociada (opcional).
+        /// </summary>
+        public string? CompanyName { get; set; }
 
     }
 }

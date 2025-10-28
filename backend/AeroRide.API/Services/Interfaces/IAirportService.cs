@@ -37,6 +37,7 @@ namespace AeroRide.API.Services.Interfaces
         /// <returns>Lista de aeropuertos que coinciden con el texto.</returns>
         Task<IEnumerable<AirportListDto>> SearchAsync(string query);
 
+        Task<IEnumerable<AirportListDto>> GetByCountryAsync(string country);
 
     }
 }

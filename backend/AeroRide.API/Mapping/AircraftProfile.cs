@@ -2,25 +2,22 @@
 using AeroRide.API.Models.DTOs.Aircrafts;
 using AutoMapper;
 
-namespace AeroRide.API.Profiles
+namespace AeroRide.API.Mappings
 {
     /// <summary>
-    /// Perfil de configuración de <see cref="AutoMapper"/> para la entidad <see cref="Aircraft"/>.
+    /// Perfil de configuración de AutoMapper para la entidad Aircraft.
     /// Define las reglas de conversión entre los objetos de dominio y sus respectivos DTOs.
     /// </summary>
     public class AircraftProfile : Profile
     {
-        /// <summary>
-        /// Inicializa las configuraciones de mapeo entre los objetos relacionados con aeronaves.
-        /// </summary>
         public AircraftProfile()
         {
-            // 🔹 DTO → Entidad (para creación de registros)
+            // DTO → Entidad (Create)
             CreateMap<AircraftCreateDto, Aircraft>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore()) // ID lo genera la BD
-                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true)); // Setea IsActive = true
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true));
 
-            // 🔹 DTO → Entidad (para actualización parcial)
+            // DTO → Entidad (Update parcial)
             CreateMap<AircraftUpdateDto, Aircraft>()
                 .ForAllMembers(opt =>
                     opt.Condition((src, dest, srcMember) =>
@@ -31,8 +28,16 @@ namespace AeroRide.API.Profiles
                         return srcMember != null;
                     }));
 
-            // 🔹 Entidad → DTO (para respuestas al cliente)
+            // Entidad → DTO (para listados simples)
+            CreateMap<Aircraft, AircraftListDto>();
+
+            // Entidad → DTO (para detalles completos)
             CreateMap<Aircraft, AircraftResponseDto>();
+
+            // 🌐 Entidad → DTO (para agrupaciones / categorías)
+            CreateMap<Aircraft, AircraftCategoryDto>()
+                .ForMember(dest => dest.CompanyName, opt => opt.MapFrom(src => src.Company != null ? src.Company.Name : "Sin compañía"));
+
         }
     }
 }

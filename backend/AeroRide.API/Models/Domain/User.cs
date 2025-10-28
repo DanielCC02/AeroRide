@@ -116,6 +116,17 @@
         public Role? Role { get; set; }
 
         /// <summary>
+        /// (Opcional) Identificador de la empresa a la que pertenece el usuario.
+        /// Aplica solo para pilotos, administradores o brokers.
+        /// </summary>
+        public int? CompanyId { get; set; }
+
+        /// <summary>
+        /// (Opcional) Empresa o aerolínea asociada al usuario.
+        /// </summary>
+        public Company? Company { get; set; }
+
+        /// <summary>
         /// Colección de reservas realizadas por el usuario.
         /// </summary>
         public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();

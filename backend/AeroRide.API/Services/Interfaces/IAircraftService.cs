@@ -1,5 +1,4 @@
-﻿using AeroRide.API.Models.Domain;
-using AeroRide.API.Models.DTOs.Aircrafts;
+﻿using AeroRide.API.Models.DTOs.Aircrafts;
 
 namespace AeroRide.API.Interfaces
 {
@@ -8,6 +7,10 @@ namespace AeroRide.API.Interfaces
     /// </summary>
     public interface IAircraftService
     {
+        // ======================================================
+        // 🔹 CRUD BÁSICO
+        // ======================================================
+
         /// <summary>
         /// Crea una nueva aeronave en el sistema.
         /// </summary>
@@ -16,17 +19,16 @@ namespace AeroRide.API.Interfaces
         Task<AircraftResponseDto> CreateAsync(AircraftCreateDto dto);
 
         /// <summary>
-        /// Obtiene la lista completa de aeronaves registradas.
+        /// Obtiene la lista de aeronaves activas registradas en el sistema.
         /// </summary>
-        /// <returns>Lista de aeronaves en formato DTO.</returns>
+        /// <returns>Lista de aeronaves activas en formato DTO.</returns>
         Task<IEnumerable<AircraftResponseDto>> GetAllAsync();
 
         /// <summary>
-        /// Obtiene todas las aeronaves registradas, tanto activas como inactivas.
+        /// Obtiene todas las aeronaves registradas, incluyendo activas e inactivas.
         /// </summary>
         /// <returns>Lista completa de aeronaves en formato DTO.</returns>
         Task<IEnumerable<AircraftResponseDto>> GetAllIncludingInactiveAsync();
-
 
         /// <summary>
         /// Obtiene los datos de una aeronave específica según su identificador.
@@ -69,25 +71,29 @@ namespace AeroRide.API.Interfaces
         /// Actualiza únicamente el estado operativo de una aeronave.
         /// </summary>
         /// <param name="id">Identificador de la aeronave.</param>
-        /// <param name="newState">Nuevo estado a asignar.</param>
+        /// <param name="newState">Nuevo estado a asignar (por ejemplo: Disponible, En mantenimiento).</param>
         /// <returns>
-        /// Un mensaje de confirmación si la actualización fue exitosa,
-        /// o un mensaje de error si la aeronave no existe o el estado es inválido.
+        /// Una tupla con un valor booleano indicando éxito y un mensaje descriptivo.
         /// </returns>
         Task<(bool Success, string Message)> UpdateStateAsync(int id, string newState);
 
         // ======================================================
-        // 🔹 FILTERS
+        // 🔹 FILTRO Y AGRUPACIÓN (USADO EN RESERVAS)
         // ======================================================
 
         /// <summary>
-        /// Filtra las aeronaves activas por número de asientos.
-        /// Permite establecer un mínimo y un máximo para el filtro.
+        /// Devuelve las aeronaves disponibles agrupadas por modelo y compañía,
+        /// aplicando filtros opcionales por número de asientos.
         /// </summary>
-        /// <param name="minSeats">Cantidad mínima de asientos requerida.</param>
+        /// <param name="minSeats">Cantidad mínima de asientos (opcional).</param>
         /// <param name="maxSeats">Cantidad máxima de asientos (opcional).</param>
-        /// <returns>Lista de aeronaves que cumplen con el filtro.</returns>
-        Task<IEnumerable<AircraftResponseDto>> FilterBySeatsAsync(int minSeats, int? maxSeats);
+        /// <returns>
+        /// Lista agrupada de aeronaves disponibles por modelo y compañía.
+        /// </returns>
+        Task<IEnumerable<AircraftCategoryDto>> GetAvailableGroupedBySeatsAsync(int? minSeats, int? maxSeats);
+
+        Task<IEnumerable<AircraftResponseDto>> GetAllByCompanyAsync(int companyId);
+        Task<IEnumerable<AircraftResponseDto>> GetActiveByCompanyAsync(int companyId);
 
     }
 }

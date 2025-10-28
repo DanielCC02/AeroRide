@@ -55,6 +55,12 @@ namespace AeroRide.API.Services
             if (dto == null)
                 throw new ArgumentNullException(nameof(dto), "El objeto de creación no puede ser nulo.");
 
+            // Validar duplicado de matrícula
+            bool exists = await _db.Aircrafts.AnyAsync(a => a.Patent.ToLower() == dto.Patent.ToLower());
+            if (exists)
+                throw new InvalidOperationException($"Ya existe una aeronave con la matrícula '{dto.Patent}'.");
+
+
             // 🔹 Validar el estado antes de crear
             var (isValid, message) = ValidateState(dto.State);
             if (!isValid)
@@ -66,6 +72,10 @@ namespace AeroRide.API.Services
             // Inserción en la base de datos
             await _db.Aircrafts.AddAsync(entity);
             await _db.SaveChangesAsync();
+
+            // 🔹 Cargar la relación de compañía solo si existe una asociada
+            if (entity.CompanyId != 0)
+                await _db.Entry(entity).Reference(a => a.Company).LoadAsync();
 
             // Retorno del DTO de respuesta
             return _mapper.Map<AircraftResponseDto>(entity);
@@ -80,8 +90,10 @@ namespace AeroRide.API.Services
         /// </returns>
         public async Task<IEnumerable<AircraftResponseDto>> GetAllAsync()
         {
-            var aircrafts = await _db.Aircrafts.AsNoTracking().ToListAsync();
-            return _mapper.Map<IEnumerable<AircraftResponseDto>>(aircrafts);
+            return await _db.Aircrafts
+                .AsNoTracking()
+                .ProjectTo<AircraftResponseDto>(_mapper.ConfigurationProvider)
+                .ToListAsync();
         }
 
         /// <summary>
@@ -91,13 +103,11 @@ namespace AeroRide.API.Services
         /// <returns>Lista completa de aeronaves (activas e inactivas).</returns>
         public async Task<IEnumerable<AircraftResponseDto>> GetAllIncludingInactiveAsync()
         {
-            // Ignorar el filtro global IsActive y traer todos los registros
-            var aircrafts = await _db.Aircrafts
+            return await _db.Aircrafts
                 .IgnoreQueryFilters()
                 .AsNoTracking()
+                .ProjectTo<AircraftResponseDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();
-
-            return _mapper.Map<IEnumerable<AircraftResponseDto>>(aircrafts);
         }
 
         /// <summary>
@@ -110,13 +120,11 @@ namespace AeroRide.API.Services
         public async Task<AircraftResponseDto?> GetByIdAsync(int id)
         {
             var aircraft = await _db.Aircrafts
-                .IgnoreQueryFilters() // 👈 Ignora el filtro IsActive
+                .IgnoreQueryFilters()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(a => a.Id == id);
 
-            return aircraft == null
-                ? null
-                : _mapper.Map<AircraftResponseDto>(aircraft);
+            return aircraft == null ? null : _mapper.Map<AircraftResponseDto>(aircraft);
         }
 
         /// <summary>
@@ -261,34 +269,104 @@ namespace AeroRide.API.Services
             return (true, string.Empty);
         }
 
-        // ======================================================
-        // 🔍 FILTER BY SEATS AND STATE = "Disponible"
-        // ======================================================
+        //// ======================================================
+        //// 🔍 FILTER BY SEATS AND STATE = "Disponible"
+        //// ======================================================
 
+        ///// <summary>
+        ///// Devuelve aeronaves activas y disponibles filtradas por número de asientos.
+        ///// Ideal para mostrar avionetas listas para reserva según la selección del usuario.
+        ///// </summary>
+        ///// <param name="minSeats">Cantidad mínima de asientos requerida.</param>
+        ///// <param name="maxSeats">Cantidad máxima de asientos (opcional).</param>
+        ///// <returns>Lista de aeronaves disponibles que cumplen con el filtro.</returns>
+        //public async Task<IEnumerable<AircraftResponseDto>> FilterBySeatsAsync(int minSeats, int? maxSeats)
+        //{
+        //    // Base query: aeronaves activas y disponibles
+        //    var query = _db.Aircrafts
+        //        .Where(a => a.IsActive && a.State.ToLower() == "disponible" && a.Seats >= minSeats);
+
+        //    // Filtro adicional: cantidad máxima de asientos
+        //    if (maxSeats.HasValue)
+        //        query = query.Where(a => a.Seats <= maxSeats.Value);
+
+        //    // Ordenar por cantidad de asientos
+        //    return await query
+        //        .OrderBy(a => a.Seats)
+        //        .ProjectTo<AircraftResponseDto>(_mapper.ConfigurationProvider)
+        //        .ToListAsync();
+        //}
+
+        // ======================================================
+        // 🆕 FILTRO + AGRUPACIÓN POR MODELO Y COMPAÑÍA
+        // ======================================================
         /// <summary>
-        /// Devuelve aeronaves activas y disponibles filtradas por número de asientos.
-        /// Ideal para mostrar avionetas listas para reserva según la selección del usuario.
+        /// Devuelve las aeronaves disponibles agrupadas por modelo y compañía,
+        /// aplicando filtros opcionales por cantidad de asientos.
         /// </summary>
-        /// <param name="minSeats">Cantidad mínima de asientos requerida.</param>
+        /// <param name="minSeats">Cantidad mínima de asientos (opcional).</param>
         /// <param name="maxSeats">Cantidad máxima de asientos (opcional).</param>
-        /// <returns>Lista de aeronaves disponibles que cumplen con el filtro.</returns>
-        public async Task<IEnumerable<AircraftResponseDto>> FilterBySeatsAsync(int minSeats, int? maxSeats)
+        /// <returns>
+        /// Una lista de categorías de aeronaves disponibles agrupadas por modelo y compañía.
+        /// </returns>       
+        public async Task<IEnumerable<AircraftCategoryDto>> GetAvailableGroupedBySeatsAsync(int? minSeats, int? maxSeats)
         {
-            // Base query: aeronaves activas y disponibles
             var query = _db.Aircrafts
-                .Where(a => a.IsActive && a.State.ToLower() == "disponible" && a.Seats >= minSeats);
+                .Include(a => a.Company)
+                .Where(a => a.IsActive && a.State.ToLower() == "disponible");
 
-            // Filtro adicional: cantidad máxima de asientos
+            // ✅ Filtrar por número de asientos si se especifica
+            if (minSeats.HasValue)
+                query = query.Where(a => a.Seats >= minSeats.Value);
             if (maxSeats.HasValue)
                 query = query.Where(a => a.Seats <= maxSeats.Value);
 
-            // Ordenar por cantidad de asientos
-            return await query
-                .OrderBy(a => a.Seats)
-                .ProjectTo<AircraftResponseDto>(_mapper.ConfigurationProvider)
+            // ✅ Usar AutoMapper para proyección
+            var projected = await query
+                .ProjectTo<AircraftCategoryDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();
+
+            // ✅ Agrupar ya sobre los DTOs mapeados
+            var result = projected
+                .GroupBy(a => new { a.Model, a.Seats, a.CompanyName, a.State })
+                .Select(g => g.First()) // una entrada por grupo
+                .OrderBy(x => x.CompanyName)
+                .ThenBy(x => x.Model)
+                .ToList();
+
+            return result;
         }
 
+        // ============================================================
+        // 🔹 OBTENER TODAS LAS AERONAVES (ACTIVAS + INACTIVAS) DE UNA EMPRESA
+        // ============================================================
+        public async Task<IEnumerable<AircraftResponseDto>> GetAllByCompanyAsync(int companyId)
+        {
+            var aircrafts = await _db.Aircrafts
+                .IgnoreQueryFilters() // incluye inactivas
+                .Where(a => a.CompanyId == companyId)
+                .Include(a => a.Company)
+                .AsNoTracking()
+                .ProjectTo<AircraftResponseDto>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+
+            return aircrafts;
+        }
+
+        // ============================================================
+        // 🔹 OBTENER SOLO AERONAVES ACTIVAS DE UNA EMPRESA
+        // ============================================================
+        public async Task<IEnumerable<AircraftResponseDto>> GetActiveByCompanyAsync(int companyId)
+        {
+            var aircrafts = await _db.Aircrafts
+                .Where(a => a.IsActive && a.CompanyId == companyId)
+                .Include(a => a.Company)
+                .AsNoTracking()
+                .ProjectTo<AircraftResponseDto>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+
+            return aircrafts;
+        }
 
 
     }

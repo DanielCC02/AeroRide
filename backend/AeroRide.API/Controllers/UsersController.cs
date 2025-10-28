@@ -1,4 +1,5 @@
-﻿using AeroRide.API.Models.DTOs.Users;
+﻿using AeroRide.API.Models.DTOs.Authorization;
+using AeroRide.API.Models.DTOs.Users;
 using AeroRide.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,8 +8,8 @@ using System.Security.Claims;
 namespace AeroRide.API.Controllers
 {
     /// <summary>
-    /// Controlador responsable de la gestión de usuarios.
-    /// Incluye operaciones para administración, consulta y perfil del usuario autenticado.
+    /// Controlador encargado de la gestión de usuarios dentro del sistema AeroRide.
+    /// Permite realizar operaciones administrativas y de perfil.
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
@@ -20,43 +21,45 @@ namespace AeroRide.API.Controllers
         /// <summary>
         /// Inicializa una nueva instancia del controlador de usuarios.
         /// </summary>
-        /// <param name="userService">Servicio de negocio encargado de las operaciones sobre usuarios.</param>
+        /// <param name="userService">Servicio que gestiona la lógica de negocio de usuarios.</param>
         public UsersController(IUserService userService)
         {
             _userService = userService;
         }
 
         // ======================================================
-        // 1️⃣ GET /api/users
+        // 1️⃣ LISTAR TODOS LOS USUARIOS
         // ======================================================
+
         /// <summary>
-        /// Obtiene la lista de todos los usuarios registrados.
-        /// Solo accesible para administradores.
+        /// Obtiene la lista completa de usuarios registrados en el sistema.
         /// </summary>
-        /// <returns>Lista de usuarios con su información básica.</returns>
-        /// <response code="200">Lista de usuarios devuelta correctamente.</response>
-        [Authorize(Roles = "Admin")]
+        /// <returns>Colección de usuarios con información básica.</returns>
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        [Authorize(Roles = "Admin,CompanyAdmin")]
+        [ProducesResponseType(typeof(IEnumerable<UserListDto>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetAllUsers()
         {
             var users = await _userService.GetAllUsersAsync();
             return Ok(users);
         }
 
         // ======================================================
-        // 2️⃣ GET /api/users/{id}
+        // 2️⃣ OBTENER USUARIO POR ID
         // ======================================================
+
         /// <summary>
-        /// Obtiene la información detallada de un usuario específico por su ID.
+        /// Obtiene los detalles completos de un usuario específico.
         /// </summary>
         /// <param name="id">Identificador único del usuario.</param>
-        /// <returns>Objeto con los datos del usuario o 404 si no existe.</returns>
-        [Authorize(Roles = "Admin")]
+        /// <returns>Información detallada del usuario.</returns>
         [HttpGet("{id:int}")]
-        public async Task<IActionResult> GetById(int id)
+        [Authorize(Roles = "Admin,CompanyAdmin")]
+        [ProducesResponseType(typeof(UserDetailDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetUserById(int id)
         {
             var user = await _userService.GetUserByIdAsync(id);
-
             if (user == null)
                 return NotFound(new { message = "Usuario no encontrado." });
 
@@ -64,15 +67,18 @@ namespace AeroRide.API.Controllers
         }
 
         // ======================================================
-        // 3️⃣ GET /api/users/me
+        // 3️⃣ OBTENER PERFIL DEL USUARIO AUTENTICADO
         // ======================================================
+
         /// <summary>
-        /// Obtiene el perfil del usuario autenticado según el token JWT.
+        /// Obtiene el perfil del usuario autenticado actualmente.
         /// </summary>
-        /// <returns>Perfil del usuario autenticado.</returns>
-        [HttpGet("me")]
-        public async Task<IActionResult> GetMyProfile()
+        /// <returns>Datos del perfil del usuario autenticado.</returns>
+        [HttpGet("profile")]
+        [ProducesResponseType(typeof(UserProfileDto), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetProfile()
         {
+            // Buscar el ID del usuario en distintos claim types posibles
             var userIdClaim = User.FindFirstValue("sub") ??
                               User.FindFirstValue(ClaimTypes.NameIdentifier) ??
                               User.FindFirstValue(ClaimTypes.Name);
@@ -80,135 +86,85 @@ namespace AeroRide.API.Controllers
             if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
                 return Unauthorized(new { message = "Token inválido o sin información del usuario." });
 
-            var user = await _userService.GetProfileAsync(userId);
+            var profile = await _userService.GetProfileAsync(userId);
 
-            if (user == null)
-                return NotFound(new { message = "Usuario no encontrado." });
+            if (profile == null)
+                return NotFound(new { message = "Perfil no encontrado." });
 
-            return Ok(user);
+            return Ok(profile);
         }
 
         // ======================================================
-        // 4️⃣ POST /api/users
+        // 4️⃣ CREAR USUARIO (ADMIN)
         // ======================================================
+
         /// <summary>
-        /// Crea un nuevo usuario manualmente (solo para administradores).
+        /// Crea un nuevo usuario de forma manual (solo administradores).
         /// </summary>
-        /// <param name="dto">Datos del usuario a crear.</param>
-        /// <returns>Usuario creado con su información básica.</returns>
-        [Authorize(Roles = "Admin")]
+        /// <param name="dto">Datos del nuevo usuario.</param>
+        /// <returns>Usuario creado.</returns>
         [HttpPost]
+        [Authorize(Roles = "Admin,CompanyAdmin")]
+        [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
             try
             {
-                var user = await _userService.CreateUserAsync(dto);
-                return CreatedAtAction(nameof(GetById), new { id = user.Id }, user);
+                var createdUser = await _userService.CreateUserAsync(dto);
+                return CreatedAtAction(nameof(GetUserById), new { id = createdUser.Id }, createdUser);
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { message = ex.Message });
             }
         }
 
         // ======================================================
-        // 5️⃣ PUT /api/users/me
+        // 5️⃣ ACTUALIZAR PERFIL PERSONAL
         // ======================================================
+
         /// <summary>
-        /// Actualiza los datos personales del usuario autenticado.
+        /// Permite al usuario autenticado actualizar su propio perfil.
         /// </summary>
         /// <param name="dto">Datos actualizados del perfil.</param>
-        /// <returns>Perfil actualizado o mensaje de error.</returns>
-        [HttpPut("me")]
-        public async Task<IActionResult> UpdateMyProfile([FromBody] UserUpdateDto dto)
+        /// <returns>Perfil actualizado.</returns>
+        [HttpPut("profile")]
+        [ProducesResponseType(typeof(UserProfileDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateProfile([FromBody] UserUpdateDto dto)
         {
+            // Buscar el ID en distintos claim types posibles
             var userIdClaim = User.FindFirstValue("sub") ??
-                              User.FindFirstValue(ClaimTypes.NameIdentifier);
+                              User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                              User.FindFirstValue(ClaimTypes.Name) ??
+                              User.FindFirstValue("userId"); // opcional si luego lo agregás en JwtHelper
 
             if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
-                return Unauthorized(new { message = "Token inválido o no contiene información del usuario." });
+                return Unauthorized(new { message = "Token inválido o sin información del usuario." });
 
-            try
-            {
-                var updatedUser = await _userService.UpdateProfileAsync(userId, dto);
-                if (updatedUser == null)
-                    return NotFound(new { message = "Usuario no encontrado." });
+            var updated = await _userService.UpdateProfileAsync(userId, dto);
 
-                return Ok(updatedUser);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
+            if (updated == null)
+                return NotFound(new { message = "Usuario no encontrado." });
+
+            return Ok(updated);
         }
 
         // ======================================================
-        // 6️⃣ DELETE /api/users/{id}
+        // 6️⃣ ACTUALIZAR USUARIO (ADMIN)
         // ======================================================
-        /// <summary>
-        /// Desactiva un usuario (soft delete). Solo administradores pueden hacerlo.
-        /// </summary>
-        /// <param name="id">ID del usuario a desactivar.</param>
-        /// <returns>Mensaje de confirmación o error.</returns>
-        [Authorize(Roles = "Admin")]
-        [HttpDelete("{id:int}")]
-        public async Task<IActionResult> DeleteUser(int id)
-        {
-            try
-            {
-                var result = await _userService.DeleteUserAsync(id);
-                if (!result)
-                    return NotFound(new { message = "Usuario no encontrado." });
 
-                return Ok(new { message = $"Usuario con ID {id} desactivado correctamente." });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
-        }
-
-        // ======================================================
-        // 7️⃣ PUT /api/users/{id}/reactivate
-        // ======================================================
-        /// <summary>
-        /// Reactiva un usuario previamente desactivado.
-        /// Solo administradores pueden realizar esta acción.
-        /// </summary>
-        /// <param name="id">Identificador del usuario a reactivar.</param>
-        /// <returns>Mensaje de éxito o error.</returns>
-        [Authorize(Roles = "Admin")]
-        [HttpPut("{id:int}/reactivate")]
-        public async Task<IActionResult> ReactivateUser(int id)
-        {
-            try
-            {
-                var result = await _userService.ReactivateUserAsync(id);
-                if (!result)
-                    return NotFound(new { message = "Usuario no encontrado." });
-
-                return Ok(new { message = $"Usuario con ID {id} reactivado correctamente." });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { error = ex.Message });
-            }
-        }
-
-        // ======================================================
-        // 8️⃣ PUT /api/users/{id}
-        // ======================================================
         /// <summary>
         /// Permite a un administrador actualizar los datos de cualquier usuario.
         /// </summary>
-        /// <param name="id">ID del usuario a actualizar.</param>
-        /// <param name="dto">Datos nuevos del usuario.</param>
-        /// <returns>Usuario actualizado o mensaje de error.</returns>
-        [Authorize(Roles = "Admin")]
+        /// <param name="id">ID del usuario a modificar.</param>
+        /// <param name="dto">Datos a actualizar.</param>
+        /// <returns>Usuario actualizado.</returns>
         [HttpPut("{id:int}")]
+        [Authorize(Roles = "Admin,CompanyAdmin")]
+        [ProducesResponseType(typeof(UserProfileDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateUserByAdmin(int id, [FromBody] UserUpdateAdminDto dto)
         {
             try
@@ -221,30 +177,119 @@ namespace AeroRide.API.Controllers
             }
             catch (Exception ex)
             {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        // ======================================================
+        // 7️⃣ DESACTIVAR USUARIO (SOFT DELETE)
+        // ======================================================
+
+        /// <summary>
+        /// Desactiva un usuario sin eliminarlo físicamente de la base de datos.
+        /// </summary>
+        /// <param name="id">ID del usuario a desactivar.</param>
+        /// <returns>Confirmación de la desactivación.</returns>
+        [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Admin,CompanyAdmin")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteUser(int id)
+        {
+            try
+            {
+                var result = await _userService.DeleteUserAsync(id);
+                if (!result)
+                    return NotFound(new { message = "Usuario no encontrado." });
+                
+                return Ok(new { message = $"Usuario con ID {id} desactivado correctamente." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message});
+            }
+        }
+
+        // ======================================================
+        // 8️⃣ REACTIVAR USUARIO
+        // ======================================================
+
+        /// <summary>
+        /// Reactiva un usuario previamente desactivado.
+        /// </summary>
+        /// <param name="id">ID del usuario a reactivar.</param>
+        /// <returns>Confirmación de la reactivación.</returns>
+        [HttpPut("{id:int}/reactivate")]
+        [Authorize(Roles = "Admin,CompanyAdmin")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> ReactivateUser(int id)
+        {
+            try
+            {
+                var result = await _userService.ReactivateUserAsync(id);
+                if (!result)
+                    return NotFound(new { message = "Usuario no encontrado." });
+                    
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
                 return BadRequest(new { error = ex.Message });
             }
         }
 
-        // ============================================================
-        // GET /api/users/pilots
-        // ============================================================
+        // ======================================================
+        // 9️⃣ LISTAR PILOTOS
+        // ======================================================
 
         /// <summary>
-        /// Obtiene la lista de todos los usuarios con el rol de piloto.
-        /// Solo los administradores pueden acceder a este listado.
+        /// Obtiene todos los usuarios activos con rol de "Pilot".
         /// </summary>
+        /// <returns>Lista de pilotos activos.</returns>
         [HttpGet("pilots")]
-        [Authorize(Roles = "Admin")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [Authorize(Roles = "Admin,CompanyAdmin")]
+        [ProducesResponseType(typeof(IEnumerable<UserListDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAllPilots()
         {
             var pilots = await _userService.GetAllPilotsAsync();
-
-            if (!pilots.Any())
-                return NoContent();
-
             return Ok(pilots);
+        }
+
+
+        [HttpGet("company/{companyId}/pilots")]
+        [Authorize(Roles = "Admin,CompanyAdmin")]
+        [ProducesResponseType(typeof(IEnumerable<UserListDto>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetPilotsByCompany(int companyId)
+        {
+            var result = await _userService.GetPilotsByCompanyAsync(companyId);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Obtiene los pilotos y administradores pertenecientes a una empresa.
+        /// Solo accesible por AdminGeneral o CompanyAdmin.
+        /// </summary>
+        [HttpGet("company/{companyId}/pilots-admins")]
+        [Authorize(Roles = "Admin,CompanyAdmin")]
+        [ProducesResponseType(typeof(IEnumerable<UserListDto>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetPilotsAndAdminsByCompany(int companyId)
+        {
+            var result = await _userService.GetPilotsAndAdminsByCompanyAsync(companyId);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Obtiene todos los administradores de una compañía específica.
+        /// Solo accesible para roles "Admin" o "CompanyAdmin".
+        /// </summary>
+        [HttpGet("company/{companyId}/admins")]
+        [Authorize(Roles = "Admin,CompanyAdmin")]
+        [ProducesResponseType(typeof(IEnumerable<UserListDto>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetAdminsByCompany(int companyId)
+        {
+            var result = await _userService.GetAdminsByCompanyAsync(companyId);
+            return Ok(result);
         }
 
     }

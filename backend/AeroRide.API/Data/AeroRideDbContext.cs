@@ -18,15 +18,18 @@ namespace AeroRide.API.Data
         // ======================================================
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<Role> Roles { get; set; } = null!;
+        public DbSet<Company> Companies { get; set; } = null!;
         public DbSet<Reservation> Reservations { get; set; } = null!;
         public DbSet<Flight> Flights { get; set; } = null!;
-        public DbSet<PassengerDetails> PassengerDetails { get; set; } = null!;
+        public DbSet<PassengerDetail> PassengerDetails { get; set; } = null!;
         public DbSet<Aircraft> Aircrafts { get; set; } = null!;
         public DbSet<Airport> Airports { get; set; } = null!;
+        public DbSet<FlightCharge> FlightCharges { get; set; } = null!;
         public DbSet<FlightLog> FlightLogs { get; set; } = null!;
         public DbSet<FlightAssignment> FlightAssignments { get; set; } = null!;
         public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
         public DbSet<RevokedToken> RevokedTokens { get; set; } = null!;
+
 
 
         /// <summary>
@@ -65,6 +68,11 @@ namespace AeroRide.API.Data
                  .WithMany(r => r.Users)
                  .HasForeignKey(u => u.RoleId)
                  .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne(u => u.Company)
+                 .WithMany(c => c.Users)
+                 .HasForeignKey(u => u.CompanyId)
+                 .OnDelete(DeleteBehavior.SetNull);
             });
 
             // 🔹 Role
@@ -78,7 +86,7 @@ namespace AeroRide.API.Data
             // 🔹 Seed inicial de roles
             modelBuilder.Entity<Role>().HasData(
                 new Role { Id = 1, Name = "Admin" },
-                new Role { Id = 2, Name = "Broker" },
+                new Role { Id = 2, Name = "CompanyAdmin" },
                 new Role { Id = 3, Name = "Pilot" },
                 new Role { Id = 4, Name = "User" }
             );
@@ -109,6 +117,11 @@ namespace AeroRide.API.Data
                  .HasForeignKey(r => r.UserId)
                  .OnDelete(DeleteBehavior.Cascade);
 
+                e.HasOne(r => r.Company)
+                 .WithMany(c => c.Reservations)
+                 .HasForeignKey(r => r.CompanyId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
                 e.HasMany(r => r.Passengers)
                  .WithOne(p => p.Reservation)
                  .HasForeignKey(p => p.ReservationId)
@@ -124,7 +137,7 @@ namespace AeroRide.API.Data
             // ======================================================
             // 🧍 PASSENGER DETAILS
             // ======================================================
-            modelBuilder.Entity<PassengerDetails>(e =>
+            modelBuilder.Entity<PassengerDetail>(e =>
             {
                 e.ToTable("PassengerDetails");
 
@@ -140,7 +153,11 @@ namespace AeroRide.API.Data
             modelBuilder.Entity<Aircraft>(e =>
             {
                 e.ToTable("Aircrafts");
-                // e.Property(a => a.Price).HasColumnType("decimal(18,2)");
+
+                e.HasOne(a => a.Company)
+                  .WithMany(c => c.Aircrafts)
+                  .HasForeignKey(a => a.CompanyId)
+                  .OnDelete(DeleteBehavior.Cascade);
             });
 
             // 🔹 Filtra automáticamente las aeronaves inactivas
@@ -178,6 +195,11 @@ namespace AeroRide.API.Data
                  .HasForeignKey(f => f.AircraftId)
                  .OnDelete(DeleteBehavior.Restrict);
 
+                e.HasOne(f => f.Company)
+                 .WithMany(c => c.Flights)
+                 .HasForeignKey(f => f.CompanyId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
                 e.HasOne(f => f.DepartureAirport)
                  .WithMany(a => a.DepartureFlights)
                  .HasForeignKey(f => f.DepartureAirportId)
@@ -191,6 +213,24 @@ namespace AeroRide.API.Data
                 e.HasMany(f => f.Assignments)
                  .WithOne(fa => fa.Flight)
                  .HasForeignKey(fa => fa.FlightId)
+                 .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ======================================================
+            // 💰 FLIGHT CHARGES
+            // ======================================================
+            modelBuilder.Entity<FlightCharge>(e =>
+            {
+                e.ToTable("FlightCharges");
+
+                e.HasOne(fc => fc.Flight)
+                 .WithOne(f => f.Charge)
+                 .HasForeignKey<FlightCharge>(fc => fc.FlightId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasOne(fc => fc.Company)
+                 .WithMany(c => c.FlightCharges)
+                 .HasForeignKey(fc => fc.CompanyId)
                  .OnDelete(DeleteBehavior.Cascade);
             });
 

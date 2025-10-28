@@ -2,7 +2,6 @@
 
 namespace AeroRide.API.Models.DTOs.Authorization
 {
-
     /// <summary>
     /// Objeto de salida que representa la información de un usuario
     /// después de un registro exitoso o consulta de perfil.
@@ -15,10 +14,13 @@ namespace AeroRide.API.Models.DTOs.Authorization
         public int Id { get; set; }
 
         /// <summary>
-        /// Nombre completo del usuario (Nombre + Apellido).
+        /// Nombre del usuario.
         /// </summary>
         public string Name { get; set; } = null!;
 
+        /// <summary>
+        /// Apellido del usuario.
+        /// </summary>
         public string LastName { get; set; } = null!;
 
         /// <summary>
@@ -30,5 +32,10 @@ namespace AeroRide.API.Models.DTOs.Authorization
         /// Rol asignado al usuario dentro del sistema.
         /// </summary>
         public string Role { get; set; } = null!;
+
+        /// <summary>
+        /// Nombre de la empresa asociada (si aplica).
+        /// </summary>
+        public string? CompanyName { get; set; }
     }
 }
