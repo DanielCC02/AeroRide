@@ -35,6 +35,9 @@ namespace AeroRide.API.Models.DTOs.Airports
         /// <summary>Hora de cierre (opcional).</summary>
         public TimeSpan? ClosingTime { get; set; }
 
+        [Required(ErrorMessage = "La zona horaria es obligatoria.")]
+        public string TimeZone { get; set; } = null!;
+
         /// <summary>Latitud geográfica (decimal).</summary>
         [Required(ErrorMessage = "La latitud es obligatoria.")]
         public decimal Latitude { get; set; }
@@ -42,11 +45,6 @@ namespace AeroRide.API.Models.DTOs.Airports
         /// <summary>Longitud geográfica (decimal).</summary>
         [Required(ErrorMessage = "La longitud es obligatoria.")]
         public decimal Longitude { get; set; }
-
-        /// <summary>Tasa aeroportuaria aplicada a vuelos.</summary>
-        [Required(ErrorMessage = "La tasa aeroportuaria es obligatoria.")]
-        [Range(0, double.MaxValue, ErrorMessage = "La tasa debe ser un valor positivo.")]
-        public double Tax { get; set; }
 
         /// <summary>
         /// URL de la imagen representativa del aeropuerto (opcional).

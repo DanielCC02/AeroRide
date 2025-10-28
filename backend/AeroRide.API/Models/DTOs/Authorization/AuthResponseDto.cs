@@ -35,5 +35,10 @@ namespace AeroRide.API.Models.DTOs.Authorization
         /// Rol asignado al usuario dentro del sistema (Admin, Broker, Pilot o User).
         /// </summary>
         public string Role { get; set; } = null!;
+
+        /// <summary>
+        /// Nombre de la empresa asociada al usuario (si aplica).
+        /// </summary>
+        public string? CompanyName { get; set; }
     }
 }

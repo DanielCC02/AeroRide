@@ -8,7 +8,8 @@ namespace AeroRide.API.Controllers
 {
     /// <summary>
     /// Controlador responsable de la autenticación y manejo de credenciales de usuario.
-    /// Incluye endpoints para registro, inicio de sesión, actualización de tokens y recuperación de contraseñas.
+    /// Incluye endpoints para registro, inicio de sesión, verificación de cuenta,
+    /// recuperación de contraseña y renovación de tokens.
     /// </summary>
     [ApiController]
     [Route("auth")]
@@ -19,32 +20,32 @@ namespace AeroRide.API.Controllers
         /// <summary>
         /// Inicializa una nueva instancia del controlador de autenticación.
         /// </summary>
-        /// <param name="authService">Servicio encargado de la lógica de autenticación y generación de tokens.</param>
+        /// <param name="authService">Servicio que gestiona las operaciones de autenticación.</param>
         public AuthController(IAuthService authService)
         {
             _authService = authService;
         }
 
-        // =======================================================
-        //  🔹 REGISTRO DE USUARIOS
-        // =======================================================
+        // ======================================================
+        // 1️⃣ REGISTRO DE USUARIOS
+        // ======================================================
 
         /// <summary>
-        /// Registra un nuevo usuario en el sistema.
+        /// Registra un nuevo usuario en la plataforma AeroRide.
+        /// Envía un correo de verificación al usuario registrado.
         /// </summary>
-        /// <param name="dto">Datos de registro del usuario (nombre, correo, contraseña, etc.).</param>
-        /// <returns>Objeto con la información del usuario registrado.</returns>
-        /// <remarks>
-        /// Este endpoint es público, no requiere autenticación.
-        /// </remarks>
+        /// <param name="dto">Datos de registro proporcionados por el usuario.</param>
+        /// <returns>Datos básicos del usuario creado.</returns>
         [HttpPost("register")]
-        [AllowAnonymous] // ✅ Público: usuarios nuevos no tienen token todavía
-        public async Task<ActionResult<UserResponseDto>> Register(UserRegisterDto dto)
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Register([FromBody] UserRegisterDto dto)
         {
             try
             {
-                var result = await _authService.RegisterAsync(dto);
-                return Ok(result);
+                var user = await _authService.RegisterAsync(dto);
+                return CreatedAtAction(nameof(Register), new { user.Id }, user);
             }
             catch (Exception ex)
             {
@@ -52,48 +53,51 @@ namespace AeroRide.API.Controllers
             }
         }
 
-        // =======================================================
-        //  🔹 LOGIN
-        // =======================================================
+        // ======================================================
+        // 2️⃣ LOGIN
+        // ======================================================
 
         /// <summary>
-        /// Autentica al usuario y genera los tokens JWT y Refresh Token.
+        /// Inicia sesión validando las credenciales del usuario.
+        /// Retorna un JWT válido y un refresh token.
         /// </summary>
-        /// <param name="dto">Credenciales del usuario (correo y contraseña).</param>
-        /// <returns>Tokens de acceso y refresco válidos para la sesión.</returns>
-        /// <remarks>
-        /// Este endpoint es público y permite a los usuarios autenticarse.
-        /// </remarks>
+        /// <param name="dto">Datos de inicio de sesión (correo y contraseña).</param>
+        /// <returns>Token JWT y refresh token asociados al usuario autenticado.</returns>
         [HttpPost("login")]
-        [AllowAnonymous] // ✅ Público: permite obtener el token
-        public async Task<ActionResult<AuthResponseDto>> Login(UserLoginDto dto)
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> Login([FromBody] UserLoginDto dto)
         {
             try
             {
                 var result = await _authService.LoginAsync(dto);
                 return Ok(result);
             }
-            catch (Exception ex)
+            catch (UnauthorizedAccessException ex)
             {
                 return Unauthorized(new { message = ex.Message });
             }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
-        // =======================================================
-        //  🔹 REFRESH TOKEN
-        // =======================================================
+        // ======================================================
+        // 3️⃣ REFRESH TOKEN
+        // ======================================================
 
         /// <summary>
-        /// Refresca el JWT de un usuario autenticado utilizando su Refresh Token.
+        /// Genera un nuevo JWT y refresh token a partir de un refresh token válido.
         /// </summary>
-        /// <param name="dto">Token de refresco actual emitido previamente.</param>
-        /// <returns>Nuevo token JWT y refresh token.</returns>
-        /// <remarks>
-        /// Este endpoint debe estar protegido, ya que requiere un token de refresco válido.
-        /// </remarks>
+        /// <param name="dto">Objeto con el refresh token actual.</param>
+        /// <returns>Nuevo JWT y refresh token.</returns>
         [HttpPost("refresh")]
-        [AllowAnonymous] // ⚠️ Puede mantenerse público porque el refresh token ya se valida internamente
-        public async Task<ActionResult<AuthResponseDto>> Refresh(RefreshTokenRequestDto dto)
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequestDto dto)
         {
             try
             {
@@ -102,95 +106,111 @@ namespace AeroRide.API.Controllers
             }
             catch (Exception ex)
             {
-                return Unauthorized(new { message = ex.Message });
+                return BadRequest(new { message = ex.Message });
             }
         }
 
-        // =======================================================
-        //  🔹 LOGOUT
-        // =======================================================
+        // ======================================================
+        // 4️⃣ VERIFICAR CORREO
+        // ======================================================
 
         /// <summary>
-        /// Cierra sesión y revoca el token de refresco asociado al usuario.
+        /// Verifica la dirección de correo electrónico del usuario utilizando un token enviado por correo.
         /// </summary>
-        /// <param name="dto">Refresh token a invalidar.</param>
-        /// <returns>Mensaje de confirmación de cierre de sesión.</returns>
-        /// <remarks>
-        /// Este endpoint requiere que el usuario esté autenticado.
-        /// </remarks>
-        [HttpPost("logout")]
-        [Authorize] // ✅ Protegido: solo usuarios autenticados pueden cerrar sesión
-        public async Task<IActionResult> Logout(RefreshTokenRequestDto dto)
-        {
-            await _authService.LogoutAsync(dto.RefreshToken);
-            return Ok(new { message = "Sesión cerrada correctamente." });
-        }
-
-        // =======================================================
-        //  🔹 VERIFICACIÓN DE CORREO
-        // =======================================================
-
-        /// <summary>
-        /// Verifica la dirección de correo electrónico del usuario mediante un token enviado por email.
-        /// </summary>
-        /// <param name="token">Token de verificación recibido por correo.</param>
-        /// <returns>Mensaje de confirmación de verificación de correo.</returns>
+        /// <param name="token">Token único de verificación recibido por email.</param>
+        /// <returns>Mensaje confirmando el resultado de la verificación.</returns>
         [HttpGet("verify-email")]
-        [AllowAnonymous] // ✅ Público: los usuarios verifican su email sin iniciar sesión
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> VerifyEmail([FromQuery] string token)
         {
             try
             {
-                var message = await _authService.VerifyEmailAsync(token);
-                return Ok(new { message });
+                var result = await _authService.VerifyEmailAsync(token);
+                return Ok(new { message = result });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { message = ex.Message });
             }
         }
 
-        // =======================================================
-        //  🔹 RECUPERACIÓN DE CONTRASEÑA
-        // =======================================================
+        // ======================================================
+        // 5️⃣ LOGOUT
+        // ======================================================
 
         /// <summary>
-        /// Envía un correo con el enlace para restablecer la contraseña.
+        /// Cierra sesión revocando el refresh token activo del usuario.
         /// </summary>
-        /// <param name="dto">Correo electrónico del usuario que solicita el restablecimiento.</param>
-        /// <returns>Mensaje indicando el resultado del envío.</returns>
+        /// <param name="refreshToken">Refresh token actual.</param>
+        /// <returns>Confirmación del cierre de sesión.</returns>
+        [HttpPost("logout")]
+        [Authorize]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Logout(RefreshTokenRequestDto dto)
+        {
+            try
+            {
+                await _authService.LogoutAsync(dto.RefreshToken);
+                return Ok(new { message = "Sesion cerrada correctamente." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        // ======================================================
+        // 6️⃣ SOLICITAR RESTABLECIMIENTO DE CONTRASEÑA
+        // ======================================================
+
+        /// <summary>
+        /// Envía un correo con un enlace para restablecer la contraseña del usuario.
+        /// </summary>
+        /// <param name="dto">Objeto con el correo electrónico del usuario.</param>
+        /// <returns>Mensaje de confirmación del envío del correo.</returns>
         [HttpPost("forgot-password")]
-        [AllowAnonymous] // ✅ Público: se usa cuando el usuario no puede iniciar sesión
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
         {
             try
             {
-                var message = await _authService.SendPasswordResetEmailAsync(dto.Email);
-                return Ok(new { message });
+                var result = await _authService.SendPasswordResetEmailAsync(dto.Email);
+                return Ok(new { message = result });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { message = ex.Message });
             }
         }
 
+        // ======================================================
+        // 7️⃣ RESTABLECER CONTRASEÑA
+        // ======================================================
+
         /// <summary>
-        /// Restablece la contraseña del usuario mediante un token válido.
+        /// Restablece la contraseña del usuario utilizando el token recibido por correo.
         /// </summary>
-        /// <param name="dto">Datos con el token de recuperación y la nueva contraseña.</param>
-        /// <returns>Mensaje de confirmación de restablecimiento de contraseña.</returns>
+        /// <param name="dto">Objeto que contiene el token y la nueva contraseña.</param>
+        /// <returns>Mensaje confirmando el restablecimiento exitoso.</returns>
         [HttpPut("reset-password")]
-        [AllowAnonymous] // ✅ Público: el usuario aún no está autenticado
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
         {
             try
             {
-                var message = await _authService.ResetPasswordAsync(dto.Token, dto.NewPassword);
-                return Ok(new { message });
+                var result = await _authService.ResetPasswordAsync(dto.Token, dto.NewPassword);
+                return Ok(new { message = result });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return BadRequest(new { message = ex.Message });
             }
         }
     }

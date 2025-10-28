@@ -27,7 +27,7 @@ namespace AeroRide.API.Models.DTOs.Aircrafts
         public double Price { get; set; }
 
         /// <summary>
-        /// Número máximo de pasajeros.
+        /// Número máximo de pasajeros permitidos.
         /// </summary>
         [Range(1, int.MaxValue, ErrorMessage = "La cantidad de asientos debe ser al menos 1.")]
         public int Seats { get; set; }
@@ -39,16 +39,21 @@ namespace AeroRide.API.Models.DTOs.Aircrafts
         public int MaxWeight { get; set; }
 
         /// <summary>
-        /// Estado actual operativo de la aeronave.
-        /// Ejemplo: Disponible, En mantenimiento.
+        /// Estado operativo actual de la aeronave (por ejemplo: Disponible, En mantenimiento).
         /// </summary>
-        [Required(ErrorMessage = "El estado es obligatorio.")]
+        [Required(ErrorMessage = "El campo 'State' es obligatorio.")]
         public string State { get; set; } = null!;
 
         /// <summary>
-        /// Ruta o URL de la imagen representativa.
+        /// URL o ruta de la imagen representativa de la aeronave.
         /// </summary>
         [Required(ErrorMessage = "Debe proporcionar una imagen.")]
         public string Image { get; set; } = null!;
+
+        /// <summary>
+        /// Identificador de la compañía propietaria de la aeronave (opcional).
+        /// Solo aplica si se maneja un entorno multiempresa.
+        /// </summary>
+        public int? CompanyId { get; set; }
     }
 }

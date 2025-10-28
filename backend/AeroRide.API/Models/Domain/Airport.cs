@@ -40,6 +40,11 @@ namespace AeroRide.API.Models.Domain
         public string Country { get; set; } = null!;
 
         /// <summary>
+        /// Zona horaria del aeropuerto (por ejemplo: "America/Costa_Rica").
+        /// </summary>
+        public string TimeZone { get; set; } = null!;
+
+        /// <summary>
         /// Hora de apertura del aeropuerto (opcional).
         /// </summary>
         public TimeSpan? OpeningTime { get; set; }
@@ -70,14 +75,11 @@ namespace AeroRide.API.Models.Domain
         public string Image { get; set; } = null!;
 
         /// <summary>
-        /// Impuesto o tasa aeroportuaria aplicada a los vuelos que operan en este aeropuerto.
-        /// </summary>
-        public double Tax { get; set; }
-
-        /// <summary>
         /// Indica si el aeropuerto se encuentra activo en el sistema.
         /// </summary>
         public bool IsActive { get; set; } = true;
+
+        //RELACIONES// 
 
         /// <summary>
         /// Colección de vuelos que despegan desde este aeropuerto.

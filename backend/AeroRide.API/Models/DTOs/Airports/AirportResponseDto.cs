@@ -36,9 +36,6 @@
         /// <summary>Longitud geográfica en formato decimal.</summary>
         public decimal Longitude { get; set; }
 
-        /// <summary>Tasa aeroportuaria aplicada a vuelos.</summary>
-        public double Tax { get; set; }
-
         /// <summary>URL de la imagen representativa del aeropuerto.</summary>
         public string Image { get; set; } = null!;
 

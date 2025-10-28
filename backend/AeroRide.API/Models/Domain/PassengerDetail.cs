@@ -1,10 +1,12 @@
-﻿namespace AeroRide.API.Models.Domain
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace AeroRide.API.Models.Domain
 {
     /// <summary>
     /// Entidad que representa los datos personales de un pasajero asociado a una reserva.
     /// Cada reserva (<see cref="Reservation"/>) puede incluir uno o varios pasajeros.
     /// </summary>
-    public class PassengerDetails
+    public class PassengerDetail
     {
         /// <summary>
         /// Identificador único del pasajero dentro del sistema.
@@ -19,7 +21,7 @@
         /// <summary>
         /// Segundo nombre del pasajero (opcional).
         /// </summary>
-        public string MiddleName { get; set; } = null!;
+        public string? MiddleName { get; set; }
 
         /// <summary>
         /// Apellido del pasajero.
@@ -32,6 +34,11 @@
         public string Passport { get; set; } = null!;
 
         /// <summary>
+        /// Nacionalidad del pasajero (por ejemplo: "Costa Rica", "Estados Unidos").
+        /// </summary>
+        public string Nationality { get; set; } = null!;
+
+        /// <summary>
         /// Fecha de nacimiento del pasajero (para verificaciones de edad o restricciones legales).
         /// </summary>
         public DateTime DateOfBirth { get; set; }
@@ -41,19 +48,11 @@
         /// </summary>
         public enum GenderType
         {
-            /// <summary>
-            /// Género masculino.
-            /// </summary>
+            /// <summary>Género masculino.</summary>
             Male,
-
-            /// <summary>
-            /// Género femenino.
-            /// </summary>
+            /// <summary>Género femenino.</summary>
             Female,
-
-            /// <summary>
-            /// Género no especificado u otra identidad.
-            /// </summary>
+            /// <summary>Género no especificado u otra identidad.</summary>
             Other
         }
 
@@ -71,5 +70,15 @@
         /// Referencia a la reserva asociada a este pasajero.
         /// </summary>
         public Reservation Reservation { get; set; } = null!;
+
+        // ======================================================
+        // 🧮 PROPIEDADES DERIVADAS
+        // ======================================================
+
+        /// <summary>
+        /// Edad calculada del pasajero (no se almacena en la base de datos).
+        /// </summary>
+        [NotMapped]
+        public int Age => (int)((DateTime.UtcNow - DateOfBirth).TotalDays / 365.25);
     }
 }

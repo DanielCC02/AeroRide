@@ -30,7 +30,7 @@ namespace AeroRide.API.Controllers
         /// Obtiene la lista de aeropuertos activos, ordenados por Id.
         /// </summary>
         [HttpGet]
-        [Authorize(Roles = "Admin, Broker, Pilot, User")]
+        [Authorize(Roles = "Admin,CompanyAdmin,Pilot,User")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetActiveAirports()
         {
@@ -47,7 +47,7 @@ namespace AeroRide.API.Controllers
         /// Solo visible para administradores.
         /// </summary>
         [HttpGet("all")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,CompanyAdmin")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAllAirports()
         {
@@ -63,7 +63,7 @@ namespace AeroRide.API.Controllers
         /// Obtiene la información detallada de un aeropuerto específico por su Id.
         /// </summary>
         [HttpGet("{id:int}")]
-        [Authorize(Roles = "Admin, Broker, Pilot, User")]
+        [Authorize(Roles = "Admin,CompanyAdmin,Pilot,User")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetAirportById(int id)
@@ -83,7 +83,7 @@ namespace AeroRide.API.Controllers
         /// Crea un nuevo aeropuerto en el sistema.
         /// </summary>
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,CompanyAdmin")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateAirport([FromBody] AirportCreateDto dto)
@@ -103,7 +103,7 @@ namespace AeroRide.API.Controllers
         /// Actualiza los datos de un aeropuerto existente.
         /// </summary>
         [HttpPut("{id:int}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,CompanyAdmin")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateAirport(int id, [FromBody] AirportUpdateDto dto)
@@ -123,7 +123,7 @@ namespace AeroRide.API.Controllers
         /// Desactiva (elimina lógicamente) un aeropuerto.
         /// </summary>
         [HttpDelete("{id:int}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,CompanyAdmin")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeactivateAirport(int id)
@@ -143,7 +143,7 @@ namespace AeroRide.API.Controllers
         /// Reactiva un aeropuerto previamente desactivado.
         /// </summary>
         [HttpPut("reactivate/{id:int}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,CompanyAdmin")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> ReactivateAirport(int id)
@@ -164,7 +164,7 @@ namespace AeroRide.API.Controllers
         /// Solo los administradores pueden realizar esta acción.
         /// </summary>
         [HttpPost("ImageUpload")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,CompanyAdmin")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> UploadImage(IFormFile file, [FromServices] IImageService imageService)
@@ -191,13 +191,36 @@ namespace AeroRide.API.Controllers
         /// <param name="query">Texto parcial ingresado por el usuario.</param>
         /// <returns>Lista de aeropuertos que coinciden con el texto.</returns>
         [HttpGet("search")]
-        [Authorize(Roles = "Admin,Broker,Pilot,User")]
+        [Authorize(Roles = "Admin,CompanyAdmin,Pilot,User")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> SearchAirports([FromQuery] string query)
         {
             var results = await _airportService.SearchAsync(query);
             return Ok(results);
         }
+
+        // ======================================================
+        // 🔹 GET: /api/airports/country/{country}
+        // ======================================================
+
+        /// <summary>
+        /// Obtiene todos los aeropuertos activos ubicados en un país específico.
+        /// Ideal para filtrado por país o selección en formularios.
+        /// </summary>
+        /// <param name="country">Nombre del país (por ejemplo: "Costa Rica").</param>
+        [HttpGet("country/{country}")]
+        [Authorize(Roles = "Admin,CompanyAdmin,Pilot,User")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<IActionResult> GetAirportsByCountry(string country)
+        {
+            var results = await _airportService.GetByCountryAsync(country);
+            if (!results.Any())
+                return NoContent();
+
+            return Ok(results);
+        }
+
 
     }
 }

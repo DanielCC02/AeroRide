@@ -33,9 +33,6 @@
         /// <summary>Nueva longitud geográfica (opcional).</summary>
         public decimal? Longitude { get; set; }
 
-        /// <summary>Nueva tasa aeroportuaria (opcional).</summary>
-        public double? Tax { get; set; }
-
         /// <summary>
         /// URL de la nueva imagen representativa del aeropuerto (opcional).
         /// Si se cambia, la imagen anterior será eliminada del contenedor de Azure.

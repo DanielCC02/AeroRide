@@ -47,5 +47,15 @@
         public string Image { get; set; } = null!;
 
         public bool IsActive { get; set; }
+
+        /// <summary>
+        /// Identificador de la compañía propietaria de la aeronave (si aplica).
+        /// </summary>
+        public int? CompanyId { get; set; }
+
+        /// <summary>
+        /// Nombre de la compañía asociada (solo visible para administradores).
+        /// </summary>
+        public string? CompanyName { get; set; }
     }
 }
