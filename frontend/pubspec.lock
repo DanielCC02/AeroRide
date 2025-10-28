@@ -162,10 +162,10 @@ packages:
     dependency: transitive
     description:
       name: flutter_plugin_android_lifecycle
-      sha256: c2fe1001710127dfa7da89977a08d591398370d099aacdaa6d44da7eb14b8476
+      sha256: "306f0596590e077338312f38837f595c04f28d6cdeeac392d3d74df2f0003687"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.31"
+    version: "2.0.32"
   flutter_secure_storage:
     dependency: "direct main"
     description:
@@ -316,10 +316,10 @@ packages:
     dependency: transitive
     description:
       name: google_maps_flutter_android
-      sha256: "7c7ff5b883b27bfdd0d52d91d89faf00858a6c1b33aeca0dc80faca64f389983"
+      sha256: f820a3990d4ff23e3baf01ce794f7f08cca9a9ce6c875ec96882d605f6f039df
       url: "https://pub.dev"
     source: hosted
-    version: "2.18.3"
+    version: "2.18.4"
   google_maps_flutter_ios:
     dependency: transitive
     description:
@@ -361,7 +361,7 @@ packages:
     source: hosted
     version: "0.15.6"
   http:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: http
       sha256: bb2ce4590bc2667c96f318d68cac1b5a7987ec819351d32b1c987239a815e007
@@ -388,10 +388,10 @@ packages:
     dependency: transitive
     description:
       name: image_picker_android
-      sha256: dd7a61daaa5896cc34b7bc95f66c60225ae6bee0d167dde0e21a9d9016cac0dc
+      sha256: "58a85e6f09fe9c4484d53d18a0bd6271b72c53fce1d05e6f745ae36d8c18efca"
       url: "https://pub.dev"
     source: hosted
-    version: "0.8.13+4"
+    version: "0.8.13+5"
   image_picker_for_web:
     dependency: transitive
     description:
@@ -508,7 +508,7 @@ packages:
     dependency: transitive
     description:
       name: meta
-      sha256: "23f08335362185a5ea2ad3a4e597f1375e78bce8a040df5c600c8d3552ef2394"
+      sha256: e3641ec5d63ebf0d9b41bd43201a66e3fc79a65db5f61fc181f04cd27aab950c
       url: "https://pub.dev"
     source: hosted
     version: "1.16.0"
@@ -564,10 +564,10 @@ packages:
     dependency: transitive
     description:
       name: path_provider_android
-      sha256: "3b4c1fc3aa55ddc9cd4aa6759984330d5c8e66aa7702a6223c61540dc6380c37"
+      sha256: e122c5ea805bb6773bb12ce667611265980940145be920cd09a4b0ec0285cb16
       url: "https://pub.dev"
     source: hosted
-    version: "2.2.19"
+    version: "2.2.20"
   path_provider_foundation:
     dependency: transitive
     description:
@@ -721,10 +721,10 @@ packages:
     dependency: transitive
     description:
       name: test_api
-      sha256: ab2726c1a94d3176a45960b6234466ec367179b87dd74f1611adb1f3b5fb9d55
+      sha256: "522f00f556e73044315fa4585ec3270f1808a4b186c936e612cab0b565ff1e00"
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.7"
+    version: "0.7.6"
   typed_data:
     dependency: transitive
     description:
