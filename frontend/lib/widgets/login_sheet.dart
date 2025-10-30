@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../services/api_config.dart';
 import '../services/token_storage.dart';
+import 'package:frontend/widgets/forgot_password_sheet.dart';
 
 class LoginSheet extends StatefulWidget {
   const LoginSheet({super.key});
@@ -22,94 +23,113 @@ class _LoginSheetState extends State<LoginSheet> {
   final _password = TextEditingController();
   bool _obscure = true;
 
+  Uri _u(String path) => Uri.parse('${ApiConfig.baseUrl}$path');
+
   Future<LoginResult> _loginUser(String email, String password) async {
     try {
-      final url = Uri.parse('${ApiConfig.baseUrl}/auth/login');
-
-      final response = await http.post(
-        url,
+      // 1) Login
+      final loginRes = await http.post(
+        _u('/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'password': password}),
       );
 
-      // ❌ Error de login
-      if (response.statusCode != 200) {
+      // Si falla login, distinguir cuenta no verificada vs credenciales
+      if (loginRes.statusCode != 200) {
         String msg = '';
         try {
-          final body = jsonDecode(response.body);
+          final body = jsonDecode(loginRes.body);
           if (body is Map && body['message'] is String) {
             msg = (body['message'] as String).toLowerCase();
           }
         } catch (_) {}
 
-        // Detectar "cuenta no verificada" (ES/EN) y típicos códigos 401/403
-        final isUnverified =
-            (response.statusCode == 401 || response.statusCode == 403) &&
+        final unverified =
+            (loginRes.statusCode == 401 || loginRes.statusCode == 403) &&
             (msg.contains('no ha sido verificada') ||
                 msg.contains('no verificada') ||
                 msg.contains('not verified') ||
                 msg.contains('verify your email'));
 
-        return isUnverified ? LoginResult.unverified : LoginResult.invalid;
+        return unverified ? LoginResult.unverified : LoginResult.invalid;
       }
 
-      // ✅ Login OK → guardar tokens
-      final data = jsonDecode(response.body);
-      final token = data['token'] ?? '';
-      final refreshToken = data['refreshToken'] ?? '';
+      // 2) Extraer tokens (acepta camelCase y PascalCase)
+      final loginData = jsonDecode(loginRes.body) as Map<String, dynamic>;
+      final token = (loginData['token'] ?? loginData['Token']) as String? ?? '';
+      final refreshToken =
+          (loginData['refreshToken'] ?? loginData['RefreshToken']) as String? ??
+          '';
       if (token.isEmpty) return LoginResult.invalid;
 
       await TokenStorage.saveTokens(token, refreshToken);
 
-      // 🔎 Obtener perfil (fallback /api/users/me → /users/me)
-      Future<http.Response> _getMe(String path) => http.get(
-        Uri.parse('${ApiConfig.baseUrl}$path'),
+      // 3) Obtener perfil en el endpoint correcto
+      final meRes = await http.get(
+        _u('/api/users/profile'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       );
 
-      http.Response meResponse = await _getMe('/api/users/me');
-      if (meResponse.statusCode == 404 || meResponse.statusCode == 405) {
-        meResponse = await _getMe('/users/me');
-      }
-
-      if (meResponse.statusCode == 200) {
-        final userData = jsonDecode(meResponse.body);
-        final roleName = (userData['role'] ?? '').toString().toLowerCase();
-
-        if (context.mounted) {
-          Navigator.of(context).pop(); // Cierra el BottomSheet
-
-          Future.delayed(const Duration(milliseconds: 200), () {
-            final navigator = Navigator.of(context, rootNavigator: true);
-
-            if (roleName == 'admin') {
-              navigator.pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const HomePageAdmin()),
-                (route) => false,
-              );
-            } else if (roleName == 'pilot') {
-              navigator.pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const HomePagePilot()),
-                (route) => false,
-              );
-            } else {
-              navigator.pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const HomePageScreen()),
-                (route) => false,
-              );
-            }
-          });
-        }
-        return LoginResult.success;
-      } else {
+      if (meRes.statusCode != 200) {
+        // Si aquí no es 200, el problema no son credenciales; es endpoint/header.
+        // Descomenta estas líneas para depurar:
+        // debugPrint('[PROFILE] status=${meRes.statusCode}');
+        // debugPrint('[PROFILE] body=${meRes.body}');
         return LoginResult.invalid;
       }
+
+      final userData = jsonDecode(meRes.body) as Map<String, dynamic>;
+
+      // 4) Resolver rol (string u objeto) y roleId por si viene numérico
+      String roleName = '';
+      int? roleId;
+
+      if (userData['role'] is String) {
+        roleName = (userData['role'] as String).toLowerCase();
+      } else if (userData['role'] is Map) {
+        final r = userData['role'] as Map;
+        if (r['name'] is String) roleName = (r['name'] as String).toLowerCase();
+        if (r['id'] is int) roleId = r['id'] as int;
+      }
+
+      if (roleId == null && userData['roleId'] is int) {
+        roleId = userData['roleId'] as int;
+      }
+
+      // 5) Navegación (mantengo admin/pilot; clientes → HomePageScreen)
+      if (context.mounted) {
+        Navigator.of(context).pop(); // Cierra el BottomSheet
+
+        Future.delayed(const Duration(milliseconds: 150), () {
+          final nav = Navigator.of(context, rootNavigator: true);
+
+          if (roleName == 'admin' || roleId == 1) {
+            nav.pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const HomePageAdmin()),
+              (route) => false,
+            );
+          } else if (roleName == 'pilot' || roleId == 2) {
+            nav.pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const HomePagePilot()),
+              (route) => false,
+            );
+          } else {
+            // Cliente (por nombre 'user' o id 4) -> HomePageScreen
+            nav.pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const HomePageScreen()),
+              (route) => false,
+            );
+          }
+        });
+      }
+
+      return LoginResult.success;
     } catch (e) {
       // ignore: avoid_print
-      print('❗ Connection error: $e');
+      print('❗ Connection/Parsing error: $e');
       return LoginResult.invalid;
     }
   }
@@ -222,7 +242,19 @@ class _LoginSheetState extends State<LoginSheet> {
                     ),
                     const SizedBox(height: 8),
                     TextButton(
-                      onPressed: () {}, // TODO: forgot password
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          useRootNavigator: true,
+                          isScrollControlled: true,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(16),
+                            ),
+                          ),
+                          builder: (_) => const ForgotPasswordSheet(),
+                        );
+                      },
                       child: const Text('Forgot password?'),
                     ),
                   ],
