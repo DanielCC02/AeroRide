@@ -33,11 +33,14 @@ class _MyAppState extends State<MyApp> {
   }
 
   /// Verifica si hay un token guardado para decidir la pantalla inicial.
+  /// Si no hay token o el perfil falla, limpia tokens y va a Welcome.
   Future<void> _checkLoginStatus() async {
     final token = await TokenStorage.getAccessToken();
 
     if (token == null || token.isEmpty) {
-      setState(() => _defaultScreen = const WelcomeScreen());
+      // Asegura que no quede nada viejo antes de ir a Welcome
+      await TokenStorage.clearTokens();
+      if (mounted) setState(() => _defaultScreen = const WelcomeScreen());
       return;
     }
 
@@ -46,38 +49,55 @@ class _MyAppState extends State<MyApp> {
       if (profile == null) {
         // Token inválido/expirado o no se pudo obtener el perfil
         await TokenStorage.clearTokens();
-        setState(() => _defaultScreen = const WelcomeScreen());
+        if (mounted) setState(() => _defaultScreen = const WelcomeScreen());
         return;
       }
 
-      // role puede venir como string directo o como objeto { name: "Admin" }
+      // role puede venir como:
+      // 1) string directo: "Admin"
+      // 2) objeto: { id: 1, name: "Admin" }
+      // 3) además, puede venir roleId suelto
       String roleName = '';
+      int? roleId;
+
       final roleField = profile['role'];
       if (roleField is String) {
         roleName = roleField.toLowerCase();
-      } else if (roleField is Map && roleField['name'] is String) {
-        roleName = (roleField['name'] as String).toLowerCase();
+      } else if (roleField is Map) {
+        if (roleField['name'] is String) {
+          roleName = (roleField['name'] as String).toLowerCase();
+        }
+        if (roleField['id'] is int) {
+          roleId = roleField['id'] as int;
+        }
+      }
+      if (roleId == null && profile['roleId'] is int) {
+        roleId = profile['roleId'] as int;
       }
 
-      setState(() {
-        if (roleName == 'admin') {
-          _defaultScreen = const HomePageAdmin();
-        } else if (roleName == 'pilot') {
-          _defaultScreen = const HomePagePilot();
-        } else {
-          _defaultScreen = const HomePageScreen();
-        }
-      });
+      if (mounted) {
+        setState(() {
+          if (roleName == 'admin' || roleId == 1) {
+            _defaultScreen = const HomePageAdmin();
+          } else if (roleName == 'pilot' || roleId == 2) {
+            _defaultScreen = const HomePagePilot();
+          } else {
+            _defaultScreen = const HomePageScreen();
+          }
+        });
+      }
     } catch (e) {
-      // En cualquier error, vuelve a welcome
+      // En cualquier error, vuelve a welcome y limpia tokens para evitar estados raros
       // ignore: avoid_print
       print('⚠️ Error al verificar token/perfil: $e');
-      setState(() => _defaultScreen = const WelcomeScreen());
+      await TokenStorage.clearTokens();
+      if (mounted) setState(() => _defaultScreen = const WelcomeScreen());
     }
   }
 
-  /// Intenta primero /api/users/me y si devuelve 404/405/NotFound,
-  /// reintenta en /users/me (sin /api). Devuelve el JSON del perfil o null.
+  /// Intenta primero /api/users/profile y si devuelve 404/405,
+  /// reintenta en /users/me (por compatibilidad antigua).
+  /// Devuelve el JSON del perfil o null si 401/403 u otro error.
   Future<Map<String, dynamic>?> _fetchProfileWithFallback(String token) async {
     final headers = {
       'Content-Type': 'application/json',
@@ -87,20 +107,17 @@ class _MyAppState extends State<MyApp> {
     Future<http.Response> _get(String path) =>
         http.get(Uri.parse('${ApiConfig.baseUrl}$path'), headers: headers);
 
-    // 1) intento con /api/users/me
-    http.Response res = await _get('/api/users/me');
+    // 1) intento con /api/users/profile (ruta correcta del back)
+    http.Response res = await _get('/api/users/profile');
 
-    // Si está OK
     if (res.statusCode == 200) {
       return _safeJson(res.body);
     }
-
-    // Si es 401/403, token no válido: devolver null
     if (res.statusCode == 401 || res.statusCode == 403) {
-      return null;
+      return null; // token inválido/expirado
     }
 
-    // 2) fallback con /users/me (sin /api) si el primero no sirve
+    // 2) fallback legacy: /users/me
     if (res.statusCode == 404 || res.statusCode == 405) {
       res = await _get('/users/me');
       if (res.statusCode == 200) {
