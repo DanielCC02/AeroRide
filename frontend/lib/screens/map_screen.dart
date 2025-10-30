@@ -16,16 +16,15 @@ class _MapScreenState extends State<MapScreen> {
   GoogleMapController? _mapController;
 
   static const CameraPosition _kInitial = CameraPosition(
-    target: LatLng(9.7489, -83.7534),
+    target: LatLng(9.7489, -83.7534), // CR
     zoom: 6.8,
   );
 
   bool _hasLocationPermission = false;
   Position? _currentPosition;
 
-  late final AirportService _airportService;
   final Set<Marker> _markers = {};
-  final List<Airport> _airports = []; // 🔹 Lista completa para búsquedas
+  final List<Airport> _airports = []; // lista completa para los marcadores
   final TextEditingController _searchController = TextEditingController();
 
   List<Airport> _searchResults = [];
@@ -34,7 +33,6 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
-    _airportService = AirportService();
     _initLocationFlow();
   }
 
@@ -71,7 +69,9 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _loadAirportsMarkers() async {
     try {
-      final airports = await _airportService.getActiveAirports();
+      // Traemos “muchos” para poblar el mapa (si tu API pagina, aquí puedes iterar).
+      final airports = await AirportService.searchAirports('', limit: 400);
+
       _airports
         ..clear()
         ..addAll(airports);
@@ -99,8 +99,9 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  void _searchAirport(String query) {
-    if (query.isEmpty) {
+  Future<void> _searchAirport(String query) async {
+    final q = query.trim();
+    if (q.isEmpty) {
       setState(() {
         _showResults = false;
         _searchResults.clear();
@@ -108,14 +109,12 @@ class _MapScreenState extends State<MapScreen> {
       return;
     }
 
-    final results = _airports.where((a) {
-      final q = query.toLowerCase();
-      return a.name.toLowerCase().contains(q) ||
-          a.codeIATA.toLowerCase().contains(q);
-    }).toList();
+    // Búsqueda dinámica al backend (en vez de filtrar local).
+    final results = await AirportService.searchAirports(q, limit: 8);
 
+    if (!mounted) return;
     setState(() {
-      _showResults = true;
+      _showResults = results.isNotEmpty;
       _searchResults = results;
     });
   }
@@ -141,7 +140,6 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     _mapController?.dispose();
-    _airportService.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -149,10 +147,7 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Map'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Map'), centerTitle: true),
       body: Stack(
         children: [
           GoogleMap(
@@ -212,7 +207,9 @@ class _MapScreenState extends State<MapScreen> {
                               )
                             : null,
                         contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                       ),
                       onChanged: _searchAirport,
                     ),
@@ -225,9 +222,10 @@ class _MapScreenState extends State<MapScreen> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: const [
                           BoxShadow(
-                              blurRadius: 8,
-                              color: Colors.black26,
-                              offset: Offset(0, 2))
+                            blurRadius: 8,
+                            color: Colors.black26,
+                            offset: Offset(0, 2),
+                          ),
                         ],
                       ),
                       child: ListView.builder(
