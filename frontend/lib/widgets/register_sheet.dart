@@ -197,12 +197,14 @@ class _RegisterSheetState extends State<RegisterSheet> {
                       ),
                       obscureText: true,
                       validator: (v) {
-                        if (v == null || v.length < 8)
+                        if (v == null || v.length < 8) {
                           return 'Min 8 characters';
+                        }
                         final hasNum = RegExp(r'[0-9]').hasMatch(v);
                         final hasLet = RegExp(r'[A-Za-z]').hasMatch(v);
-                        if (!hasNum || !hasLet)
+                        if (!hasNum || !hasLet) {
                           return 'Include letters and numbers';
+                        }
                         return null;
                       },
                     ),

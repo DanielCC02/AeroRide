@@ -1,11 +1,14 @@
-import 'airport.dart';
+// lib/models/reservation.dart
+// Ahora usa el modelo de dominio de aeropuertos (conectado a la BD).
+
 import 'plane.dart';
+import 'airport_model.dart' as domain;
 
 class Reservation {
   final String id;
   final Plane plane;
-  final Airport from;
-  final Airport to;
+  final domain.Airport from;
+  final domain.Airport to;
   final DateTime date;
   final int passengers;
   final double estFlightTimeMin;

@@ -104,11 +104,11 @@ class _MyAppState extends State<MyApp> {
       'Authorization': 'Bearer $token',
     };
 
-    Future<http.Response> _get(String path) =>
+    Future<http.Response> get(String path) =>
         http.get(Uri.parse('${ApiConfig.baseUrl}$path'), headers: headers);
 
     // 1) intento con /api/users/profile (ruta correcta del back)
-    http.Response res = await _get('/api/users/profile');
+    http.Response res = await get('/api/users/profile');
 
     if (res.statusCode == 200) {
       return _safeJson(res.body);
@@ -119,7 +119,7 @@ class _MyAppState extends State<MyApp> {
 
     // 2) fallback legacy: /users/me
     if (res.statusCode == 404 || res.statusCode == 405) {
-      res = await _get('/users/me');
+      res = await get('/users/me');
       if (res.statusCode == 200) {
         return _safeJson(res.body);
       }

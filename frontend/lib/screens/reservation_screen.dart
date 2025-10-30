@@ -2,32 +2,11 @@ import 'package:flutter/material.dart';
 import '../models/reservation.dart';
 import '../models/passenger_info.dart';
 import 'passengers_form_screen.dart';
-import 'homepage_screen.dart';
+import 'homepage_screen.dart'; // deja este import como lo tengas en tu proyecto
 
 /// ReservationScreen
 /// ---------------------------------------------------------------------------
 /// Pantalla de detalle de reservación (mock faithful al diseño).
-///
-/// ENTRADAS:
-/// - [Reservation] con avión, ruta, fecha/hora, pax y precio.
-///
-/// RESPONSABILIDADES:
-/// - Mostrar header con imagen, modelo, seats y precio.
-/// - Sección “Itinerary” con salida/llegada + EFT y aeropuertos.
-/// - Sección “Passengers”:
-///   * Botón rojo “Add Passengers Information”
-///   * Abre [PassengersFormScreen] y persiste lo ingresado.
-/// - Sección “Companions”: toggles de lap infant y dog.
-/// - Botón “Book”: valida que haya info de todos los pasajeros y
-///   vuelve a Home limpiando el formulario.
-///
-/// ESTADO LOCAL:
-/// - `_passengers` (lista ingresada en el formulario).
-/// - `lapInfant` y `dog`.
-///
-/// FUTURO:
-/// - Guardar reserva en “Upcoming Trips” vía provider/repositorio.
-/// - Integrar “Show on the map”.
 class ReservationScreen extends StatefulWidget {
   final Reservation reservation;
   const ReservationScreen({super.key, required this.reservation});
@@ -214,7 +193,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              r.from.codeIata,
+                              r.from.codeIATA,
                               style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
@@ -237,7 +216,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              r.to.codeIata,
+                              r.to.codeIATA,
                               style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,

@@ -9,6 +9,7 @@
 /// Nota: El backend ya verifica al pulsar el botón del correo; dejamos
 /// `verifyEmail(...)` solo para pruebas manuales (pegar token/URL).
 /// ===============================================================
+library;
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
