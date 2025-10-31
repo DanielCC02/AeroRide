@@ -38,13 +38,20 @@ namespace AeroRide.API.Services.Implementations
             if (role == null)
                 throw new Exception("El rol especificado no existe.");
 
+            if (dto.CompanyId.HasValue)
+            {
+                var companyExists = await _db.Companies.AnyAsync(c => c.Id == dto.CompanyId.Value);
+                if (!companyExists)
+                    throw new Exception("La empresa especificada no existe.");
+            }
+
             var user = _mapper.Map<User>(dto);
             user.Password = PasswordHelper.HashPassword(dto.Password);
+            user.CompanyId = dto.CompanyId; // Asociación directa
 
             _db.Users.Add(user);
             await _db.SaveChangesAsync();
 
-            // 🔹 Cargar relaciones manualmente después de guardar
             await _db.Entry(user).Reference(u => u.Role).LoadAsync();
             await _db.Entry(user).Reference(u => u.Company).LoadAsync();
 

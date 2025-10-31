@@ -4,14 +4,17 @@ import 'package:flutter/material.dart';
 ///
 /// Muestra una lista de botones con las principales opciones
 /// de gestión del sistema (por ahora sin funcionalidad).
-class AdminActionsPanel extends StatelessWidget {
-  const AdminActionsPanel({super.key});
+class AdminCompanyActionsPanel extends StatelessWidget {
+  const AdminCompanyActionsPanel({super.key});
 
   @override
   Widget build(BuildContext context) {
     // Lista de acciones que tendrá el panel
     final List<Map<String, dynamic>> actions = [
-      {'label': 'Company Management', 'icon': Icons.business},
+      {'label': 'See Calendar', 'icon': Icons.calendar_today},
+      {'label': 'User Management', 'icon': Icons.people},
+      {'label': 'Fleet Management', 'icon': Icons.airplanemode_active},
+      {'label': 'Pilot Management', 'icon': Icons.flight_takeoff},
     ];
 
     return Padding(
@@ -39,8 +42,13 @@ class AdminActionsPanel extends StatelessWidget {
                 onPressed: () {
                   final label = action['label'] as String;
 
-                  if (label == 'Company Management') {
-                    Navigator.pushNamed(context, '/admin/company_management');
+                  if (label == 'User Management') {
+                    Navigator.pushNamed(context, '/admin/users');
+                    return;
+                  }
+
+                  if (label == 'Fleet Management') {
+                    Navigator.pushNamed(context, '/admin/fleet');
                     return;
                   }
 

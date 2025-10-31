@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/homepage_admin.dart';
+import 'package:frontend/screens/homepage_admin_company.dart';
 import 'package:frontend/screens/homepage_pilot.dart';
 import 'package:frontend/screens/homepage_screen.dart';
 import 'dart:convert';
@@ -109,6 +110,11 @@ class _LoginSheetState extends State<LoginSheet> {
           if (roleName == 'admin' || roleId == 1) {
             nav.pushAndRemoveUntil(
               MaterialPageRoute(builder: (_) => const HomePageAdmin()),
+              (route) => false,
+            );
+          } else if (roleName == 'companyadmin' || roleId == 2) {
+            nav.pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const HomePageAdminCompany()),
               (route) => false,
             );
           } else if (roleName == 'pilot' || roleId == 2) {

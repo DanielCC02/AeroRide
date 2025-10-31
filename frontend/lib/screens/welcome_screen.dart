@@ -44,14 +44,17 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(title: const Text(''), backgroundColor: Colors.white),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
+          // 👈 permite scroll si el contenido no cabe (evita overflow)
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             children: [
               const SizedBox(height: 16),
+
               // Logo
               Image.asset(
                 'assets/images/logo.jpg',
@@ -59,6 +62,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                 fit: BoxFit.contain,
               ),
               const SizedBox(height: 24),
+
+              // Tarjeta central
               Card(
                 color: Colors.white,
                 elevation: 0,
@@ -71,9 +76,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                     children: [
                       Text(
                         'You are not logged in',
-                        style: Theme.of(context).textTheme.titleMedium!
-                            .copyWith(
-                              fontWeight: FontWeight.bold, // BOLD
+                        style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                              fontWeight: FontWeight.bold,
                             ),
                       ),
                       const SizedBox(height: 8),
@@ -111,13 +115,13 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                       ),
                       const SizedBox(height: 16),
 
+                      // Privacy
                       TextButton(
                         onPressed: () {},
                         child: Text(
                           'Privacy Settings',
-                          style: Theme.of(context).textTheme.bodyMedium!
-                              .copyWith(
-                                fontWeight: FontWeight.bold, // BOLD
+                          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                                fontWeight: FontWeight.bold,
                                 color: cs.primary,
                               ),
                         ),
@@ -132,7 +136,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   ),
                 ),
               ),
-              const Spacer(),
+
+              const SizedBox(height: 40), // Espacio final para estética
             ],
           ),
         ),

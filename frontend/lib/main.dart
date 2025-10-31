@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/admin/company_management/company_management_screen.dart';
+import 'package:frontend/screens/homepage_admin.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:frontend/services/api_config.dart';
@@ -8,7 +10,7 @@ import 'package:frontend/services/token_storage.dart';
 import 'package:frontend/screens/welcome_screen.dart';
 import 'package:frontend/screens/homepage_screen.dart';
 import 'package:frontend/screens/homepage_pilot.dart';
-import 'package:frontend/screens/homepage_admin.dart';
+import 'package:frontend/screens/homepage_admin_company.dart';
 import 'package:frontend/screens/admin/user_management_screen.dart';
 import 'package:frontend/screens/admin/fleet_management_screen.dart';
 
@@ -78,7 +80,7 @@ class _MyAppState extends State<MyApp> {
       if (mounted) {
         setState(() {
           if (roleName == 'admin' || roleId == 1) {
-            _defaultScreen = const HomePageAdmin();
+            _defaultScreen = const HomePageAdminCompany();
           } else if (roleName == 'pilot' || roleId == 2) {
             _defaultScreen = const HomePagePilot();
           } else {
@@ -160,7 +162,8 @@ class _MyAppState extends State<MyApp> {
         '/user': (_) => const HomePageScreen(),
         '/pilot': (_) => const HomePagePilot(),
         '/admin': (_) => const HomePageAdmin(),
-        // ADMIN
+        '/admin/company': (_) => const HomePageAdminCompany(),
+        '/admin/company_management': (_) => const CompanyManagementScreen(), 
         '/admin/users': (_) => const UserManagementScreen(),
         '/admin/fleet': (_) => const FleetManagementScreen(),
       },
