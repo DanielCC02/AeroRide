@@ -23,7 +23,7 @@
         /// <summary>Latitud geográfica en formato decimal.</summary>
         public decimal Latitude { get; set; }
 
-        /// <summary>Longitud geográfica en formato decimal.</summary>
+        /// <summary>Longitud geográfica en formato decimal.</summary> 
         public decimal Longitude { get; set; }
 
         /// <summary>URL de la imagen principal del aeropuerto.</summary>

@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import '../services/token_storage.dart';
 import 'welcome_screen.dart';
-import '../widgets/admin_actions_panel.dart';
+import '../widgets/admin_company_actions_panel.dart';
 
-class HomePageAdmin extends StatelessWidget {
-  const HomePageAdmin({super.key});
+class HomePageAdminCompany extends StatelessWidget {
+  const HomePageAdminCompany({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Administration Panel'),
+        title: const Text('My Company'),
         centerTitle: true,
         actions: [
           IconButton(
@@ -31,7 +31,7 @@ class HomePageAdmin extends StatelessWidget {
       ),
       body: const SafeArea(
         child: SingleChildScrollView(
-          child: AdminActionsPanel(),
+          child: AdminCompanyActionsPanel(),
         ),
       ),
     );

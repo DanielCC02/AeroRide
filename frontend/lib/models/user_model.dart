@@ -1,25 +1,27 @@
 class UserModel {
   final int id;
-  final String fullName;
+  final String name;
+  final String lastName;
   final String email;
   final String phoneNumber;
   final String role;
   final bool isActive;
-  final String? name;
-  final String? lastName;
+  final String fullName;
+  final String? companyName;
   final String? registrationDate;
   final bool? termsOfUse;
   final bool? privacyNotice;
 
   UserModel({
     required this.id,
-    required this.fullName,
+    required this.name,
+    required this.lastName,
     required this.email,
     required this.phoneNumber,
     required this.role,
     required this.isActive,
-    this.name,
-    this.lastName,
+    required this.fullName,
+    this.companyName,
     this.registrationDate,
     this.termsOfUse,
     this.privacyNotice,
@@ -28,16 +30,35 @@ class UserModel {
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['id'] ?? 0,
-      fullName: json['fullName'] ?? '${json['name'] ?? ''} ${json['lastName'] ?? ''}'.trim(),
+      name: json['name'] ?? '',
+      lastName: json['lastName'] ?? '',
       email: json['email'] ?? '',
       phoneNumber: json['phoneNumber'] ?? '',
       role: json['role'] ?? '',
       isActive: json['isActive'] ?? false,
-      name: json['name'],
-      lastName: json['lastName'],
+      companyName: json['companyName'],
+      fullName:
+          '${json['name'] ?? ''} ${json['lastName'] ?? ''}'.trim(),
       registrationDate: json['registrationDate'],
       termsOfUse: json['termsOfUse'],
       privacyNotice: json['privacyNotice'],
     );
+  }
+  // Método toJson
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'lastName': lastName,
+      'email': email,
+      'phoneNumber': phoneNumber,
+      'role': role,
+      'isActive': isActive,
+      'fullName': fullName,
+      'companyName': companyName,
+      'registrationDate': registrationDate,
+      'termsOfUse': termsOfUse,
+      'privacyNotice': privacyNotice,
+    };
   }
 }
