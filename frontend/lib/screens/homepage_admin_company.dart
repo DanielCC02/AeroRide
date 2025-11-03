@@ -4,13 +4,25 @@ import 'welcome_screen.dart';
 import '../widgets/admin_company_actions_panel.dart';
 
 class HomePageAdminCompany extends StatelessWidget {
-  const HomePageAdminCompany({super.key});
+  final int? companyId;
+
+  const HomePageAdminCompany({
+    super.key,
+    this.companyId,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Company'),
+        title: FutureBuilder<String?>(
+          future: TokenStorage.getCompanyName(), // Obtenemos el nombre de la compañía
+          builder: (context, snapshot) {
+            String companyName = snapshot.data ?? 'My Company';
+
+            return Text(companyName);
+          },
+        ),
         centerTitle: true,
         actions: [
           IconButton(
@@ -29,9 +41,11 @@ class HomePageAdminCompany extends StatelessWidget {
           ),
         ],
       ),
-      body: const SafeArea(
+      body: SafeArea(
         child: SingleChildScrollView(
-          child: AdminCompanyActionsPanel(),
+          child: AdminCompanyActionsPanel(
+            companyId: companyId ?? 0, // Fallback para evitar null
+          ),
         ),
       ),
     );

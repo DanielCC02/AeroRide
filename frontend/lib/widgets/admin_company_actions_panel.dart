@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 
-/// Panel principal de acciones para el administrador.
-///
-/// Muestra una lista de botones con las principales opciones
-/// de gestión del sistema (por ahora sin funcionalidad).
+/// Panel principal de acciones para el administrador de compañía.
+/// Muestra las principales opciones de gestión, filtradas por la empresa
+/// a la que pertenece el administrador actual.
 class AdminCompanyActionsPanel extends StatelessWidget {
-  const AdminCompanyActionsPanel({super.key});
+  final int companyId; // ✅ Recibimos el ID de la compañía
+
+  const AdminCompanyActionsPanel({
+    super.key,
+    required this.companyId, // ✅ Obligatorio
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Lista de acciones que tendrá el panel
+    // Lista de acciones disponibles
     final List<Map<String, dynamic>> actions = [
       {'label': 'See Calendar', 'icon': Icons.calendar_today},
       {'label': 'User Management', 'icon': Icons.people},
@@ -22,7 +26,9 @@ class AdminCompanyActionsPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Generar botones a partir de la lista
+          const SizedBox(height: 20),
+
+          // 🔹 Generar los botones dinámicamente
           ...actions.map(
             (action) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -43,19 +49,39 @@ class AdminCompanyActionsPanel extends StatelessWidget {
                   final label = action['label'] as String;
 
                   if (label == 'User Management') {
-                    Navigator.pushNamed(context, '/admin/users');
+                    // ✅ Ejemplo: pasar el companyId a la pantalla de usuarios
+                    Navigator.pushNamed(
+                      context,
+                      '/admin/users',
+                      arguments: {'companyId': companyId},
+                    );
                     return;
                   }
 
                   if (label == 'Fleet Management') {
-                    Navigator.pushNamed(context, '/admin/fleet');
+                    Navigator.pushNamed(
+                      context,
+                      '/admin/fleet',
+                      arguments: {'companyId': companyId}, // ✅ igual aquí
+                    );
                     return;
                   }
 
-                  // 🔹 Si todavía no hay implementación para esa acción
+                  if (label == 'Pilot Management') {
+                    Navigator.pushNamed(
+                      context,
+                      '/admin/pilots',
+                      arguments: {'companyId': companyId},
+                    );
+                    return;
+                  }
+
+                  // 🔸 Acciones aún no implementadas
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('${action['label']} (coming soon)'),
+                      content: Text(
+                        '${action['label']} for company $companyId (coming soon)',
+                      ),
                       duration: const Duration(seconds: 1),
                     ),
                   );
