@@ -28,7 +28,7 @@ class _LoginSheetState extends State<LoginSheet> {
 
   Future<LoginResult> _loginUser(String email, String password) async {
     try {
-      // 1) Login
+      // 1️⃣ Login
       final loginRes = await http.post(
         _u('/auth/login'),
         headers: {'Content-Type': 'application/json'},
@@ -55,7 +55,7 @@ class _LoginSheetState extends State<LoginSheet> {
         return unverified ? LoginResult.unverified : LoginResult.invalid;
       }
 
-      // 2) Extraer tokens (acepta camelCase y PascalCase)
+      // 2️⃣ Extraer tokens
       final loginData = jsonDecode(loginRes.body) as Map<String, dynamic>;
       final token = (loginData['token'] ?? loginData['Token']) as String? ?? '';
       final refreshToken =
@@ -65,7 +65,7 @@ class _LoginSheetState extends State<LoginSheet> {
 
       await TokenStorage.saveTokens(token, refreshToken);
 
-      // 3) Obtener perfil en el endpoint correcto
+      // 3️⃣ Obtener perfil (para obtener rol, companyId, etc.)
       final meRes = await http.get(
         _u('/api/users/profile'),
         headers: {
@@ -75,16 +75,12 @@ class _LoginSheetState extends State<LoginSheet> {
       );
 
       if (meRes.statusCode != 200) {
-        // Si aquí no es 200, el problema no son credenciales; es endpoint/header.
-        // Descomenta estas líneas para depurar:
-        // debugPrint('[PROFILE] status=${meRes.statusCode}');
-        // debugPrint('[PROFILE] body=${meRes.body}');
         return LoginResult.invalid;
       }
 
       final userData = jsonDecode(meRes.body) as Map<String, dynamic>;
 
-      // 4) Resolver rol (string u objeto) y roleId por si viene numérico
+      // 4️⃣ Resolver rol y roleId
       String roleName = '';
       int? roleId;
 
@@ -100,7 +96,25 @@ class _LoginSheetState extends State<LoginSheet> {
         roleId = userData['roleId'] as int;
       }
 
-      // 5) Navegación (mantengo admin/pilot; clientes → HomePageScreen)
+      // Guardar companyId (solo si viene)
+      int? companyId;
+      if (userData['companyId'] is int) {
+        companyId = userData['companyId'];
+        await TokenStorage.saveCompanyId(companyId);
+      } else {
+        await TokenStorage.saveCompanyId(null);
+      }
+
+      // Guardar companyName (solo si viene)
+      if (userData['companyName'] is String) {
+        await TokenStorage.saveCompanyName(userData['companyName']);
+      } else {
+        await TokenStorage.saveCompanyName(
+          '',
+        ); // Si no está presente, podemos guardar un valor vacío
+      }
+
+      // 6Navegación según rol
       if (context.mounted) {
         Navigator.of(context).pop(); // Cierra el BottomSheet
 
@@ -113,17 +127,29 @@ class _LoginSheetState extends State<LoginSheet> {
               (route) => false,
             );
           } else if (roleName == 'companyadmin' || roleId == 2) {
+            // ✅ Pasamos el companyId al home del admin de compañía
+            if (companyId == null) {
+              // fallback: si no viene el companyId, lo tratamos como error
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('No se encontró la empresa asignada'),
+                ),
+              );
+              return;
+            }
+
             nav.pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const HomePageAdminCompany()),
+              MaterialPageRoute(
+                builder: (_) => HomePageAdminCompany(companyId: companyId!),
+              ),
               (route) => false,
             );
-          } else if (roleName == 'pilot' || roleId == 2) {
+          } else if (roleName == 'pilot' || roleId == 3) {
             nav.pushAndRemoveUntil(
               MaterialPageRoute(builder: (_) => const HomePagePilot()),
               (route) => false,
             );
           } else {
-            // Cliente (por nombre 'user' o id 4) -> HomePageScreen
             nav.pushAndRemoveUntil(
               MaterialPageRoute(builder: (_) => const HomePageScreen()),
               (route) => false,
@@ -134,7 +160,6 @@ class _LoginSheetState extends State<LoginSheet> {
 
       return LoginResult.success;
     } catch (e) {
-      // ignore: avoid_print
       print('❗ Connection/Parsing error: $e');
       return LoginResult.invalid;
     }

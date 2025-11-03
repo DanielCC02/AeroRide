@@ -3,10 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:frontend/screens/admin/company_management/company_management_screen.dart';
 import 'package:frontend/screens/homepage_admin.dart';
 import 'package:http/http.dart' as http;
-
 import 'package:frontend/services/api_config.dart';
 import 'package:frontend/services/token_storage.dart';
-
 import 'package:frontend/screens/welcome_screen.dart';
 import 'package:frontend/screens/homepage_screen.dart';
 import 'package:frontend/screens/homepage_pilot.dart';
@@ -27,6 +25,8 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   Widget _defaultScreen = const Center(child: CircularProgressIndicator());
+  int? _companyId; // Aquí vamos a guardar el companyId
+  String? _companyName; // Guardamos el nombre de la empresa
 
   @override
   void initState() {
@@ -34,13 +34,10 @@ class _MyAppState extends State<MyApp> {
     _checkLoginStatus();
   }
 
-  /// Verifica si hay un token guardado para decidir la pantalla inicial.
-  /// Si no hay token o el perfil falla, limpia tokens y va a Welcome.
   Future<void> _checkLoginStatus() async {
     final token = await TokenStorage.getAccessToken();
 
     if (token == null || token.isEmpty) {
-      // Asegura que no quede nada viejo antes de ir a Welcome
       await TokenStorage.clearTokens();
       if (mounted) setState(() => _defaultScreen = const WelcomeScreen());
       return;
@@ -49,16 +46,11 @@ class _MyAppState extends State<MyApp> {
     try {
       final profile = await _fetchProfileWithFallback(token);
       if (profile == null) {
-        // Token inválido/expirado o no se pudo obtener el perfil
         await TokenStorage.clearTokens();
         if (mounted) setState(() => _defaultScreen = const WelcomeScreen());
         return;
       }
 
-      // role puede venir como:
-      // 1) string directo: "Admin"
-      // 2) objeto: { id: 1, name: "Admin" }
-      // 3) además, puede venir roleId suelto
       String roleName = '';
       int? roleId;
 
@@ -73,15 +65,32 @@ class _MyAppState extends State<MyApp> {
           roleId = roleField['id'] as int;
         }
       }
+
       if (roleId == null && profile['roleId'] is int) {
         roleId = profile['roleId'] as int;
+      }
+
+      // Guardamos el companyId y companyName del perfil, si existen
+      if (profile['companyId'] != null) {
+        _companyId = profile['companyId'];
+        await TokenStorage.saveCompanyId(_companyId); // Guardamos en TokenStorage
+      }
+
+      if (profile['companyName'] != null) {
+        _companyName = profile['companyName'];
+        await TokenStorage.saveCompanyName(_companyName); // Guardamos en TokenStorage
       }
 
       if (mounted) {
         setState(() {
           if (roleName == 'admin' || roleId == 1) {
-            _defaultScreen = const HomePageAdminCompany();
-          } else if (roleName == 'pilot' || roleId == 2) {
+            _defaultScreen = const HomePageAdmin();
+          } else if (roleName == 'companyadmin' || roleId == 2) {
+            // Pasamos el companyId al HomePageAdminCompany
+            _defaultScreen = HomePageAdminCompany(
+              companyId: _companyId!,
+            );
+          } else if (roleName == 'pilot' || roleId == 3) {
             _defaultScreen = const HomePagePilot();
           } else {
             _defaultScreen = const HomePageScreen();
@@ -89,17 +98,12 @@ class _MyAppState extends State<MyApp> {
         });
       }
     } catch (e) {
-      // En cualquier error, vuelve a welcome y limpia tokens para evitar estados raros
-      // ignore: avoid_print
       print('⚠️ Error al verificar token/perfil: $e');
       await TokenStorage.clearTokens();
       if (mounted) setState(() => _defaultScreen = const WelcomeScreen());
     }
   }
 
-  /// Intenta primero /api/users/profile y si devuelve 404/405,
-  /// reintenta en /users/me (por compatibilidad antigua).
-  /// Devuelve el JSON del perfil o null si 401/403 u otro error.
   Future<Map<String, dynamic>?> _fetchProfileWithFallback(String token) async {
     final headers = {
       'Content-Type': 'application/json',
@@ -157,13 +161,15 @@ class _MyAppState extends State<MyApp> {
           showUnselectedLabels: true,
         ),
       ),
-      home: _defaultScreen,
+      home: _defaultScreen, // La pantalla que se muestra por defecto
       routes: {
         '/user': (_) => const HomePageScreen(),
         '/pilot': (_) => const HomePagePilot(),
         '/admin': (_) => const HomePageAdmin(),
-        '/admin/company': (_) => const HomePageAdminCompany(),
-        '/admin/company_management': (_) => const CompanyManagementScreen(), 
+        '/admin/company': (_) => HomePageAdminCompany(
+          companyId: _companyId ?? 0,
+        ), // Pasamos el companyId
+        '/admin/company_management': (_) => const CompanyManagementScreen(),
         '/admin/users': (_) => const UserManagementScreen(),
         '/admin/fleet': (_) => const FleetManagementScreen(),
       },
