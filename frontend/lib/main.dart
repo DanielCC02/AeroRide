@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:frontend/screens/admin/company_management/company_management_screen.dart';
-import 'package:frontend/screens/homepage_admin.dart';
+import 'package:provider/provider.dart'; // Importar el provider
 import 'package:http/http.dart' as http;
+import 'package:frontend/screens/admin/company_management/company_management_screen.dart';
+import 'package:frontend/screens/admin/company_pilots/company_pilots_screen.dart';
+import 'package:frontend/screens/homepage_admin.dart';
 import 'package:frontend/services/api_config.dart';
 import 'package:frontend/services/token_storage.dart';
 import 'package:frontend/screens/welcome_screen.dart';
@@ -11,9 +13,15 @@ import 'package:frontend/screens/homepage_pilot.dart';
 import 'package:frontend/screens/homepage_admin_company.dart';
 import 'package:frontend/screens/admin/user_management_screen.dart';
 import 'package:frontend/screens/admin/fleet_management_screen.dart';
+import 'package:frontend/providers/company_id_provider.dart'; // Importar el provider que creamos
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => CompanyIdProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -25,8 +33,8 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   Widget _defaultScreen = const Center(child: CircularProgressIndicator());
-  int? _companyId; // Aquí vamos a guardar el companyId
-  String? _companyName; // Guardamos el nombre de la empresa
+  int? _companyId; // Guardamos el companyId localmente (para la navegación inicial)
+  String? _companyName; // Guardamos el nombre de la empresa localmente
 
   @override
   void initState() {
@@ -70,10 +78,11 @@ class _MyAppState extends State<MyApp> {
         roleId = profile['roleId'] as int;
       }
 
-      // Guardamos el companyId y companyName del perfil, si existen
+      // Guardamos el companyId y companyName en el provider
       if (profile['companyId'] != null) {
         _companyId = profile['companyId'];
         await TokenStorage.saveCompanyId(_companyId); // Guardamos en TokenStorage
+        Provider.of<CompanyIdProvider>(context, listen: false).companyId = _companyId;
       }
 
       if (profile['companyName'] != null) {
@@ -86,10 +95,7 @@ class _MyAppState extends State<MyApp> {
           if (roleName == 'admin' || roleId == 1) {
             _defaultScreen = const HomePageAdmin();
           } else if (roleName == 'companyadmin' || roleId == 2) {
-            // Pasamos el companyId al HomePageAdminCompany
-            _defaultScreen = HomePageAdminCompany(
-              companyId: _companyId!,
-            );
+            _defaultScreen = const HomePageAdminCompany();
           } else if (roleName == 'pilot' || roleId == 3) {
             _defaultScreen = const HomePagePilot();
           } else {
@@ -166,9 +172,8 @@ class _MyAppState extends State<MyApp> {
         '/user': (_) => const HomePageScreen(),
         '/pilot': (_) => const HomePagePilot(),
         '/admin': (_) => const HomePageAdmin(),
-        '/admin/company': (_) => HomePageAdminCompany(
-          companyId: _companyId ?? 0,
-        ), // Pasamos el companyId
+        '/admin/company': (_) => const HomePageAdminCompany(), // No pasamos companyId como parámetro
+        '/admin/pilots': (_) => const CompanyPilotsScreen(), // No pasamos companyId como parámetro
         '/admin/company_management': (_) => const CompanyManagementScreen(),
         '/admin/users': (_) => const UserManagementScreen(),
         '/admin/fleet': (_) => const FleetManagementScreen(),

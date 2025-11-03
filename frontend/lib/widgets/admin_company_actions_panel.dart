@@ -1,18 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // Asegúrate de importar el provider
+import '../providers/company_id_provider.dart'; // Importamos el provider que creamos
 
 /// Panel principal de acciones para el administrador de compañía.
 /// Muestra las principales opciones de gestión, filtradas por la empresa
 /// a la que pertenece el administrador actual.
 class AdminCompanyActionsPanel extends StatelessWidget {
-  final int companyId; // ✅ Recibimos el ID de la compañía
-
-  const AdminCompanyActionsPanel({
-    super.key,
-    required this.companyId, // ✅ Obligatorio
-  });
+  const AdminCompanyActionsPanel({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Acceder al companyId desde el provider
+    final companyId = Provider.of<CompanyIdProvider>(context).companyId;
+
+    if (companyId == null) {
+      // Si no hay companyId disponible, mostramos un error o redirigimos al usuario
+      return const Center(
+        child: Text('Company ID not found. Please log in again.'),
+      );
+    }
+
     // Lista de acciones disponibles
     final List<Map<String, dynamic>> actions = [
       {'label': 'See Calendar', 'icon': Icons.calendar_today},
@@ -48,12 +55,11 @@ class AdminCompanyActionsPanel extends StatelessWidget {
                 onPressed: () {
                   final label = action['label'] as String;
 
+                  // Usamos el companyId desde el Provider en lugar de pasar como argumento
                   if (label == 'User Management') {
-                    // ✅ Ejemplo: pasar el companyId a la pantalla de usuarios
                     Navigator.pushNamed(
                       context,
                       '/admin/users',
-                      arguments: {'companyId': companyId},
                     );
                     return;
                   }
@@ -62,7 +68,6 @@ class AdminCompanyActionsPanel extends StatelessWidget {
                     Navigator.pushNamed(
                       context,
                       '/admin/fleet',
-                      arguments: {'companyId': companyId}, // ✅ igual aquí
                     );
                     return;
                   }
@@ -71,7 +76,6 @@ class AdminCompanyActionsPanel extends StatelessWidget {
                     Navigator.pushNamed(
                       context,
                       '/admin/pilots',
-                      arguments: {'companyId': companyId},
                     );
                     return;
                   }

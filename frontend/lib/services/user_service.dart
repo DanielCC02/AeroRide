@@ -83,6 +83,38 @@ Future<List<UserModel>> getCompanyAdmins(int companyId) async {
   }
 }
 
+/// Obtiene todos los pilotos pertenecientes a una compañía específica
+Future<List<UserModel>> getPilotsByCompany(int companyId) async {
+  final token = await TokenStorage.getAccessToken();
+  if (token == null) throw Exception('Token no disponible');
+
+  final url = Uri.parse('${ApiConfig.baseUrl}/api/users/company/$companyId/pilots');
+  final response = await http.get(
+    url,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+  );
+
+  if (response.statusCode == 200) {
+    final List<dynamic> data = jsonDecode(response.body);
+    return data.map((user) => UserModel.fromJson(user)).toList();
+  } else {
+    print('⚠️ Error loading pilots: ${response.body}');
+    throw Exception('Error getting pilots for the company');
+  }
+}
+
+
+
+
+
+
+
+
+
+
   /// Obtiene la lista de todos los usuarios del sistema.
   Future<List<UserModel>> getAllUsers() async {
     final token = await TokenStorage.getAccessToken();

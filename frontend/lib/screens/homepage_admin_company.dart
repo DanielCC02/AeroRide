@@ -1,18 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // Importar el provider
 import '../services/token_storage.dart';
 import 'welcome_screen.dart';
 import '../widgets/admin_company_actions_panel.dart';
+import '../providers/company_id_provider.dart'; // Importar el provider que creamos
 
 class HomePageAdminCompany extends StatelessWidget {
-  final int? companyId;
-
-  const HomePageAdminCompany({
-    super.key,
-    this.companyId,
-  });
+  const HomePageAdminCompany({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Acceder al companyId desde el provider
+    final companyId = Provider.of<CompanyIdProvider>(context).companyId;
+
+    // Agregamos un print para verificar el valor de companyId
+    print('HomePageAdminCompany - companyId: $companyId');
+
+    if (companyId == null) {
+      // Si no se encuentra el companyId, redirigir al usuario a la pantalla de bienvenida
+      return const WelcomeScreen();
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: FutureBuilder<String?>(
@@ -43,9 +51,7 @@ class HomePageAdminCompany extends StatelessWidget {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          child: AdminCompanyActionsPanel(
-            companyId: companyId ?? 0, // Fallback para evitar null
-          ),
+          child: AdminCompanyActionsPanel(),
         ),
       ),
     );
