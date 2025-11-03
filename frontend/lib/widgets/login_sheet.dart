@@ -8,6 +8,8 @@ import 'package:http/http.dart' as http;
 import '../services/api_config.dart';
 import '../services/token_storage.dart';
 import 'package:frontend/widgets/forgot_password_sheet.dart';
+import 'package:provider/provider.dart';
+import 'package:frontend/providers/company_id_provider.dart'; // Importamos el provider
 
 class LoginSheet extends StatefulWidget {
   const LoginSheet({super.key});
@@ -35,7 +37,6 @@ class _LoginSheetState extends State<LoginSheet> {
         body: jsonEncode({'email': email, 'password': password}),
       );
 
-      // Si falla login, distinguir cuenta no verificada vs credenciales
       if (loginRes.statusCode != 200) {
         String msg = '';
         try {
@@ -59,8 +60,7 @@ class _LoginSheetState extends State<LoginSheet> {
       final loginData = jsonDecode(loginRes.body) as Map<String, dynamic>;
       final token = (loginData['token'] ?? loginData['Token']) as String? ?? '';
       final refreshToken =
-          (loginData['refreshToken'] ?? loginData['RefreshToken']) as String? ??
-          '';
+          (loginData['refreshToken'] ?? loginData['RefreshToken']) as String? ?? '';
       if (token.isEmpty) return LoginResult.invalid;
 
       await TokenStorage.saveTokens(token, refreshToken);
@@ -100,9 +100,17 @@ class _LoginSheetState extends State<LoginSheet> {
       int? companyId;
       if (userData['companyId'] is int) {
         companyId = userData['companyId'];
-        await TokenStorage.saveCompanyId(companyId);
+        await TokenStorage.saveCompanyId(
+          companyId,
+        ); // Guardar correctamente el companyId
+
+        // Guardar companyId en el provider
+        Provider.of<CompanyIdProvider>(context, listen: false).companyId = companyId;
       } else {
-        await TokenStorage.saveCompanyId(null);
+        await TokenStorage.saveCompanyId(
+          null,
+        ); // Si no tiene un companyId, se guarda null
+        Provider.of<CompanyIdProvider>(context, listen: false).companyId = null; // Limpiar el companyId en el provider
       }
 
       // Guardar companyName (solo si viene)
@@ -114,7 +122,7 @@ class _LoginSheetState extends State<LoginSheet> {
         ); // Si no está presente, podemos guardar un valor vacío
       }
 
-      // 6Navegación según rol
+      // 5️⃣ Navegación según rol
       if (context.mounted) {
         Navigator.of(context).pop(); // Cierra el BottomSheet
 
@@ -127,9 +135,9 @@ class _LoginSheetState extends State<LoginSheet> {
               (route) => false,
             );
           } else if (roleName == 'companyadmin' || roleId == 2) {
-            // ✅ Pasamos el companyId al home del admin de compañía
+            // ✅ Asegurarse de que companyId está presente y pasarlo correctamente
             if (companyId == null) {
-              // fallback: si no viene el companyId, lo tratamos como error
+              // Si el companyId no está presente, mostrar un error
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('No se encontró la empresa asignada'),
@@ -140,7 +148,7 @@ class _LoginSheetState extends State<LoginSheet> {
 
             nav.pushAndRemoveUntil(
               MaterialPageRoute(
-                builder: (_) => HomePageAdminCompany(companyId: companyId!),
+                builder: (_) => HomePageAdminCompany(),
               ),
               (route) => false,
             );

@@ -265,6 +265,5 @@ namespace AeroRide.API.Services.Implementations
 
             return _mapper.Map<IEnumerable<UserListDto>>(admins);
         }
-
     }
 }
