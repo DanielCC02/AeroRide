@@ -12,7 +12,7 @@ import 'package:frontend/screens/homepage_screen.dart';
 import 'package:frontend/screens/homepage_pilot.dart';
 import 'package:frontend/screens/homepage_admin_company.dart';
 import 'package:frontend/screens/admin/user_management_screen.dart';
-import 'package:frontend/screens/admin/fleet_management_screen.dart';
+import 'package:frontend/screens/admin/company_fleet/fleet_management_screen.dart';
 import 'package:frontend/providers/company_id_provider.dart'; // Importar el provider que creamos
 
 void main() {

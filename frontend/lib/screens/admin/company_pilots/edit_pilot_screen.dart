@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import '../../models/user_model.dart';
-import '../../services/user_service.dart';
+import 'package:frontend/models/user_model.dart';
+import 'package:frontend/services/user_service.dart';
 
-/// Pantalla que permite al administrador editar los datos de un usuario existente.
-class EditUserScreen extends StatefulWidget {
+/// Pantalla que permite al administrador de compañía editar los datos de un piloto.
+class EditPilotScreen extends StatefulWidget {
   final UserModel user;
 
-  const EditUserScreen({super.key, required this.user});
+  const EditPilotScreen({super.key, required this.user});
 
   @override
-  State<EditUserScreen> createState() => _EditUserScreenState();
+  State<EditPilotScreen> createState() => _EditPilotScreenState();
 }
 
-class _EditUserScreenState extends State<EditUserScreen> {
+class _EditPilotScreenState extends State<EditPilotScreen> {
   final _formKey = GlobalKey<FormState>();
   final _userService = UserService();
   bool _isLoading = false;
@@ -20,7 +20,8 @@ class _EditUserScreenState extends State<EditUserScreen> {
   late TextEditingController _firstName;
   late TextEditingController _lastName;
   late TextEditingController _email;
-  late String _role;
+  late TextEditingController _phone;
+  late bool _isActive;
 
   @override
   void initState() {
@@ -28,7 +29,8 @@ class _EditUserScreenState extends State<EditUserScreen> {
     _firstName = TextEditingController(text: widget.user.name);
     _lastName = TextEditingController(text: widget.user.lastName);
     _email = TextEditingController(text: widget.user.email);
-    _role = widget.user.role;
+    _phone = TextEditingController(text: widget.user.phoneNumber);
+    _isActive = widget.user.isActive;
   }
 
   Future<void> _submit() async {
@@ -37,21 +39,25 @@ class _EditUserScreenState extends State<EditUserScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await _userService.updateUserByAdmin(
+      print('🛠️ Actualizando piloto con ID: ${widget.user.id}');
+
+      await _userService.updatePilotByCompanyAdmin(
         id: widget.user.id,
         name: _firstName.text.trim(),
         lastName: _lastName.text.trim(),
         email: _email.text.trim(),
-        role: _role,
+        phoneNumber: _phone.text.trim(),
+        isActive: _isActive,
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Usuario actualizado correctamente')),
+          const SnackBar(content: Text('Piloto actualizado correctamente')),
         );
-        Navigator.pop(context, true); // 👈 devuelve “true” al cerrar
+        Navigator.pop(context, true); //Devuelve “true” para refrescar lista
       }
     } catch (e) {
+      print('❌ Error al actualizar piloto: $e');
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -65,8 +71,8 @@ class _EditUserScreenState extends State<EditUserScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit User')),
-      body: Padding(
+      appBar: AppBar(title: const Text('Edit Pilot')),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Form(
           key: _formKey,
@@ -95,21 +101,25 @@ class _EditUserScreenState extends State<EditUserScreen> {
                     : null,
               ),
               const SizedBox(height: 12),
+              TextFormField(
+                controller: _phone,
+                decoration: const InputDecoration(labelText: 'Phone Number'),
+                keyboardType: TextInputType.phone,
+                validator: (v) =>
+                    v == null || v.isEmpty ? 'Enter phone number' : null,
+              ),
+              const SizedBox(height: 12),
 
-              // 🔹 Dropdown para rol
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Role'),
-                initialValue: _role,
-                items: const [
-                  DropdownMenuItem(value: 'Admin', child: Text('Admin')),
-                  DropdownMenuItem(value: 'Pilot', child: Text('Pilot')),
-                  DropdownMenuItem(value: 'User', child: Text('User')),
-                ],
-                onChanged: (v) => setState(() => _role = v ?? 'User'),
+              // 🔹 Switch de estado activo/inactivo
+              SwitchListTile(
+                title: const Text('Active'),
+                value: _isActive,
+                onChanged: (v) => setState(() => _isActive = v),
               ),
 
               const SizedBox(height: 24),
 
+              // 🔹 Botón de guardar
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(

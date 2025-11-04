@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../services/aircraft_service.dart';
+import 'package:provider/provider.dart'; 
+import 'package:frontend/providers/company_id_provider.dart';
+import '../../../services/aircraft_service.dart';
 
 class CreateAircraftScreen extends StatefulWidget {
   const CreateAircraftScreen({super.key});
@@ -26,7 +28,7 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
   final ImagePicker _picker = ImagePicker();
 
   // ======================================================
-  // 🔹 Seleccionar imagen desde galería o cámara
+  // 🔹 Seleccionar imagen desde galería
   // ======================================================
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
@@ -35,24 +37,40 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
       setState(() {
         _selectedImage = File(pickedFile.path);
       });
+      print('📸 Imagen seleccionada: ${pickedFile.path}');
     }
   }
 
   // ======================================================
-  // 🔹 Crear aeronave (con subida de imagen si hay)
+  // 🔹 Crear aeronave (con subida de imagen y companyId)
   // ======================================================
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
     try {
-      String? imageUrl;
+      // Obtener el companyId desde el Provider
+      final companyId = Provider.of<CompanyIdProvider>(context, listen: false).companyId;
 
-      // Subir imagen si se seleccionó una
-      if (_selectedImage != null) {
-        imageUrl = await _aircraftService.uploadAircraftImage(_selectedImage!);
+      print('CreateAircraftScreen - companyId: $companyId');
+
+      if (companyId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se encontró el companyId')),
+        );
+        return;
       }
 
+      String? imageUrl;
+
+      // 🔹 Subir imagen si el usuario seleccionó una
+      if (_selectedImage != null) {
+        print('📤 Subiendo imagen de aeronave...');
+        imageUrl = await _aircraftService.uploadAircraftImage(_selectedImage!);
+        print('✅ Imagen subida con URL: $imageUrl');
+      }
+
+      // 🔹 Crear aeronave
       await _aircraftService.createAircraft(
         patent: _patent.text.trim(),
         model: _model.text.trim(),
@@ -61,19 +79,21 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
         maxWeight: int.parse(_maxWeight.text.trim()),
         state: _state,
         image: imageUrl,
+        companyId: companyId, // 👈 Se pasa automáticamente desde el Provider
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('✅ Aeronave creada correctamente')),
         );
-        Navigator.pop(context, true); // Devuelve "true" para recargar lista
+        Navigator.pop(context, true); // 🔁 Devuelve "true" para refrescar la lista
       }
     } catch (e) {
+      print('❌ Error al crear aeronave: $e');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('⚠️ Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('⚠️ Error: $e')),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -100,7 +120,8 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
               TextFormField(
                 controller: _model,
                 decoration: const InputDecoration(labelText: 'Model'),
-                validator: (v) => v == null || v.isEmpty ? 'Enter model' : null,
+                validator: (v) =>
+                    v == null || v.isEmpty ? 'Enter model' : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -133,7 +154,7 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
               // 🔹 Dropdown de estado
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'State'),
-                initialValue: _state,
+                value: _state,
                 items: const [
                   DropdownMenuItem(
                     value: 'Disponible',

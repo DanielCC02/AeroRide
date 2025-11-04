@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/screens/admin/edit_aircraft_screen.dart';
-import '../../models/aircraft_model.dart';
-import '../../services/aircraft_service.dart';
+import 'package:frontend/screens/admin/company_fleet/edit_aircraft_screen.dart';
+import '../../../models/aircraft_model.dart';
+import '../../../services/aircraft_service.dart';
 
 /// Pantalla que muestra la información detallada de una aeronave.
 /// Accesible para el administrador desde el Fleet Management.

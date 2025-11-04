@@ -77,6 +77,7 @@ namespace AeroRide.API.Services.Implementations
         public async Task<UserDetailDto?> GetUserByIdAsync(int id)
         {
             var user = await _db.Users
+                .IgnoreQueryFilters()
                 .Include(u => u.Role)
                 .Include(u => u.Company)
                 .FirstOrDefaultAsync(u => u.Id == id);
@@ -175,6 +176,7 @@ namespace AeroRide.API.Services.Implementations
         public async Task<UserProfileDto?> UpdateUserByAdminAsync(int id, UserUpdateAdminDto dto)
         {
             var user = await _db.Users
+                .IgnoreQueryFilters()
                 .Include(u => u.Role)
                 .Include(u => u.Company)
                 .FirstOrDefaultAsync(u => u.Id == id);
@@ -220,17 +222,19 @@ namespace AeroRide.API.Services.Implementations
         public async Task<IEnumerable<UserListDto>> GetPilotsByCompanyAsync(int companyId)
         {
             var pilots = await _db.Users
+                .IgnoreQueryFilters()
                 .Include(u => u.Role)
                 .Include(u => u.Company)
-                .Where(u => u.IsActive &&
-                            u.Role.Name == "Pilot" &&
-                            u.CompanyId == companyId)
+                .Where(u =>
+                    u.Role.Name == "Pilot" &&
+                    u.CompanyId == companyId)
                 .OrderBy(u => u.Id)
                 .AsNoTracking()
                 .ToListAsync();
 
             return _mapper.Map<IEnumerable<UserListDto>>(pilots);
         }
+
 
         // ======================================================
         // 🔟 LISTAR PILOTOS Y ADMINS DE UNA COMPAÑÍA
