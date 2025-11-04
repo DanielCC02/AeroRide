@@ -106,37 +106,56 @@ Future<List<UserModel>> getPilotsByCompany(int companyId) async {
   }
 }
 
+/// ===========================================================
+/// Actualiza la información de un piloto (solo para CompanyAdmin)
+/// ===========================================================
+Future<void> updatePilotByCompanyAdmin({
+  required int id, // ID del piloto
+  required String name,
+  required String lastName,
+  required String email,
+  required String phoneNumber,
+  bool? isActive, // opcional: activar/desactivar piloto
+}) async {
+  final token = await TokenStorage.getAccessToken();
+  if (token == null) throw Exception('Token no disponible');
 
+  // URL del endpoint
+  final url = Uri.parse('${ApiConfig.baseUrl}/api/users/$id');
 
+  // Armamos el cuerpo
+  final body = {
+    'name': name,
+    'lastName': lastName,
+    'email': email,
+    'phoneNumber': phoneNumber,
+    'roleId': 3, // siempre Piloto
+    if (isActive != null) 'isActive': isActive,
+  };
 
+  print('📡 PUT $url');
+  print('📦 Body enviado: $body');
 
+  final response = await http.put(
+    url,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+    body: jsonEncode(body),
+  );
 
+  print('📥 Status: ${response.statusCode}');
+  print('📥 Response: ${response.body}');
 
-
-
-
-  /// Obtiene la lista de todos los usuarios del sistema.
-  Future<List<UserModel>> getAllUsers() async {
-    final token = await TokenStorage.getAccessToken();
-    if (token == null) throw Exception('Token no disponible');
-
-    final url = Uri.parse('${ApiConfig.baseUrl}/api/users');
-    final response = await http.get(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
-      return data.map((user) => UserModel.fromJson(user)).toList();
-    } else {
-      print('⚠️ Error al obtener usuarios: ${response.statusCode}');
-      throw Exception('Error al obtener la lista de usuarios');
-    }
+  if (response.statusCode == 200) {
+    print('✅ Piloto actualizado correctamente');
+  } else if (response.statusCode == 404) {
+    throw Exception('❌ Piloto no encontrado');
+  } else {
+    throw Exception('❌ Error al actualizar piloto: ${response.body}');
   }
+}
 
   /// Obtiene el detalle de un usuario por su ID.
   Future<UserModel> getUserById(int id) async {
@@ -250,6 +269,29 @@ Future<List<UserModel>> getPilotsByCompany(int companyId) async {
     } else {
       print('❌ Error al reactivar usuario: ${response.body}');
       throw Exception('Error al reactivar usuario');
+    }
+  }
+
+  /// Obtiene la lista de todos los usuarios del sistema.
+  Future<List<UserModel>> getAllUsers() async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
+
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/users');
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((user) => UserModel.fromJson(user)).toList();
+    } else {
+      print('⚠️ Error al obtener usuarios: ${response.statusCode}');
+      throw Exception('Error al obtener la lista de usuarios');
     }
   }
 }

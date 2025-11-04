@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../models/aircraft_model.dart';
-import '../../services/aircraft_service.dart';
+import '../../../models/aircraft_model.dart';
+import '../../../services/aircraft_service.dart';
 
 /// Pantalla que permite al administrador editar los datos de una aeronave existente.
 class EditAircraftScreen extends StatefulWidget {

@@ -8,6 +8,8 @@ class AircraftModel {
   final String state;
   final String image;
   final bool isActive;
+  final int? companyId;      
+  final String? companyName;  
 
   AircraftModel({
     required this.id,
@@ -19,6 +21,8 @@ class AircraftModel {
     required this.state,
     required this.image,
     required this.isActive,
+    this.companyId,
+    this.companyName,
   });
 
   /// 🔹 Convierte un JSON proveniente del backend a un objeto AircraftModel
@@ -33,10 +37,12 @@ class AircraftModel {
       state: json['state'] ?? '',
       image: json['image'] ?? '',
       isActive: json['isActive'] ?? false,
+      companyId: json['companyId'],       
+      companyName: json['companyName'],   
     );
   }
 
-  /// 🔹 Convierte el objeto a JSON (por si luego lo necesitás en updates o creates)
+  /// 🔹 Convierte el objeto a JSON (útil para POST o PUT)
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -48,6 +54,8 @@ class AircraftModel {
       'state': state,
       'image': image,
       'isActive': isActive,
+      'companyId': companyId,       
+      'companyName': companyName,
     };
   }
 }

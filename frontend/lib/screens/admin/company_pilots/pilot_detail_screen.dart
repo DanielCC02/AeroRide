@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
-import '../../models/user_model.dart';
-import '../../services/user_service.dart';
-import 'edit_user_screen.dart';
+import 'package:frontend/models/user_model.dart';
+import 'package:frontend/screens/admin/company_pilots/edit_pilot_screen.dart';
+import 'package:frontend/services/user_service.dart';
 
-/// Pantalla que muestra la información detallada de un usuario.
-/// Solo accesible para administradores.
-class UserDetailScreen extends StatefulWidget {
+/// Pantalla que muestra la información detallada de un piloto.
+/// Solo accesible para administradores o administradores de compañía.
+class PilotDetailScreen extends StatefulWidget {
   final int userId;
 
-  const UserDetailScreen({super.key, required this.userId});
+  const PilotDetailScreen({super.key, required this.userId});
 
   @override
-  State<UserDetailScreen> createState() => _UserDetailScreenState();
+  State<PilotDetailScreen> createState() => _PilotDetailScreenState();
 }
 
-class _UserDetailScreenState extends State<UserDetailScreen> {
+class _PilotDetailScreenState extends State<PilotDetailScreen> {
   final UserService _userService = UserService();
   late Future<UserModel> _userFuture;
 
@@ -35,7 +35,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           );
         } else if (snapshot.hasError) {
           return Scaffold(
-            appBar: AppBar(title: const Text('User Details')),
+            appBar: AppBar(title: const Text('Pilot Details')),
             body: Center(
               child: Text(
                 '⚠️ Error: ${snapshot.error}',
@@ -52,23 +52,22 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('User Details'),
+            title: const Text('Pilot Details'),
             centerTitle: true,
-            // 👇 NO pongas automaticallyImplyLeading: false
-            // porque eso elimina el botón de retroceso
             actions: [
               IconButton(
                 icon: const Icon(Icons.edit),
+                tooltip: 'Edit Pilot',
                 onPressed: () async {
                   final refresh = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => EditUserScreen(user: user),
+                      builder: (_) => EditPilotScreen(user: user),
                     ),
                   );
 
                   if (refresh == true && context.mounted) {
-                    // ✅ Cerrar también esta pantalla y devolver “true”
+                    // ✅ Cerrar esta pantalla y devolver “true” al listado
                     Navigator.pop(context, true);
                   }
                 },
@@ -84,9 +83,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                   children: [
                     CircleAvatar(
                       radius: 30,
-                      backgroundColor: user.isActive
-                          ? Colors.green
-                          : Colors.grey,
+                      backgroundColor:
+                          user.isActive ? Colors.green : Colors.grey,
                       child: Text(
                         user.fullName.isNotEmpty
                             ? user.fullName[0].toUpperCase()
@@ -113,7 +111,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                 const Divider(),
                 const SizedBox(height: 10),
 
-                // 🔹 Datos detallados del usuario
+                // 🔹 Datos detallados del piloto
                 _buildDetailRow('Email', user.email),
                 _buildDetailRow('Phone', user.phoneNumber),
                 _buildDetailRow('Role', user.role),
@@ -135,85 +133,6 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                 _buildDetailRow(
                   'Privacy Notice',
                   user.privacyNotice == true ? 'Accepted' : 'Not Accepted',
-                ),
-
-                const SizedBox(height: 30),
-
-                // 🔹 Botón para desactivar usuario
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: user.isActive
-                        ? Colors.redAccent
-                        : Colors.green,
-                    minimumSize: const Size(double.infinity, 48),
-                  ),
-                  icon: Icon(user.isActive ? Icons.block : Icons.refresh),
-                  label: Text(
-                    user.isActive ? 'Deactivate User' : 'Reactivate User',
-                  ),
-                  onPressed: () async {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: Text(
-                          user.isActive
-                              ? 'Confirm Deactivation'
-                              : 'Confirm Reactivation',
-                        ),
-                        content: Text(
-                          user.isActive
-                              ? 'Are you sure you want to deactivate this user?'
-                              : 'Are you sure you want to reactivate this user?',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('Cancel'),
-                          ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: user.isActive
-                                  ? Colors.redAccent
-                                  : Colors.green,
-                            ),
-                            onPressed: () => Navigator.pop(ctx, true),
-                            child: const Text('Confirm'),
-                          ),
-                        ],
-                      ),
-                    );
-
-                    if (confirm == true && context.mounted) {
-                      try {
-                        if (user.isActive) {
-                          await _userService.deactivateUser(user.id);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                '✅ Usuario desactivado correctamente',
-                              ),
-                            ),
-                          );
-                        } else {
-                          // ♻️ Reactivar usuario
-                          await _userService.reactivateUser(user.id);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                '✅ Usuario reactivado correctamente',
-                              ),
-                            ),
-                          );
-                        }
-                        // Regresar al listado y actualizar
-                        Navigator.pop(context, true);
-                      } catch (e) {
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(SnackBar(content: Text('⚠️ Error: $e')));
-                      }
-                    }
-                  },
                 ),
               ],
             ),
