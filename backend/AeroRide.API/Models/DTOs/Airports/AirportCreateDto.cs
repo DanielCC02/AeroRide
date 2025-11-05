@@ -40,10 +40,12 @@ namespace AeroRide.API.Models.DTOs.Airports
 
         /// <summary>Latitud geográfica (decimal).</summary>
         [Required(ErrorMessage = "La latitud es obligatoria.")]
+        [Range(-90, 90)]
         public decimal Latitude { get; set; }
 
         /// <summary>Longitud geográfica (decimal).</summary>
         [Required(ErrorMessage = "La longitud es obligatoria.")]
+        [Range(-180, 180)]
         public decimal Longitude { get; set; }
 
         /// <summary>
@@ -52,6 +54,10 @@ namespace AeroRide.API.Models.DTOs.Airports
         /// </summary>
         [Required(ErrorMessage = "Debe proporcionar una imagen.")]
         public string Image { get; set; } = null!;
+
+        /// <summary>Peso máximo permitido en el aeropuerto (en kg).</summary>
+        public int MaxAllowedWeight { get; set; }
+
 
     }
 }

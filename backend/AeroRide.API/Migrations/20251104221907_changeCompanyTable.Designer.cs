@@ -3,6 +3,7 @@ using System;
 using AeroRide.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AeroRide.API.Migrations
 {
     [DbContext(typeof(AeroRideDbContext))]
-    partial class AeroRideDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251104221907_changeCompanyTable")]
+    partial class changeCompanyTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -45,9 +48,6 @@ namespace AeroRide.API.Migrations
                         .HasColumnType("double precision");
 
                     b.Property<int?>("CurrentAirportId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("EmptyWeight")
                         .HasColumnType("integer");
 
                     b.Property<string>("Image")
@@ -168,9 +168,6 @@ namespace AeroRide.API.Migrations
 
                     b.Property<decimal>("Longitude")
                         .HasColumnType("numeric");
-
-                    b.Property<int>("MaxAllowedWeight")
-                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()

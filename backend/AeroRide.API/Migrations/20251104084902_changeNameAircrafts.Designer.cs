@@ -3,6 +3,7 @@ using System;
 using AeroRide.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AeroRide.API.Migrations
 {
     [DbContext(typeof(AeroRideDbContext))]
-    partial class AeroRideDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251104084902_changeNameAircrafts")]
+    partial class changeNameAircrafts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -45,9 +48,6 @@ namespace AeroRide.API.Migrations
                         .HasColumnType("double precision");
 
                     b.Property<int?>("CurrentAirportId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("EmptyWeight")
                         .HasColumnType("integer");
 
                     b.Property<string>("Image")
@@ -169,9 +169,6 @@ namespace AeroRide.API.Migrations
                     b.Property<decimal>("Longitude")
                         .HasColumnType("numeric");
 
-                    b.Property<int>("MaxAllowedWeight")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -213,31 +210,13 @@ namespace AeroRide.API.Migrations
                     b.Property<string>("Address")
                         .HasColumnType("text");
 
-                    b.Property<double>("AirportTaxPerPassenger")
-                        .HasColumnType("double precision");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<double>("DomesticOvernightCost")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("DomesticWaitHourCost")
-                        .HasColumnType("double precision");
 
                     b.Property<string>("Email")
                         .HasColumnType("text");
 
                     b.Property<double>("EmptyLegDiscount")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("HandlingPerPassenger")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("InternationalOvernightCost")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("InternationalWaitHourCost")
                         .HasColumnType("double precision");
 
                     b.Property<bool>("IsActive")

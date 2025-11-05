@@ -1,23 +1,47 @@
-﻿using AeroRide.API.Models.DTOs.Passengers;
-using AeroRide.API.Models.DTOs.Reservations;
+﻿using AeroRide.API.Models.DTOs.Reservations;
 
-namespace AeroRide.API.Interfaces
+namespace AeroRide.API.Services.Interfaces
 {
     /// <summary>
-    /// Define las operaciones disponibles para la gestión de reservas.
+    /// Define las operaciones principales del servicio de reservas.
+    /// Incluye creación, consulta, cancelación y cálculo estimado de precios.
     /// </summary>
     public interface IReservationService
     {
-        Task<IEnumerable<ReservationResponse>> GetAllAsync();
-        Task<ReservationResponse?> GetByIdAsync(int id);
-        Task<IEnumerable<ReservationResponse>> GetByUserAsync(int userId);
-        Task<ReservationResponse> CreateAsync(ReservationCreateDto dto);
-        Task<bool> DeleteAsync(int id);
+        /// <summary>
+        /// Crea una nueva reserva completa, incluyendo vuelos y pasajeros.
+        /// </summary>
+        /// <param name="userId">Id del usuario que realiza la reserva.</param>
+        /// <param name="dto">Datos de la reserva a crear.</param>
+        /// <returns>DTO con la información completa de la reserva creada.</returns>
+        Task<ReservationResponseDto> CreateAsync(int userId, ReservationCreateDto dto);
 
-        // 🔹 Acciones de negocio
-        Task<bool> CancelAsync(int id);
-        Task<bool> ConfirmAsync(int id);
-        Task<ReservationResponse?> AddPassengerAsync(int reservationId, PassengerCreateDto dto);
-        Task<ReservationResponse?> AssignFlightAsync(int reservationId, int flightId);
+        /// <summary>
+        /// Obtiene el detalle completo de una reserva.
+        /// </summary>
+        Task<ReservationResponseDto?> GetByIdAsync(int id);
+
+        /// <summary>
+        /// Obtiene todas las reservas del usuario autenticado.
+        /// </summary>
+        Task<IEnumerable<ReservationResponseDto>> GetByUserAsync(int userId);
+
+        /// <summary>
+        /// Cancela una reserva existente.
+        /// </summary>
+        Task<bool> CancelAsync(int reservationId);
+
+        // ======================================================
+        // 💰 NUEVO MÉTODO — CÁLCULO ESTIMADO DE PRECIO
+        // ======================================================
+
+        /// <summary>
+        /// Calcula una estimación del precio total de una reserva,
+        /// sin almacenarla en la base de datos. Se utiliza para mostrar
+        /// al usuario el costo previo al booking.
+        /// </summary>
+        /// <param name="dto">Datos del itinerario, aeronave y pasajeros.</param>
+        /// <returns>Resultado con el costo total, impuestos y duración estimada.</returns>
+        Task<ReservationEstimateResponseDto> EstimatePriceAsync(ReservationEstimateDto dto);
     }
 }

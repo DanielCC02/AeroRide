@@ -23,6 +23,8 @@
         /// <summary>País donde se localiza.</summary>
         public string Country { get; set; } = null!;
 
+        public string TimeZone { get; set; } = null!;
+
         /// <summary>Hora de apertura del aeropuerto (opcional).</summary>
         public TimeSpan? OpeningTime { get; set; }
 
@@ -40,5 +42,9 @@
 
         /// <summary>Indica si el aeropuerto está activo en el sistema.</summary>
         public bool IsActive { get; set; }
+
+        /// <summary>Peso máximo permitido en el aeropuerto (en kg).</summary>
+        public int MaxAllowedWeight { get; set; }
+
     }
 }

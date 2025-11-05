@@ -19,7 +19,9 @@ namespace AeroRide.API.Mappings
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true))
                 .ForMember(dest => dest.EmptyLegDiscount, opt => opt.MapFrom(src =>
-                    src.EmptyLegDiscount >= 0 && src.EmptyLegDiscount <= 1 ? src.EmptyLegDiscount : 0.5));
+                    src.EmptyLegDiscount >= 0 && src.EmptyLegDiscount <= 1 ? src.EmptyLegDiscount : 0.5))
+                // Si el valor viene nulo, usar los defaults definidos en la entidad
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
             // ======================================================
             // ✏️ DTO → ENTIDAD (ACTUALIZACIÓN PARCIAL)

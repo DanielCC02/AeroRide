@@ -1,61 +1,29 @@
 ﻿namespace AeroRide.API.Models.DTOs.Aircrafts
 {
     /// <summary>
-    /// DTO utilizado para devolver información completa de una aeronave
-    /// hacia el cliente en respuestas de la API.
+    /// DTO completo utilizado para mostrar los detalles técnicos de una aeronave.
     /// </summary>
     public class AircraftResponseDto
     {
-        /// <summary>
-        /// Identificador único de la aeronave.
-        /// </summary>
         public int Id { get; set; }
-
-        /// <summary>
-        /// Matrícula o patente de la aeronave.
-        /// </summary>
         public string Patent { get; set; } = null!;
-
-        /// <summary>
-        /// Modelo o tipo de aeronave.
-        /// </summary>
         public string Model { get; set; } = null!;
-
-        /// <summary>
-        /// Precio o costo de operación estimado.
-        /// </summary>
-        public double Price { get; set; }
-
-        /// <summary>
-        /// Número máximo de pasajeros.
-        /// </summary>
+        public double MinuteCost { get; set; }
         public int Seats { get; set; }
-
-        /// <summary>
-        /// Peso máximo permitido.
-        /// </summary>
         public int MaxWeight { get; set; }
-
-        /// <summary>
-        /// Estado operativo actual.
-        /// </summary>
+        public double CruisingSpeed { get; set; }
+        public bool CanFlyInternational { get; set; }
         public string State { get; set; } = null!;
-
-        /// <summary>
-        /// URL o ruta de la imagen asociada.
-        /// </summary>
         public string Image { get; set; } = null!;
-
         public bool IsActive { get; set; }
 
-        /// <summary>
-        /// Identificador de la compañía propietaria de la aeronave (si aplica).
-        /// </summary>
-        public int? CompanyId { get; set; }
+        /// <summary>Nombre de la compañía propietaria.</summary>
+        public string CompanyName { get; set; } = null!;
 
-        /// <summary>
-        /// Nombre de la compañía asociada (solo visible para administradores).
-        /// </summary>
-        public string? CompanyName { get; set; }
+        /// <summary>Nombre del aeropuerto base.</summary>
+        public string BaseAirportName { get; set; } = null!;
+
+        /// <summary>Nombre del aeropuerto actual (si aplica).</summary>
+        public string? CurrentAirportName { get; set; }
     }
 }

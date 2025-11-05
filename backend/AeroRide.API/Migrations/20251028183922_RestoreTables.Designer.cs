@@ -3,6 +3,7 @@ using System;
 using AeroRide.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AeroRide.API.Migrations
 {
     [DbContext(typeof(AeroRideDbContext))]
-    partial class AeroRideDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251028183922_RestoreTables")]
+    partial class RestoreTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -32,9 +35,6 @@ namespace AeroRide.API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("BaseAirportId")
-                        .HasColumnType("integer");
-
                     b.Property<bool>("CanFlyInternational")
                         .HasColumnType("boolean");
 
@@ -47,9 +47,6 @@ namespace AeroRide.API.Migrations
                     b.Property<int?>("CurrentAirportId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("EmptyWeight")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Image")
                         .IsRequired()
                         .HasColumnType("text");
@@ -60,9 +57,6 @@ namespace AeroRide.API.Migrations
                     b.Property<int>("MaxWeight")
                         .HasColumnType("integer");
 
-                    b.Property<double>("MinuteCost")
-                        .HasColumnType("double precision");
-
                     b.Property<string>("Model")
                         .IsRequired()
                         .HasColumnType("text");
@@ -70,6 +64,9 @@ namespace AeroRide.API.Migrations
                     b.Property<string>("Patent")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<double>("Price")
+                        .HasColumnType("double precision");
 
                     b.Property<int>("Seats")
                         .HasColumnType("integer");
@@ -83,50 +80,11 @@ namespace AeroRide.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BaseAirportId");
-
                     b.HasIndex("CompanyId");
 
                     b.HasIndex("CurrentAirportId");
 
                     b.ToTable("Aircrafts", (string)null);
-                });
-
-            modelBuilder.Entity("AeroRide.API.Models.Domain.AircraftAvailability", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AircraftId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("EndTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("ReservationId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("StartTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ReservationId");
-
-                    b.HasIndex("AircraftId", "StartTime", "EndTime");
-
-                    b.ToTable("AircraftAvailabilities", (string)null);
                 });
 
             modelBuilder.Entity("AeroRide.API.Models.Domain.Airport", b =>
@@ -169,9 +127,6 @@ namespace AeroRide.API.Migrations
                     b.Property<decimal>("Longitude")
                         .HasColumnType("numeric");
 
-                    b.Property<int>("MaxAllowedWeight")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -213,31 +168,13 @@ namespace AeroRide.API.Migrations
                     b.Property<string>("Address")
                         .HasColumnType("text");
 
-                    b.Property<double>("AirportTaxPerPassenger")
-                        .HasColumnType("double precision");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<double>("DomesticOvernightCost")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("DomesticWaitHourCost")
-                        .HasColumnType("double precision");
 
                     b.Property<string>("Email")
                         .HasColumnType("text");
 
                     b.Property<double>("EmptyLegDiscount")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("HandlingPerPassenger")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("InternationalOvernightCost")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("InternationalWaitHourCost")
                         .HasColumnType("double precision");
 
                     b.Property<bool>("IsActive")
@@ -253,32 +190,6 @@ namespace AeroRide.API.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Companies");
-                });
-
-            modelBuilder.Entity("AeroRide.API.Models.Domain.CompanyBase", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AirportId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("CompanyId")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("IsPrimary")
-                        .HasColumnType("boolean");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AirportId");
-
-                    b.HasIndex("CompanyId");
-
-                    b.ToTable("CompanyBases", (string)null);
                 });
 
             modelBuilder.Entity("AeroRide.API.Models.Domain.Flight", b =>
@@ -729,12 +640,6 @@ namespace AeroRide.API.Migrations
 
             modelBuilder.Entity("AeroRide.API.Models.Domain.Aircraft", b =>
                 {
-                    b.HasOne("AeroRide.API.Models.Domain.Airport", "BaseAirport")
-                        .WithMany()
-                        .HasForeignKey("BaseAirportId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("AeroRide.API.Models.Domain.Company", "Company")
                         .WithMany("Aircrafts")
                         .HasForeignKey("CompanyId")
@@ -743,51 +648,11 @@ namespace AeroRide.API.Migrations
 
                     b.HasOne("AeroRide.API.Models.Domain.Airport", "CurrentAirport")
                         .WithMany()
-                        .HasForeignKey("CurrentAirportId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("BaseAirport");
+                        .HasForeignKey("CurrentAirportId");
 
                     b.Navigation("Company");
 
                     b.Navigation("CurrentAirport");
-                });
-
-            modelBuilder.Entity("AeroRide.API.Models.Domain.AircraftAvailability", b =>
-                {
-                    b.HasOne("AeroRide.API.Models.Domain.Aircraft", "Aircraft")
-                        .WithMany()
-                        .HasForeignKey("AircraftId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AeroRide.API.Models.Domain.Reservation", "Reservation")
-                        .WithMany()
-                        .HasForeignKey("ReservationId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Aircraft");
-
-                    b.Navigation("Reservation");
-                });
-
-            modelBuilder.Entity("AeroRide.API.Models.Domain.CompanyBase", b =>
-                {
-                    b.HasOne("AeroRide.API.Models.Domain.Airport", "Airport")
-                        .WithMany()
-                        .HasForeignKey("AirportId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("AeroRide.API.Models.Domain.Company", "Company")
-                        .WithMany("Bases")
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Airport");
-
-                    b.Navigation("Company");
                 });
 
             modelBuilder.Entity("AeroRide.API.Models.Domain.Flight", b =>
@@ -980,8 +845,6 @@ namespace AeroRide.API.Migrations
             modelBuilder.Entity("AeroRide.API.Models.Domain.Company", b =>
                 {
                     b.Navigation("Aircrafts");
-
-                    b.Navigation("Bases");
 
                     b.Navigation("FlightCharges");
 
