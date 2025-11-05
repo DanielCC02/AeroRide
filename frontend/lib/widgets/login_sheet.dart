@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/homepage_admin.dart';
+import 'package:frontend/screens/homepage_admin_company.dart';
 import 'package:frontend/screens/homepage_pilot.dart';
 import 'package:frontend/screens/homepage_screen.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../services/api_config.dart';
 import '../services/token_storage.dart';
+import 'package:frontend/widgets/forgot_password_sheet.dart';
+import 'package:provider/provider.dart';
+import 'package:frontend/providers/company_id_provider.dart'; // Importamos el provider
 
 class LoginSheet extends StatefulWidget {
   const LoginSheet({super.key});
@@ -14,97 +18,190 @@ class LoginSheet extends StatefulWidget {
   State<LoginSheet> createState() => _LoginSheetState();
 }
 
+enum LoginResult { success, unverified, invalid }
+
 class _LoginSheetState extends State<LoginSheet> {
   final _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _obscure = true;
 
-  Future<bool> _loginUser(String email, String password) async {
-    try {
-      final url = Uri.parse('${ApiConfig.baseUrl}/auth/login');
+  Uri _u(String path) => Uri.parse('${ApiConfig.baseUrl}$path');
 
-      final response = await http.post(
-        url,
+  Future<LoginResult> _loginUser(String email, String password) async {
+    try {
+      // 1️⃣ Login
+      final loginRes = await http.post(
+        _u('/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'password': password}),
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final token = data['token'] ?? '';
-        final refreshToken = data['refreshToken'] ?? '';
-
-        if (token.isEmpty) return false;
-
-        await TokenStorage.saveTokens(token, refreshToken);
-
-        // 🔹 Obtener perfil de usuario autenticado
-        final meUrl = Uri.parse('${ApiConfig.baseUrl}/api/users/me');
-        final meResponse = await http.get(
-          meUrl,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-        );
-
-        if (meResponse.statusCode == 200) {
-          final userData = jsonDecode(meResponse.body);
-          final roleName = (userData['role'] ?? '').toString().toLowerCase();
-
-          print('👤 Usuario autenticado con rol: $roleName');
-
-          if (context.mounted) {
-            Navigator.of(context).pop(); // Cierra el BottomSheet
-
-            Future.delayed(const Duration(milliseconds: 200), () {
-              // 🔹 Este Navigator opera sobre el árbol raíz del MaterialApp
-              final navigator = Navigator.of(context, rootNavigator: true);
-
-              if (roleName == 'admin') {
-                navigator.pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const HomePageAdmin()),
-                  (route) => false,
-                );
-              } else if (roleName == 'pilot') {
-                navigator.pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const HomePagePilot()),
-                  (route) => false,
-                );
-              } else {
-                navigator.pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const HomePageScreen()),
-                  (route) => false,
-                );
-              }
-            });
+      if (loginRes.statusCode != 200) {
+        String msg = '';
+        try {
+          final body = jsonDecode(loginRes.body);
+          if (body is Map && body['message'] is String) {
+            msg = (body['message'] as String).toLowerCase();
           }
-          return true;
-        } else {
-          print('⚠️ No se pudo obtener perfil de usuario: ${meResponse.body}');
-          return false;
-        }
-      } else {
-        print('❌ Error: ${response.statusCode} - ${response.body}');
-        return false;
+        } catch (_) {}
+
+        final unverified =
+            (loginRes.statusCode == 401 || loginRes.statusCode == 403) &&
+            (msg.contains('no ha sido verificada') ||
+                msg.contains('no verificada') ||
+                msg.contains('not verified') ||
+                msg.contains('verify your email'));
+
+        return unverified ? LoginResult.unverified : LoginResult.invalid;
       }
+
+      // 2️⃣ Extraer tokens
+      final loginData = jsonDecode(loginRes.body) as Map<String, dynamic>;
+      final token = (loginData['token'] ?? loginData['Token']) as String? ?? '';
+      final refreshToken =
+          (loginData['refreshToken'] ?? loginData['RefreshToken']) as String? ?? '';
+      if (token.isEmpty) return LoginResult.invalid;
+
+      await TokenStorage.saveTokens(token, refreshToken);
+
+      // 3️⃣ Obtener perfil (para obtener rol, companyId, etc.)
+      final meRes = await http.get(
+        _u('/api/users/profile'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (meRes.statusCode != 200) {
+        return LoginResult.invalid;
+      }
+
+      final userData = jsonDecode(meRes.body) as Map<String, dynamic>;
+
+      // 4️⃣ Resolver rol y roleId
+      String roleName = '';
+      int? roleId;
+
+      if (userData['role'] is String) {
+        roleName = (userData['role'] as String).toLowerCase();
+      } else if (userData['role'] is Map) {
+        final r = userData['role'] as Map;
+        if (r['name'] is String) roleName = (r['name'] as String).toLowerCase();
+        if (r['id'] is int) roleId = r['id'] as int;
+      }
+
+      if (roleId == null && userData['roleId'] is int) {
+        roleId = userData['roleId'] as int;
+      }
+
+      // Guardar companyId (solo si viene)
+      int? companyId;
+      if (userData['companyId'] is int) {
+        companyId = userData['companyId'];
+        await TokenStorage.saveCompanyId(
+          companyId,
+        ); // Guardar correctamente el companyId
+
+        // Guardar companyId en el provider
+        Provider.of<CompanyIdProvider>(context, listen: false).companyId = companyId;
+      } else {
+        await TokenStorage.saveCompanyId(
+          null,
+        ); // Si no tiene un companyId, se guarda null
+        Provider.of<CompanyIdProvider>(context, listen: false).companyId = null; // Limpiar el companyId en el provider
+      }
+
+      // Guardar companyName (solo si viene)
+      if (userData['companyName'] is String) {
+        await TokenStorage.saveCompanyName(userData['companyName']);
+      } else {
+        await TokenStorage.saveCompanyName(
+          '',
+        ); // Si no está presente, podemos guardar un valor vacío
+      }
+
+      // 5️⃣ Navegación según rol
+      if (context.mounted) {
+        Navigator.of(context).pop(); // Cierra el BottomSheet
+
+        Future.delayed(const Duration(milliseconds: 150), () {
+          final nav = Navigator.of(context, rootNavigator: true);
+
+          if (roleName == 'admin' || roleId == 1) {
+            nav.pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const HomePageAdmin()),
+              (route) => false,
+            );
+          } else if (roleName == 'companyadmin' || roleId == 2) {
+            // ✅ Asegurarse de que companyId está presente y pasarlo correctamente
+            if (companyId == null) {
+              // Si el companyId no está presente, mostrar un error
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('No se encontró la empresa asignada'),
+                ),
+              );
+              return;
+            }
+
+            nav.pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (_) => HomePageAdminCompany(),
+              ),
+              (route) => false,
+            );
+          } else if (roleName == 'pilot' || roleId == 3) {
+            nav.pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const HomePagePilot()),
+              (route) => false,
+            );
+          } else {
+            nav.pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const HomePageScreen()),
+              (route) => false,
+            );
+          }
+        });
+      }
+
+      return LoginResult.success;
     } catch (e) {
-      print('❗ Error de conexión: $e');
-      return false;
+      print('❗ Connection/Parsing error: $e');
+      return LoginResult.invalid;
     }
+  }
+
+  Future<void> _showDialog({
+    required String title,
+    required String message,
+  }) async {
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Usamos AnimatedPadding para levantar el contenido cuando sale el teclado
     final bottom = MediaQuery.of(context).viewInsets.bottom;
     return AnimatedPadding(
       duration: const Duration(milliseconds: 150),
       padding: EdgeInsets.only(bottom: bottom),
       child: Column(
         children: [
-          // Header con back + título
+          // Header
           Row(
             children: [
               IconButton(
@@ -119,7 +216,7 @@ class _LoginSheetState extends State<LoginSheet> {
             ],
           ),
 
-          // El resto debe poder hacer scroll si es necesario
+          // Body
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -157,21 +254,26 @@ class _LoginSheetState extends State<LoginSheet> {
                       child: ElevatedButton(
                         onPressed: () async {
                           if (_formKey.currentState!.validate()) {
-                            final success = await _loginUser(
+                            final result = await _loginUser(
                               _email.text.trim(),
                               _password.text.trim(),
                             );
 
-                            if (!success && mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Correo o contraseña incorrectos',
-                                  ),
-                                  backgroundColor: Colors.red,
-                                ),
+                            if (!mounted) return;
+
+                            if (result == LoginResult.unverified) {
+                              await _showDialog(
+                                title: 'Account not verified',
+                                message:
+                                    'Please verify your email to continue. We just sent you a new confirmation email.',
+                              );
+                            } else if (result == LoginResult.invalid) {
+                              await _showDialog(
+                                title: 'Login failed',
+                                message: 'Incorrect email or password.',
                               );
                             }
+                            // success → navegación ya se hace dentro de _loginUser
                           }
                         },
                         child: const Text('Log in'),
@@ -179,7 +281,19 @@ class _LoginSheetState extends State<LoginSheet> {
                     ),
                     const SizedBox(height: 8),
                     TextButton(
-                      onPressed: () {}, // TODO: forgot password
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          useRootNavigator: true,
+                          isScrollControlled: true,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(16),
+                            ),
+                          ),
+                          builder: (_) => const ForgotPasswordSheet(),
+                        );
+                      },
                       child: const Text('Forgot password?'),
                     ),
                   ],

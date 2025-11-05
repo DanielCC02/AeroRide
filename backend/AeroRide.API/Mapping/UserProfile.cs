@@ -43,6 +43,8 @@ namespace AeroRide.API.Mappings
             CreateMap<User, UserProfileDto>()
                 .ForMember(dest => dest.Role,
                     opt => opt.MapFrom(src => src.Role != null ? src.Role.Name : "Sin rol"))
+                .ForMember(dest => dest.CompanyId,
+                    opt => opt.MapFrom(src => src.CompanyId)) // ✅ NUEVO
                 .ForMember(dest => dest.CompanyName,
                     opt => opt.MapFrom(src => src.Company != null ? src.Company.Name : null));
 

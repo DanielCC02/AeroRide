@@ -8,6 +8,128 @@ import '../services/api_config.dart';
 /// Servicio encargado de manejar todas las operaciones
 /// relacionadas con aeronaves (Fleet Management).
 class AircraftService {
+
+  /// Obtiene todas las aeronaves (activas e inactivas) de una compañía específica.
+  Future<List<AircraftModel>> getAircraftsByCompany(int companyId) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
+
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/Aircrafts/company/$companyId/all');
+
+    print('📡 GET $url'); // <-- debug
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    print('📥 Status: ${response.statusCode}');
+    print('📥 Body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      try {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((a) => AircraftModel.fromJson(a)).toList();
+      } catch (e) {
+        print('Error al parsear aeronaves: $e');
+        throw Exception('Error al procesar los datos del servidor');
+      }
+    } else if (response.statusCode == 204) {
+      // Sin contenido (NoContent)
+      print('No hay aeronaves registradas para esta compañía.');
+      return [];
+    } else {
+      print('⚠️ Error al obtener aeronaves: ${response.body}');
+      throw Exception('Error al obtener las aeronaves de la compañía');
+    }
+  }
+
+// ===========================================================
+// POST: Crear una nueva aeronave (asociada a una compañía)
+// ===========================================================
+Future<void> createAircraft({
+  required String patent,
+  required String model,
+  required double price,
+  required int seats,
+  required int maxWeight,
+  required String state,
+  String? image, // opcional
+  int? companyId, // Nuevo campo opcional
+}) async {
+  final token = await TokenStorage.getAccessToken();
+  if (token == null) throw Exception('Token no disponible');
+
+  final url = Uri.parse('${ApiConfig.baseUrl}/api/aircrafts');
+
+  final body = {
+    'patent': patent,
+    'model': model,
+    'price': price,
+    'seats': seats,
+    'maxWeight': maxWeight,
+    'state': state,
+    'image': image ?? '', // puede ser vacío por ahora
+    if (companyId != null) 'companyId': companyId, // 🔹 Solo si viene
+  };
+
+  print('POST $url');
+  print('Body enviado: $body');
+
+  final response = await http.post(
+    url,
+    headers: {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    },
+    body: jsonEncode(body),
+  );
+
+  print('📥 Status: ${response.statusCode}');
+  print('📥 Response: ${response.body}');
+
+  if (response.statusCode == 201) {
+    print('Aeronave creada correctamente');
+  } else {
+    print('Error al crear aeronave: ${response.body}');
+    throw Exception('Error al crear aeronave');
+  }
+}
+
+ // ===========================================================
+  //  POST: Subir imagen de aeronave (opcional)
+  // ===========================================================
+  Future<String> uploadAircraftImage(File imageFile) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
+
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/aircrafts/ImageUpload');
+
+    final request = http.MultipartRequest('POST', url)
+      ..headers['Authorization'] = 'Bearer $token'
+      ..files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['imageUrl']; // devuelve la URL pública
+    } else {
+      print('❌ Error al subir imagen: ${response.body}');
+      throw Exception('Error al subir imagen');
+    }
+  }
+
+
+
+
+
+
+
+
   // ===========================================================
   // GET: Obtener todas las aeronaves (activas e inactivas)
   // ===========================================================
@@ -42,7 +164,7 @@ class AircraftService {
   // ===========================================================
   // POST: Crear una nueva aeronave
   // ===========================================================
-  Future<void> createAircraft({
+  /*Future<void> createAircraft({
     required String patent,
     required String model,
     required double price,
@@ -81,32 +203,7 @@ class AircraftService {
       print('❌ Error al crear aeronave: ${response.body}');
       throw Exception('Error al crear aeronave');
     }
-  }
-
-  // ===========================================================
-  //  POST: Subir imagen de aeronave (opcional)
-  // ===========================================================
-  Future<String> uploadAircraftImage(File imageFile) async {
-    final token = await TokenStorage.getAccessToken();
-    if (token == null) throw Exception('Token no disponible');
-
-    final url = Uri.parse('${ApiConfig.baseUrl}/api/aircrafts/ImageUpload');
-
-    final request = http.MultipartRequest('POST', url)
-      ..headers['Authorization'] = 'Bearer $token'
-      ..files.add(await http.MultipartFile.fromPath('file', imageFile.path));
-
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['imageUrl']; // devuelve la URL pública
-    } else {
-      print('❌ Error al subir imagen: ${response.body}');
-      throw Exception('Error al subir imagen');
-    }
-  }
+  }*/
 
   // ===========================================================
   // GET: Obtener aeronave por ID

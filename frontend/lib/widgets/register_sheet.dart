@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 
 class RegisterSheet extends StatefulWidget {
   const RegisterSheet({super.key});
@@ -14,169 +15,259 @@ class _RegisterSheetState extends State<RegisterSheet> {
   final _lastName = TextEditingController();
   final _email = TextEditingController();
   final _phone = TextEditingController(text: '+506 ');
-  String? _country;
   final _password = TextEditingController();
-  bool _terms = false;
-  bool _privacy = false;
+  final _confirm = TextEditingController();
+
+  bool _isLoading = false;
+  bool _agreeTerms = false;
+  bool _agreePrivacy = false;
+
+  final _auth = AuthService();
+  Map<String, List<String>> _fieldErrors = {};
+
+  @override
+  void dispose() {
+    _firstName.dispose();
+    _lastName.dispose();
+    _email.dispose();
+    _phone.dispose();
+    _password.dispose();
+    _confirm.dispose();
+    super.dispose();
+  }
+
+  String? _errorFor(String field) {
+    final errs = _fieldErrors[field.toLowerCase()];
+    if (errs == null || errs.isEmpty) return null;
+    return errs.join('\n');
+  }
+
+  Future<void> _submit() async {
+    setState(() => _fieldErrors = {});
+    if (!_formKey.currentState!.validate()) return;
+
+    if (!_agreeTerms || !_agreePrivacy) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'You must accept the Terms of Use and the Privacy Notice.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Registro (no usamos el mensaje retornado)
+      await _auth.register(
+        name: _firstName.text.trim(),
+        lastName: _lastName.text.trim(),
+        email: _email.text.trim(),
+        password: _password.text,
+        phoneNumber: _phone.text.trim(),
+      );
+
+      if (!mounted) return;
+      // ✅ Diálogo corto en inglés con botones
+      await showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Account created!'),
+          content: const Text(
+            'Check your email to verify your account. It may be in your spam folder.',
+          ),
+          actions: [
+            // Cierra solo el diálogo
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+            // Cierra diálogo + sheet → vuelve al Welcome
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop(); // close dialog
+                Navigator.of(context).pop(); // close bottom sheet
+              },
+              child: const Text('Go to Home'),
+            ),
+          ],
+        ),
+      );
+
+      // Nota: ya no hacemos pop() aquí porque el botón "Go to Home"
+      // lo maneja dentro del diálogo para evitar doble-pop.
+    } on AuthServiceException catch (e) {
+      setState(() => _fieldErrors = e.fieldErrors ?? {});
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unexpected error. Please try again.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
 
-    return AnimatedPadding(
-      duration: const Duration(milliseconds: 150),
-      padding: EdgeInsets.only(bottom: bottom),
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.92,
       child: Column(
         children: [
-          // Header con back + título
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Registration',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-            ],
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Row(
+              children: [
+                Text(
+                  'Create account',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
           ),
-
+          const Divider(height: 1),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Form(
                 key: _formKey,
                 child: Column(
                   children: [
-                    // Name + Last name
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _firstName,
-                            decoration: const InputDecoration(
-                              labelText: 'Name*',
-                            ),
-                            validator: (v) =>
-                                (v == null || v.isEmpty) ? 'Required' : null,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _lastName,
-                            decoration: const InputDecoration(
-                              labelText: 'Last name*',
-                            ),
-                            validator: (v) =>
-                                (v == null || v.isEmpty) ? 'Required' : null,
-                          ),
-                        ),
-                      ],
+                    TextFormField(
+                      controller: _firstName,
+                      decoration: InputDecoration(
+                        labelText: 'First name',
+                        errorText: _errorFor('name'),
+                      ),
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? 'Required' : null,
                     ),
                     const SizedBox(height: 12),
-
+                    TextFormField(
+                      controller: _lastName,
+                      decoration: InputDecoration(
+                        labelText: 'Last name',
+                        errorText: _errorFor('lastname'),
+                      ),
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 12),
                     TextFormField(
                       controller: _email,
-                      decoration: const InputDecoration(labelText: 'Email*'),
-                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        labelText: 'Email',
+                        errorText: _errorFor('email'),
+                      ),
                       validator: (v) => (v == null || !v.contains('@'))
                           ? 'Invalid email'
                           : null,
                     ),
                     const SizedBox(height: 12),
-
                     TextFormField(
                       controller: _phone,
-                      decoration: const InputDecoration(labelText: 'Phone*'),
-                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: 'Phone Number',
+                        errorText: _errorFor('phonenumber'),
+                      ),
                       validator: (v) =>
                           (v == null || v.trim().isEmpty) ? 'Required' : null,
                     ),
                     const SizedBox(height: 12),
-
-                    DropdownButtonFormField<String>(
-                      initialValue: _country,
-                      decoration: const InputDecoration(labelText: 'Country*'),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'Costa Rica',
-                          child: Text('Costa Rica'),
-                        ),
-                        DropdownMenuItem(value: 'USA', child: Text('USA')),
-                        DropdownMenuItem(
-                          value: 'Mexico',
-                          child: Text('Mexico'),
-                        ),
-                      ],
-                      onChanged: (v) => setState(() => _country = v),
-                      validator: (v) => v == null ? 'Required' : null,
-                    ),
-                    const SizedBox(height: 12),
-
                     TextFormField(
                       controller: _password,
-                      decoration: const InputDecoration(labelText: 'Password*'),
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        errorText: _errorFor('password'),
+                      ),
                       obscureText: true,
-                      validator: (v) =>
-                          (v == null || v.length < 6) ? 'Min 6 chars' : null,
+                      validator: (v) {
+                        if (v == null || v.length < 8) {
+                          return 'Min 8 characters';
+                        }
+                        final hasNum = RegExp(r'[0-9]').hasMatch(v);
+                        final hasLet = RegExp(r'[A-Za-z]').hasMatch(v);
+                        if (!hasNum || !hasLet) {
+                          return 'Include letters and numbers';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 12),
-
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      value: _terms,
-                      onChanged: (v) => setState(() => _terms = v),
-                      title: Wrap(
-                        children: [
-                          const Text('I agree to the '),
-                          Text(
-                            'Terms of use',
-                            style: TextStyle(color: cs.primary),
-                          ),
-                        ],
+                    TextFormField(
+                      controller: _confirm,
+                      decoration: const InputDecoration(
+                        labelText: 'Confirm password',
                       ),
+                      obscureText: true,
+                      validator: (v) => v == null
+                          ? 'Required'
+                          : (v != _password.text
+                                ? 'Passwords do not match'
+                                : null),
                     ),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      value: _privacy,
-                      onChanged: (v) => setState(() => _privacy = v),
-                      title: Wrap(
-                        children: [
-                          const Text(
-                            'Your personal data will be processed according to our ',
-                          ),
-                          Text(
-                            'Privacy Notice',
-                            style: TextStyle(color: cs.primary),
-                          ),
-                        ],
-                      ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: _agreeTerms,
+                          onChanged: (v) =>
+                              setState(() => _agreeTerms = v ?? false),
+                        ),
+                        const Expanded(
+                          child: Text('I agree to the Terms of Use'),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: _agreePrivacy,
+                          onChanged: (v) =>
+                              setState(() => _agreePrivacy = v ?? false),
+                        ),
+                        const Expanded(
+                          child: Text('I agree to the Privacy Notice'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {
-                          final ok = _formKey.currentState!.validate();
-                          if (ok && _terms && _privacy) {
-                            // TODO: registrar
-                            Navigator.of(context).pop(); // cerrar sheet
-                          }
-                        },
+                        onPressed: _isLoading ? null : _submit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFDC3A3A), // rojo fijo
-                          foregroundColor: Colors.white,
+                          backgroundColor: cs.primary,
+                          foregroundColor: cs.onPrimary,
                           minimumSize: const Size.fromHeight(44),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        child: const Text('Submit'),
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text('Submit'),
                       ),
                     ),
                   ],

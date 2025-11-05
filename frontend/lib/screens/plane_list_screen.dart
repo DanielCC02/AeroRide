@@ -7,27 +7,6 @@ import 'reservation_screen.dart';
 /// PlaneListScreen
 /// ---------------------------------------------------------------------------
 /// Pantalla de “Select Aircraft”.
-///
-/// ENTRADAS:
-/// - [SearchCriteria] en `widget.criteria` con: from, to, departure y passengers.
-///
-/// RESPONSABILIDADES:
-/// - Filtrar la lista de aviones dummy (`planes`) por:
-///   * Capacidad (>= passengers del criterio).
-///   * Rango de precio (`RangeSlider` local).
-/// - Renderizar tarjetas con foto, modelo, seats, peso máx y precio.
-/// - Al tocar una tarjeta:
-///   * Construye una [Reservation] con los datos del criterio + avión elegido.
-///   * Navega a [ReservationScreen] vía `MaterialPageRoute`.
-///
-/// NOTAS / MOCKS:
-/// - Se usa EFT fijo de 40 min (dummy).
-/// - Las imágenes usan `errorBuilder` para evitar crasheos si falta un asset.
-///
-/// FUTURO (integración):
-/// - Reemplazar `planes` por provider/repositorio (capa data + estados).
-/// - Traer disponibilidad real por fecha/hora.
-/// - Mover estilos fijos a Theme/ColorScheme.
 class PlaneListScreen extends StatefulWidget {
   final SearchCriteria criteria;
   const PlaneListScreen({super.key, required this.criteria});
@@ -45,8 +24,10 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
     super.initState();
     final c = widget.criteria;
     // ignore: avoid_print
-    print('[PlaneListScreen] from=${c.from.codeIata} to=${c.to.codeIata} '
-        'pax=${c.passengers} dep=${c.departure}');
+    print(
+      '[PlaneListScreen] from=${c.from.codeIATA} to=${c.to.codeIATA} '
+      'pax=${c.passengers} dep=${c.departure}',
+    );
   }
 
   @override
@@ -99,10 +80,13 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
                         onChanged: (v) => setState(() => price = v),
                       ),
                       const SizedBox(height: 6),
-                      // Muestra el criterio aplicado (lectura, no editable aquí).
+                      // Criterio aplicado (lectura)
                       Text(
-                        'From: ${c.from.codeIata} • To: ${c.to.codeIata} • Pax: ${c.passengers} • ${_fmtDateTime(c.departure)}',
-                        style: const TextStyle(fontSize: 12, color: Colors.black54),
+                        'From: ${c.from.codeIATA} • To: ${c.to.codeIATA} • Pax: ${c.passengers} • ${_fmtDateTime(c.departure)}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black54,
+                        ),
                       ),
                     ],
                   ),
@@ -148,7 +132,8 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
 
                               Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (_) => ReservationScreen(reservation: res),
+                                  builder: (_) =>
+                                      ReservationScreen(reservation: res),
                                 ),
                               );
                             },
@@ -165,15 +150,24 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
                                       return Container(
                                         color: Colors.black12,
                                         alignment: Alignment.center,
-                                        child: const Icon(Icons.broken_image, size: 48),
+                                        child: const Icon(
+                                          Icons.broken_image,
+                                          size: 48,
+                                        ),
                                       );
                                     },
                                   ),
                                 ),
                                 Padding(
-                                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                                  padding: const EdgeInsets.fromLTRB(
+                                    12,
+                                    10,
+                                    12,
+                                    12,
+                                  ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         p.model.toUpperCase(),
@@ -192,12 +186,16 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
                                           const SizedBox(width: 10),
                                           _InfoChip(
                                             icon: Icons.monitor_weight,
-                                            label: 'MAX WEIGHT ${_kgToLb(p.maxWeightKg)} LB',
+                                            label:
+                                                'MAX WEIGHT ${_kgToLb(p.maxWeightKg)} LB',
                                           ),
                                           const Spacer(),
                                           Row(
                                             children: [
-                                              const Icon(Icons.attach_money, size: 18),
+                                              const Icon(
+                                                Icons.attach_money,
+                                                size: 18,
+                                              ),
                                               Text(
                                                 p.priceUsd.toStringAsFixed(0),
                                                 style: const TextStyle(

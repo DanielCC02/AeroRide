@@ -1,34 +1,34 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/screens/admin/aircraft_detail_screen.dart';
-import '../../models/aircraft_model.dart';
-import '../../services/aircraft_service.dart';
-import '../../services/token_storage.dart';
-import '../welcome_screen.dart';
-import 'create_aircraft_screen.dart';
+import 'package:frontend/screens/admin/company_management/create_company_screen.dart';
+import 'package:frontend/screens/admin/company_management/company_detail_screen.dart';
+import '../../../models/company_model.dart';
+import '../../../services/company_service.dart';
+import '../../../services/token_storage.dart';
+import '../../welcome_screen.dart';
 
-class FleetManagementScreen extends StatefulWidget {
-  const FleetManagementScreen({super.key});
+class CompanyManagementScreen extends StatefulWidget {
+  const CompanyManagementScreen({super.key});
 
   @override
-  State<FleetManagementScreen> createState() => _FleetManagementScreenState();
+  State<CompanyManagementScreen> createState() =>
+      _CompanyManagementScreenState();
 }
 
-class _FleetManagementScreenState extends State<FleetManagementScreen> {
-  final AircraftService _aircraftService = AircraftService();
-  late Future<List<AircraftModel>> _aircraftsFuture;
+class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
+  final CompanyService _companyService = CompanyService();
+  late Future<List<CompanyModel>> _companiesFuture;
 
   @override
   void initState() {
     super.initState();
-    _aircraftsFuture = _aircraftService.getAllAircrafts();
+    _companiesFuture = _companyService.getAllCompanies();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Fleet Management'),
-        automaticallyImplyLeading: true,
+        title: const Text('Company Management'),
         centerTitle: true,
         actions: [
           IconButton(
@@ -47,8 +47,8 @@ class _FleetManagementScreenState extends State<FleetManagementScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<AircraftModel>>(
-        future: _aircraftsFuture,
+      body: FutureBuilder<List<CompanyModel>>(
+        future: _companiesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -60,52 +60,49 @@ class _FleetManagementScreenState extends State<FleetManagementScreen> {
               ),
             );
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No aircraft found.'));
+            return const Center(child: Text('No companies found.'));
           }
 
-          final aircrafts = snapshot.data!;
+          final companies = snapshot.data!;
 
           return ListView.separated(
             padding: const EdgeInsets.all(16),
-            itemCount: aircrafts.length,
+            itemCount: companies.length,
             separatorBuilder: (_, __) => const Divider(),
             itemBuilder: (context, index) {
-              final aircraft = aircrafts[index];
+              final company = companies[index];
               return ListTile(
                 leading: CircleAvatar(
-                  radius: 24,
-                  backgroundColor: aircraft.isActive
-                      ? Colors.green
-                      : Colors.grey,
-                  child: const Icon(Icons.flight, color: Colors.white),
-                ),
-                title: Text(
-                  aircraft.model,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  '${aircraft.patent} • ${aircraft.state}',
-                  style: TextStyle(
-                    color: aircraft.isActive ? Colors.black87 : Colors.black45,
+                  backgroundColor:
+                      company.isActive ? Colors.green : Colors.grey,
+                  child: Text(
+                    company.name.isNotEmpty
+                        ? company.name[0].toUpperCase()
+                        : '?',
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ),
+                title: Text(company.name),
+                subtitle: Text(
+                  '${company.email ?? 'No email'} • ${company.phoneNumber ?? 'No phone number'}',
+                ),
                 trailing: Icon(
-                  aircraft.isActive ? Icons.check_circle : Icons.block_flipped,
-                  color: aircraft.isActive ? Colors.green : Colors.redAccent,
+                  company.isActive ? Icons.check_circle : Icons.block,
+                  color: company.isActive ? Colors.green : Colors.red,
                 ),
                 onTap: () async {
                   final refresh = await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) =>
-                          AircraftDetailScreen(aircraftId: aircraft.id),
+                          CompanyDetailScreen(companyId: company.id),
                     ),
                   );
 
-                  // 🔁 Si desde el detalle o edición vuelve con “true”, recargamos la lista
+                  // 🔁 Si se edita o elimina, recargamos la lista
                   if (refresh == true && context.mounted) {
                     setState(() {
-                      _aircraftsFuture = _aircraftService.getAllAircrafts();
+                      _companiesFuture = _companyService.getAllCompanies();
                     });
                   }
                 },
@@ -116,17 +113,17 @@ class _FleetManagementScreenState extends State<FleetManagementScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.redAccent,
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add_business),
         onPressed: () async {
           final refresh = await Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const CreateAircraftScreen()),
+            MaterialPageRoute(builder: (_) => const CreateCompanyScreen()),
           );
 
-          // Si la creación fue exitosa, recargamos la lista
+          // 🔹 Si se creó una nueva empresa, recargamos la lista
           if (refresh == true && mounted) {
             setState(() {
-              _aircraftsFuture = _aircraftService.getAllAircrafts();
+              _companiesFuture = _companyService.getAllCompanies();
             });
           }
         },

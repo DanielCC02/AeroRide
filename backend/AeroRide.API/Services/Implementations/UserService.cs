@@ -38,13 +38,20 @@ namespace AeroRide.API.Services.Implementations
             if (role == null)
                 throw new Exception("El rol especificado no existe.");
 
+            if (dto.CompanyId.HasValue)
+            {
+                var companyExists = await _db.Companies.AnyAsync(c => c.Id == dto.CompanyId.Value);
+                if (!companyExists)
+                    throw new Exception("La empresa especificada no existe.");
+            }
+
             var user = _mapper.Map<User>(dto);
             user.Password = PasswordHelper.HashPassword(dto.Password);
+            user.CompanyId = dto.CompanyId; // Asociación directa
 
             _db.Users.Add(user);
             await _db.SaveChangesAsync();
 
-            // 🔹 Cargar relaciones manualmente después de guardar
             await _db.Entry(user).Reference(u => u.Role).LoadAsync();
             await _db.Entry(user).Reference(u => u.Company).LoadAsync();
 
@@ -70,6 +77,7 @@ namespace AeroRide.API.Services.Implementations
         public async Task<UserDetailDto?> GetUserByIdAsync(int id)
         {
             var user = await _db.Users
+                .IgnoreQueryFilters()
                 .Include(u => u.Role)
                 .Include(u => u.Company)
                 .FirstOrDefaultAsync(u => u.Id == id);
@@ -168,6 +176,7 @@ namespace AeroRide.API.Services.Implementations
         public async Task<UserProfileDto?> UpdateUserByAdminAsync(int id, UserUpdateAdminDto dto)
         {
             var user = await _db.Users
+                .IgnoreQueryFilters()
                 .Include(u => u.Role)
                 .Include(u => u.Company)
                 .FirstOrDefaultAsync(u => u.Id == id);
@@ -213,17 +222,19 @@ namespace AeroRide.API.Services.Implementations
         public async Task<IEnumerable<UserListDto>> GetPilotsByCompanyAsync(int companyId)
         {
             var pilots = await _db.Users
+                .IgnoreQueryFilters()
                 .Include(u => u.Role)
                 .Include(u => u.Company)
-                .Where(u => u.IsActive &&
-                            u.Role.Name == "Pilot" &&
-                            u.CompanyId == companyId)
+                .Where(u =>
+                    u.Role.Name == "Pilot" &&
+                    u.CompanyId == companyId)
                 .OrderBy(u => u.Id)
                 .AsNoTracking()
                 .ToListAsync();
 
             return _mapper.Map<IEnumerable<UserListDto>>(pilots);
         }
+
 
         // ======================================================
         // 🔟 LISTAR PILOTOS Y ADMINS DE UNA COMPAÑÍA
@@ -258,6 +269,5 @@ namespace AeroRide.API.Services.Implementations
 
             return _mapper.Map<IEnumerable<UserListDto>>(admins);
         }
-
     }
 }

@@ -1,21 +1,60 @@
 import 'package:flutter/material.dart';
 import '../widgets/login_sheet.dart';
 import '../widgets/register_sheet.dart';
+import '../services/token_storage.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
+
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    // Observa el ciclo de vida de la app (para limpiar al volver a primer plano)
+    WidgetsBinding.instance.addObserver(this);
+    // Limpia cualquier sesión/tokens apenas entras a esta pantalla
+    _resetSession();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Resetea sesión (borra tokens persistidos).
+  Future<void> _resetSession() async {
+    await TokenStorage.clearTokens();
+  }
+
+  /// Cuando la app vuelve a primer plano (p.ej., tras un cierre inesperado
+  /// y reabrir en esta pantalla), vuelve a limpiar tokens para evitar estados viejos.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _resetSession();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(title: const Text(''), backgroundColor: Colors.white),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
+          // 👈 permite scroll si el contenido no cabe (evita overflow)
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             children: [
               const SizedBox(height: 16),
+
               // Logo
               Image.asset(
                 'assets/images/logo.jpg',
@@ -23,6 +62,8 @@ class WelcomeScreen extends StatelessWidget {
                 fit: BoxFit.contain,
               ),
               const SizedBox(height: 24),
+
+              // Tarjeta central
               Card(
                 color: Colors.white,
                 elevation: 0,
@@ -35,9 +76,8 @@ class WelcomeScreen extends StatelessWidget {
                     children: [
                       Text(
                         'You are not logged in',
-                        style: Theme.of(context).textTheme.titleMedium!
-                            .copyWith(
-                              fontWeight: FontWeight.bold, // BOLD
+                        style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                              fontWeight: FontWeight.bold,
                             ),
                       ),
                       const SizedBox(height: 8),
@@ -75,13 +115,13 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
 
+                      // Privacy
                       TextButton(
                         onPressed: () {},
                         child: Text(
                           'Privacy Settings',
-                          style: Theme.of(context).textTheme.bodyMedium!
-                              .copyWith(
-                                fontWeight: FontWeight.bold, // BOLD
+                          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                                fontWeight: FontWeight.bold,
                                 color: cs.primary,
                               ),
                         ),
@@ -96,7 +136,8 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              const Spacer(),
+
+              const SizedBox(height: 40), // Espacio final para estética
             ],
           ),
         ),
@@ -108,7 +149,7 @@ class WelcomeScreen extends StatelessWidget {
   void _openLoginSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // puede usar toda la altura
+      isScrollControlled: true, // usa toda la altura
       useSafeArea: true, // respeta notch/barras
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(

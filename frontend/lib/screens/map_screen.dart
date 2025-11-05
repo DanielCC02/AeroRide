@@ -2,17 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 
-/// MapScreen
-/// ---------------------------------------------------------------------------
-/// Muestra un Google Map centrado inicialmente en Costa Rica y, al obtener
-/// permiso + ubicación, mueve la cámara a la posición actual del usuario.
-/// - Botón de “mi ubicación” del mapa habilitado.
-/// - Overlay superior con el texto "Buscar en esta área" (mock).
-///
-/// FUTURO:
-/// - Sustituir el overlay por un botón funcional que consulte aeropuertos
-///   cercanos en el backend.
-/// - Añadir markers de aeropuertos.
+import '../services/airport_service.dart';
+import '../models/airport_model.dart';
+
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
@@ -23,15 +15,20 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   GoogleMapController? _mapController;
 
-  // Cámara inicial (Costa Rica aprox.) para que el mapa no arranque vacío.
   static const CameraPosition _kInitial = CameraPosition(
-    target: LatLng(9.7489, -83.7534), // CR centro aprox.
+    target: LatLng(9.7489, -83.7534), // CR
     zoom: 6.8,
   );
 
-  // Estado de permisos + ubicación actual.
   bool _hasLocationPermission = false;
   Position? _currentPosition;
+
+  final Set<Marker> _markers = {};
+  final List<Airport> _airports = []; // lista completa para los marcadores
+  final TextEditingController _searchController = TextEditingController();
+
+  List<Airport> _searchResults = [];
+  bool _showResults = false;
 
   @override
   void initState() {
@@ -39,12 +36,7 @@ class _MapScreenState extends State<MapScreen> {
     _initLocationFlow();
   }
 
-  /// Flujo de permisos + obtención de ubicación.
-  /// 1) Verifica servicios de ubicación habilitados.
-  /// 2) Solicita permisos si es necesario.
-  /// 3) Obtiene la posición actual y anima la cámara.
   Future<void> _initLocationFlow() async {
-    // 1) Chequear que el GPS/servicios estén activos
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       if (!mounted) return;
@@ -52,7 +44,6 @@ class _MapScreenState extends State<MapScreen> {
       return;
     }
 
-    // 2) Verificar/solicitar permisos
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
@@ -64,30 +55,82 @@ class _MapScreenState extends State<MapScreen> {
     }
     if (permission == LocationPermission.deniedForever) {
       if (!mounted) return;
-      _showSnack('Location permission permanently denied. Enable it in Settings.');
+      _showSnack('Location permission permanently denied.');
       return;
     }
 
     setState(() => _hasLocationPermission = true);
 
-    // 3) Obtener posición y mover cámara
     final pos = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
     _currentPosition = pos;
+  }
 
-    if (_mapController != null) {
-      _mapController!.animateCamera(
-        CameraUpdate.newLatLngZoom(
-          LatLng(pos.latitude, pos.longitude),
-          14, // zoom cercano a la ubicación
-        ),
-      );
-    } else {
-      // Si el controller aún no está listo, cuando se cree moveremos la cámara.
-      // (onMapCreated manejará este caso)
-      setState(() {}); // solo para refrescar el estado actual
+  Future<void> _loadAirportsMarkers() async {
+    try {
+      // Traemos “muchos” para poblar el mapa (si tu API pagina, aquí puedes iterar).
+      final airports = await AirportService.searchAirports('', limit: 400);
+
+      _airports
+        ..clear()
+        ..addAll(airports);
+
+      final newMarkers = airports.map((a) {
+        return Marker(
+          markerId: MarkerId('airport_${a.id}'),
+          position: LatLng(a.latitude, a.longitude),
+          infoWindow: InfoWindow(
+            title: '${a.name} (${a.codeIATA})',
+            snippet: '${a.city}, ${a.country}',
+          ),
+        );
+      }).toSet();
+
+      if (!mounted) return;
+      setState(() {
+        _markers
+          ..clear()
+          ..addAll(newMarkers);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack('Error cargando aeropuertos: $e');
     }
+  }
+
+  Future<void> _searchAirport(String query) async {
+    final q = query.trim();
+    if (q.isEmpty) {
+      setState(() {
+        _showResults = false;
+        _searchResults.clear();
+      });
+      return;
+    }
+
+    // Búsqueda dinámica al backend (en vez de filtrar local).
+    final results = await AirportService.searchAirports(q, limit: 8);
+
+    if (!mounted) return;
+    setState(() {
+      _showResults = results.isNotEmpty;
+      _searchResults = results;
+    });
+  }
+
+  Future<void> _focusAirport(Airport airport) async {
+    _searchController.clear();
+    setState(() => _showResults = false);
+
+    await _mapController?.animateCamera(
+      CameraUpdate.newLatLngZoom(
+        LatLng(airport.latitude, airport.longitude),
+        14,
+      ),
+    );
+
+    _showSnack('📍 ${airport.name}');
   }
 
   void _showSnack(String msg) {
@@ -97,29 +140,27 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     _mapController?.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Map'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Map'), centerTitle: true),
       body: Stack(
         children: [
-          // --- Google Map ----------------------------------------------------
           GoogleMap(
             initialCameraPosition: _kInitial,
-            myLocationEnabled: _hasLocationPermission,        // punto azul
-            myLocationButtonEnabled: true,                    // botón de centrado
+            myLocationEnabled: _hasLocationPermission,
+            myLocationButtonEnabled: true,
             compassEnabled: true,
-            zoomControlsEnabled: false,                       // usamos gestos
+            zoomControlsEnabled: false,
+            markers: _markers,
             onMapCreated: (controller) async {
               _mapController = controller;
+              await _loadAirportsMarkers();
 
-              // Si ya tenemos ubicación, centramos la cámara aquí también.
               final pos = _currentPosition;
               if (pos != null) {
                 await controller.animateCamera(
@@ -132,30 +173,76 @@ class _MapScreenState extends State<MapScreen> {
             },
           ),
 
-          // --- Overlay superior estilo "Buscar en esta área" ----------------
+          // --- 🔍 Barra de búsqueda ------------------------------------------
           SafeArea(
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: const [
-                      BoxShadow(
-                        blurRadius: 8,
-                        color: Colors.black26,
-                        offset: Offset(0, 2),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: const [
+                        BoxShadow(
+                          blurRadius: 8,
+                          color: Colors.black26,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Buscar aeropuerto...',
+                        border: InputBorder.none,
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: _showResults
+                            ? IconButton(
+                                icon: const Icon(Icons.close),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() => _showResults = false);
+                                },
+                              )
+                            : null,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                       ),
-                    ],
+                      onChanged: _searchAirport,
+                    ),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  child: const Text(
-                    'Buscar en esta área',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
+                  if (_showResults)
+                    Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: const [
+                          BoxShadow(
+                            blurRadius: 8,
+                            color: Colors.black26,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: _searchResults.length,
+                        itemBuilder: (context, i) {
+                          final a = _searchResults[i];
+                          return ListTile(
+                            leading: const Icon(Icons.flight_takeoff),
+                            title: Text('${a.name} (${a.codeIATA})'),
+                            subtitle: Text('${a.city}, ${a.country}'),
+                            onTap: () => _focusAirport(a),
+                          );
+                        },
+                      ),
+                    ),
+                ],
               ),
             ),
           ),

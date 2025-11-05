@@ -10,7 +10,7 @@ class HomePageAdmin extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Administrator Panel'),
+        title: const Text('Administration Panel'),
         centerTitle: true,
         actions: [
           IconButton(

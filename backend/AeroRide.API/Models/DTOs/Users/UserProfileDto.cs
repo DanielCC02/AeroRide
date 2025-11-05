@@ -36,7 +36,12 @@ public class UserProfileDto
     public string Role { get; set; } = null!;
 
     /// <summary>
-    /// Compañia actual asignado al usuario (AeroCaribe, etc...).
+    /// Identificador de la compañía a la que pertenece el usuario (si aplica).
+    /// </summary>
+    public int? CompanyId { get; set; }   // ✅ NUEVO
+
+    /// <summary>
+    /// Nombre de la compañía asociada (AeroCaribe, etc.).
     /// </summary>
     public string? CompanyName { get; set; }
 

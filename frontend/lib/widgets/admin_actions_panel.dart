@@ -11,10 +11,7 @@ class AdminActionsPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     // Lista de acciones que tendrá el panel
     final List<Map<String, dynamic>> actions = [
-      {'label': 'See Calendar', 'icon': Icons.calendar_today},
-      {'label': 'User Management', 'icon': Icons.people},
-      {'label': 'Fleet Management', 'icon': Icons.airplanemode_active},
-      {'label': 'Pilot Management', 'icon': Icons.flight_takeoff},
+      {'label': 'Company Management', 'icon': Icons.business},
     ];
 
     return Padding(
@@ -42,13 +39,8 @@ class AdminActionsPanel extends StatelessWidget {
                 onPressed: () {
                   final label = action['label'] as String;
 
-                  if (label == 'User Management') {
-                    Navigator.pushNamed(context, '/admin/users');
-                    return;
-                  }
-
-                  if (label == 'Fleet Management') {
-                    Navigator.pushNamed(context, '/admin/fleet');
+                  if (label == 'Company Management') {
+                    Navigator.pushNamed(context, '/admin/company_management');
                     return;
                   }
 

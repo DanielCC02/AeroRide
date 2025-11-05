@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../models/aircraft_model.dart';
-import '../../services/aircraft_service.dart';
+import '../../../models/aircraft_model.dart';
+import '../../../services/aircraft_service.dart';
 
 /// Pantalla que permite al administrador editar los datos de una aeronave existente.
 class EditAircraftScreen extends StatefulWidget {
@@ -231,7 +231,7 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
                 // 🔹 Dropdown para estado operativo (enum)
                 DropdownButtonFormField<String>(
                   decoration: const InputDecoration(labelText: 'State'),
-                  value: _state,
+                  initialValue: _state,
                   items: const [
                     DropdownMenuItem(
                       value: 'Disponible',

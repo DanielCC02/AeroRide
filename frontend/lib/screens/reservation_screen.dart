@@ -2,32 +2,11 @@ import 'package:flutter/material.dart';
 import '../models/reservation.dart';
 import '../models/passenger_info.dart';
 import 'passengers_form_screen.dart';
-import 'homepage_screen.dart';
+import 'homepage_screen.dart'; // deja este import como lo tengas en tu proyecto
 
 /// ReservationScreen
 /// ---------------------------------------------------------------------------
 /// Pantalla de detalle de reservación (mock faithful al diseño).
-///
-/// ENTRADAS:
-/// - [Reservation] con avión, ruta, fecha/hora, pax y precio.
-///
-/// RESPONSABILIDADES:
-/// - Mostrar header con imagen, modelo, seats y precio.
-/// - Sección “Itinerary” con salida/llegada + EFT y aeropuertos.
-/// - Sección “Passengers”:
-///   * Botón rojo “Add Passengers Information”
-///   * Abre [PassengersFormScreen] y persiste lo ingresado.
-/// - Sección “Companions”: toggles de lap infant y dog.
-/// - Botón “Book”: valida que haya info de todos los pasajeros y
-///   vuelve a Home limpiando el formulario.
-///
-/// ESTADO LOCAL:
-/// - `_passengers` (lista ingresada en el formulario).
-/// - `lapInfant` y `dog`.
-///
-/// FUTURO:
-/// - Guardar reserva en “Upcoming Trips” vía provider/repositorio.
-/// - Integrar “Show on the map”.
 class ReservationScreen extends StatefulWidget {
   final Reservation reservation;
   const ReservationScreen({super.key, required this.reservation});
@@ -60,10 +39,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
       appBar: AppBar(
         title: const Text(
           'Reservation',
-          style: TextStyle(
-            color: red,
-            fontWeight: FontWeight.w800,
-          ),
+          style: TextStyle(color: red, fontWeight: FontWeight.w800),
         ),
         iconTheme: const IconThemeData(color: Colors.black87),
       ),
@@ -109,15 +85,31 @@ class _ReservationScreenState extends State<ReservationScreen> {
                   const SizedBox(width: 8),
                   Row(
                     children: [
-                      const Icon(Icons.event_seat, size: 18, color: Colors.black54),
+                      const Icon(
+                        Icons.event_seat,
+                        size: 18,
+                        color: Colors.black54,
+                      ),
                       const SizedBox(width: 4),
-                      Text('${r.plane.seats} seats',
-                          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black87)),
+                      Text(
+                        '${r.plane.seats} seats',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.black87,
+                        ),
+                      ),
                       const SizedBox(width: 12),
-                      const Icon(Icons.attach_money, size: 18, color: Colors.black54),
+                      const Icon(
+                        Icons.attach_money,
+                        size: 18,
+                        color: Colors.black54,
+                      ),
                       const SizedBox(width: 2),
-                      Text('${r.priceUsd.toStringAsFixed(0)}',
-                          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
+                      Text(
+                        r.priceUsd.toStringAsFixed(0),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -133,14 +125,24 @@ class _ReservationScreenState extends State<ReservationScreen> {
                 children: [
                   Row(
                     children: [
-                      const Text('Itinerary', style: TextStyle(fontWeight: FontWeight.w600)),
+                      const Text(
+                        'Itinerary',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
                       const Spacer(),
                       TextButton(
                         onPressed: () {},
                         child: Row(
                           children: const [
-                            Text('Show on the map', style: TextStyle(color: Colors.red)),
-                            Icon(Icons.chevron_right, color: Colors.red, size: 18),
+                            Text(
+                              'Show on the map',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                            Icon(
+                              Icons.chevron_right,
+                              color: Colors.red,
+                              size: 18,
+                            ),
                           ],
                         ),
                       ),
@@ -159,10 +161,18 @@ class _ReservationScreenState extends State<ReservationScreen> {
                       ),
                       Column(
                         children: [
-                          const Icon(Icons.airplanemode_active, color: Colors.black54),
+                          const Icon(
+                            Icons.airplanemode_active,
+                            color: Colors.black54,
+                          ),
                           const SizedBox(height: 4),
-                          Text('EFT ${_fmtDur(eft)}',
-                              style: const TextStyle(color: Colors.black54, fontSize: 12)),
+                          Text(
+                            'EFT ${_fmtDur(eft)}',
+                            style: const TextStyle(
+                              color: Colors.black54,
+                              fontSize: 12,
+                            ),
+                          ),
                         ],
                       ),
                       Expanded(
@@ -182,11 +192,21 @@ class _ReservationScreenState extends State<ReservationScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(r.from.codeIata,
-                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                            Text(
+                              r.from.codeIATA,
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                             const SizedBox(height: 4),
-                            Text('${r.from.name}\n${r.from.country}',
-                                style: const TextStyle(color: Colors.black54, fontSize: 12)),
+                            Text(
+                              '${r.from.name}\n${r.from.country}',
+                              style: const TextStyle(
+                                color: Colors.black54,
+                                fontSize: 12,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -195,12 +215,22 @@ class _ReservationScreenState extends State<ReservationScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text(r.to.codeIata,
-                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                            Text(
+                              r.to.codeIATA,
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                             const SizedBox(height: 4),
-                            Text('${r.to.name}\n${r.to.country}',
-                                textAlign: TextAlign.right,
-                                style: const TextStyle(color: Colors.black54, fontSize: 12)),
+                            Text(
+                              '${r.to.name}\n${r.to.country}',
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(
+                                color: Colors.black54,
+                                fontSize: 12,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -222,7 +252,10 @@ class _ReservationScreenState extends State<ReservationScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Passengers', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Passengers',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   const SizedBox(height: 8),
                   SizedBox(
                     height: 44,
@@ -237,14 +270,16 @@ class _ReservationScreenState extends State<ReservationScreen> {
                         elevation: 0,
                       ),
                       onPressed: () async {
-                        final result = await Navigator.of(context).push<List<PassengerInfo>>(
-                          MaterialPageRoute(
-                            builder: (_) => PassengersFormScreen(
-                              passengersCount: r.passengers,
-                              initialPassengers: _passengers, // persistencia al reabrir
-                            ),
-                          ),
-                        );
+                        final result = await Navigator.of(context)
+                            .push<List<PassengerInfo>>(
+                              MaterialPageRoute(
+                                builder: (_) => PassengersFormScreen(
+                                  passengersCount: r.passengers,
+                                  initialPassengers:
+                                      _passengers, // persistencia al reabrir
+                                ),
+                              ),
+                            );
 
                         if (result != null && result.isNotEmpty) {
                           setState(() => _passengers = result);
@@ -257,7 +292,10 @@ class _ReservationScreenState extends State<ReservationScreen> {
                               .join('\n');
 
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(lines), duration: const Duration(seconds: 4)),
+                            SnackBar(
+                              content: Text(lines),
+                              duration: const Duration(seconds: 4),
+                            ),
                           );
                         }
                       },
@@ -271,7 +309,10 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     const SizedBox(height: 8),
                     Text(
                       '${_passengers.length} passengers added',
-                      style: const TextStyle(color: Colors.black54, fontSize: 12),
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ],
@@ -323,7 +364,9 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     if (_passengers.length != r.passengers) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Please add all passengers information.'),
+                          content: Text(
+                            'Please add all passengers information.',
+                          ),
                         ),
                       );
                       return;
@@ -339,7 +382,10 @@ class _ReservationScreenState extends State<ReservationScreen> {
                       (route) => false,
                     );
                   },
-                  child: const Text('Book', style: TextStyle(fontWeight: FontWeight.w700)),
+                  child: const Text(
+                    'Book',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
             ),
@@ -359,8 +405,18 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
   String _formatMonthDay(DateTime dt) {
     const months = [
-      'january','february','march','april','may','june',
-      'july','august','september','october','november','december'
+      'january',
+      'february',
+      'march',
+      'april',
+      'may',
+      'june',
+      'july',
+      'august',
+      'september',
+      'october',
+      'november',
+      'december',
     ];
     return '${months[dt.month - 1]} ${dt.day} ${dt.year}';
   }
@@ -376,7 +432,11 @@ class _InfoKVP extends StatelessWidget {
   final String title;
   final String value;
   final bool alignEnd;
-  const _InfoKVP({required this.title, required this.value, this.alignEnd = false});
+  const _InfoKVP({
+    required this.title,
+    required this.value,
+    this.alignEnd = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -384,7 +444,10 @@ class _InfoKVP extends StatelessWidget {
     return Column(
       crossAxisAlignment: align,
       children: [
-        Text(title, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+        Text(
+          title,
+          style: const TextStyle(fontSize: 12, color: Colors.black54),
+        ),
         const SizedBox(height: 4),
         Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
       ],
