@@ -1,38 +1,37 @@
 ﻿namespace AeroRide.API.Models.DTOs.Aircrafts
 {
     /// <summary>
-    /// DTO utilizado para modificar la información de una aeronave existente.
-    /// Permite actualizar uno o varios campos de forma opcional.
+    /// DTO utilizado para actualizar parcialmente una aeronave existente.
+    /// Permite modificar información técnica, capacidad o ubicación.
     /// </summary>
     public class AircraftUpdateDto
     {
         public string? Patent { get; set; }
-        /// <summary>Nuevo modelo o tipo de aeronave (opcional).</summary>
         public string? Model { get; set; }
-
-        /// <summary>Nuevo precio o costo de operación estimado (opcional).</summary>
-        public double? Price { get; set; }
-
-        /// <summary>Nuevo número máximo de asientos (opcional).</summary>
+        public double? MinuteCost { get; set; }
         public int? Seats { get; set; }
-
-        /// <summary>Nuevo peso máximo permitido (opcional).</summary>
         public int? MaxWeight { get; set; }
+        public double? CruisingSpeed { get; set; }
+        public bool? CanFlyInternational { get; set; }
+        public int? EmptyWeight { get; set; }
 
-        /// <summary>Nuevo estado operativo de la aeronave (opcional).</summary>
+
+        /// <summary>
+        /// Nuevo estado técnico de la aeronave (Disponible, EnMantenimiento o FueraDeServicio).
+        /// </summary>
         public string? State { get; set; }
 
-        /// <summary>
-        /// URL de la nueva imagen representativa de la aeronave (opcional).
-        /// Si se cambia, la imagen anterior será eliminada del contenedor.
-        /// </summary>
         public string? Image { get; set; }
-
-        /// <summary>
-        /// Indica si la aeronave debe estar activa o desactivada (opcional).
-        /// Si se envía <c>true</c>, se reactiva; si se envía <c>false</c>, se desactiva.
-        /// </summary>
         public bool? IsActive { get; set; }
 
+        /// <summary>
+        /// Nueva base operativa (si se reubica la aeronave).
+        /// </summary>
+        public int? BaseAirportId { get; set; }
+
+        /// <summary>
+        /// Aeropuerto actual (si la aeronave se encuentra fuera de su base).
+        /// </summary>
+        public int? CurrentAirportId { get; set; }
     }
 }

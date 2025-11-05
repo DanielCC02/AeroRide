@@ -2,14 +2,14 @@
 using AeroRide.API.Models.DTOs.Airports;
 using AutoMapper;
 using NetTopologySuite.Geometries;
+using System.Reflection;
 
-namespace AeroRide.API.Mapping.Mappings
+namespace AeroRide.API.Mappings
 {
     /// <summary>
-    /// Perfil de AutoMapper encargado de mapear entre entidades del dominio y DTOs
-    /// del módulo de Aeropuertos.
-    /// Controla la creación, actualización y proyección de datos sin sobreescribir
-    /// valores existentes por defecto (como <c>Tax</c> o <c>IsActive</c>).
+    /// Configuración de AutoMapper para el módulo de Aeropuertos.
+    /// Controla la creación, actualización y proyección de datos entre
+    /// entidades de dominio y DTOs, evitando sobrescribir valores por defecto.
     /// </summary>
     public class AirportProfile : Profile
     {
@@ -22,37 +22,50 @@ namespace AeroRide.API.Mapping.Mappings
                 // 🔹 Genera la ubicación geoespacial (Point) con SRID 4326
                 .ForMember(dest => dest.Ubication, opt => opt.MapFrom(src =>
                     new Point((double)src.Longitude, (double)src.Latitude) { SRID = 4326 }))
-                // 🔹 Define IsActive = true automáticamente al crear
-                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true));
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true))
+                .ForMember(dest => dest.TimeZone, opt => opt.MapFrom(src => src.TimeZone))
+                .ForMember(dest => dest.MaxAllowedWeight, opt => opt.MapFrom(src => src.MaxAllowedWeight));
 
             // ======================================================
             // ✏️ UPDATE → DOMAIN
             // ======================================================
             var updateMap = CreateMap<AirportUpdateDto, Airport>();
 
-            // 🔹 Regla general: ignora valores nulos o por defecto para evitar sobrescribir
             updateMap.ForAllMembers(opt =>
             {
-                opt.Condition((src, dest, srcMember) =>
+                opt.Condition((src, dest, srcMember, context) =>
                 {
-                    if (srcMember == null) return false;
+                    // ❌ No mapear valores nulos
+                    if (srcMember == null)
+                        return false;
 
-                    // Evitar sobrescribir con valores por defecto
-                    if (srcMember is int i && i == 0) return false;
-                    if (srcMember is double d && d == 0.0) return false;
-                    if (srcMember is decimal m && m == 0.0m) return false;
-                    if (srcMember is bool b && !b) return false;
-                    if (srcMember is TimeSpan t && t == default) return false;
-                    if (srcMember is string s && string.IsNullOrWhiteSpace(s)) return false;
+                    // ❌ No mapear cadenas vacías
+                    if (srcMember is string s && string.IsNullOrWhiteSpace(s))
+                        return false;
 
-                    // ✅ Evita que Tax se ponga en 0 cuando no viene en el JSON
-                    if (srcMember is decimal? && srcMember == null) return false;
+                    // Intentar obtener el tipo del destino mediante la configuración
+                    var destinationProperty = opt.DestinationMember as System.Reflection.PropertyInfo;
+                    if (destinationProperty == null)
+                        return true; // no aplica restricción si no se puede determinar el tipo
 
+                    var memberType = destinationProperty.PropertyType;
+                    bool isNullable = Nullable.GetUnderlyingType(memberType) != null;
+
+                    // ❌ Evitar sobrescribir con valores por defecto (solo si no es nullable)
+                    if (!isNullable)
+                    {
+                        var defaultValue = Activator.CreateInstance(memberType);
+                        if (Equals(srcMember, defaultValue))
+                            return false;
+                    }
+
+                    // ✅ Si pasa todas las condiciones, se mapea
                     return true;
                 });
             });
 
-            // 🔹 Regla especial: genera la ubicación si se envían coordenadas válidas
+
+            // 🔁 Recalcular ubicación si cambian las coordenadas
             updateMap.AfterMap((src, dest) =>
             {
                 if (src.Latitude.HasValue && src.Longitude.HasValue)
@@ -61,9 +74,7 @@ namespace AeroRide.API.Mapping.Mappings
                         (double)src.Longitude.Value,
                         (double)src.Latitude.Value
                     )
-                    {
-                        SRID = 4326
-                    };
+                    { SRID = 4326 };
                 }
             });
 

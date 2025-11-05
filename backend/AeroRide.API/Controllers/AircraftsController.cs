@@ -1,6 +1,7 @@
 ﻿using AeroRide.API.Helpers;
 using AeroRide.API.Interfaces;
 using AeroRide.API.Models.DTOs.Aircrafts;
+using AeroRide.API.Models.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -140,24 +141,15 @@ namespace AeroRide.API.Controllers
         // ============================================================
         // UPDATE STATE
         // ============================================================
-        [HttpPut("{id:int}/state")]
+        [HttpPatch("{id}/state")]
         [Authorize(Roles = "Admin,CompanyAdmin,Pilot")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> UpdateAircraftState(int id, [FromBody] UpdateAircraftStateDto request)
+        public async Task<IActionResult> UpdateState(int id, [FromQuery] AircraftState state)
         {
-            var result = await _aircraftService.UpdateStateAsync(id, request.State);
-
-            if (!result.Success)
-            {
-                if (result.Message.Contains("no encontrada", StringComparison.OrdinalIgnoreCase))
-                    return NotFound(new { message = result.Message });
-
-                return BadRequest(new { message = result.Message });
-            }
-
-            return Ok(new { message = result.Message });
+            var result = await _aircraftService.UpdateStateAsync(id, state);
+            return result.Success ? Ok(result.Message) : BadRequest(result.Message);
         }
 
         // ============================================================

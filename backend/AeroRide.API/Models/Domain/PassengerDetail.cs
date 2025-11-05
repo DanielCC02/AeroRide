@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using AeroRide.API.Models.Enums;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AeroRide.API.Models.Domain
 {
@@ -41,20 +42,7 @@ namespace AeroRide.API.Models.Domain
         /// <summary>
         /// Fecha de nacimiento del pasajero (para verificaciones de edad o restricciones legales).
         /// </summary>
-        public DateTime DateOfBirth { get; set; }
-
-        /// <summary>
-        /// Enumeración que representa los géneros posibles para los pasajeros.
-        /// </summary>
-        public enum GenderType
-        {
-            /// <summary>Género masculino.</summary>
-            Male,
-            /// <summary>Género femenino.</summary>
-            Female,
-            /// <summary>Género no especificado u otra identidad.</summary>
-            Other
-        }
+        public DateTime DateOfBirth { get; set; }        
 
         /// <summary>
         /// Género del pasajero (almacenado como texto en la base de datos).

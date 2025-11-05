@@ -74,6 +74,13 @@ namespace AeroRide.API.Models.Domain
         /// </summary>
         public string Image { get; set; } = null!;
 
+        // ⚙️ Nuevo campo
+        /// <summary>
+        /// Peso máximo (en kilogramos) que puede operar el aeropuerto.
+        /// Sirve para restringir aeronaves demasiado pesadas.
+        /// </summary>
+        public int MaxAllowedWeight { get; set; } = 5000; // valor por defecto
+
         /// <summary>
         /// Indica si el aeropuerto se encuentra activo en el sistema.
         /// </summary>

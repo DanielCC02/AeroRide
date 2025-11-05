@@ -1,8 +1,5 @@
 ﻿namespace AeroRide.API.Models.DTOs.Companies
 {
-    /// <summary>
-    /// DTO utilizado para devolver información general de una empresa.
-    /// </summary>
     public class CompanyResponseDto
     {
         public int Id { get; set; }
@@ -13,5 +10,13 @@
         public double EmptyLegDiscount { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
+
+        // 💰 Configuración tarifaria
+        public double DomesticWaitHourCost { get; set; }
+        public double InternationalWaitHourCost { get; set; }
+        public double DomesticOvernightCost { get; set; }
+        public double InternationalOvernightCost { get; set; }
+        public double AirportTaxPerPassenger { get; set; }
+        public double HandlingPerPassenger { get; set; }
     }
 }

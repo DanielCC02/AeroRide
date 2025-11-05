@@ -2,9 +2,6 @@
 
 namespace AeroRide.API.Models.DTOs.Companies
 {
-    /// <summary>
-    /// DTO utilizado para modificar los datos de una empresa existente.
-    /// </summary>
     public class CompanyUpdateDto
     {
         [StringLength(100)]
@@ -23,5 +20,13 @@ namespace AeroRide.API.Models.DTOs.Companies
         public double? EmptyLegDiscount { get; set; }
 
         public bool? IsActive { get; set; }
+
+        // 💰 Tarifas opcionales
+        public double? DomesticWaitHourCost { get; set; }
+        public double? InternationalWaitHourCost { get; set; }
+        public double? DomesticOvernightCost { get; set; }
+        public double? InternationalOvernightCost { get; set; }
+        public double? AirportTaxPerPassenger { get; set; }
+        public double? HandlingPerPassenger { get; set; }
     }
 }

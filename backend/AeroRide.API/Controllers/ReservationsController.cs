@@ -1,173 +1,119 @@
-﻿using AeroRide.API.Interfaces;
-using AeroRide.API.Models.DTOs.Passengers;
-using AeroRide.API.Models.DTOs.Reservations;
-using AutoMapper;
+﻿using AeroRide.API.Models.DTOs.Reservations;
+using AeroRide.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace AeroRide.API.Controllers
 {
     /// <summary>
-    /// Controlador encargado de gestionar las operaciones relacionadas con las reservas de vuelo.
-    /// Incluye la creación, consulta, cancelación, confirmación y gestión de pasajeros y vuelos.
+    /// Controlador responsable de la gestión de reservas de vuelos.
+    /// Permite crear nuevas reservas, obtener detalles, listar y cancelar.
     /// </summary>
-    [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Route("api/[controller]")]
+    [Authorize(Roles = "User,Admin,CompanyAdmin")]
     public class ReservationsController : ControllerBase
     {
         private readonly IReservationService _reservationService;
-        private readonly IMapper _mapper;
 
-        /// <summary>
-        /// Inicializa una nueva instancia del controlador de reservas.
-        /// </summary>
-        /// <param name="reservationService">Servicio de reservas inyectado.</param>
-        /// <param name="mapper">Instancia de AutoMapper para conversiones de DTOs.</param>
-        public ReservationsController(IReservationService reservationService, IMapper mapper)
+        public ReservationsController(IReservationService reservationService)
         {
             _reservationService = reservationService;
-            _mapper = mapper;
         }
 
         // ======================================================
-        // 🔹 CRUD PRINCIPAL
+        // 🟢 POST: api/reservations
         // ======================================================
-
         /// <summary>
-        /// Obtiene el listado completo de reservas registradas en el sistema.
-        /// Solo disponible para administradores o brokers.
+        /// Crea una nueva reserva con pasajeros y vuelos asociados.
         /// </summary>
-        [HttpGet]
-        [Authorize(Roles = "Admin, Broker")]
-        public async Task<IActionResult> GetAll()
-        {
-            var result = await _reservationService.GetAllAsync();
-            return Ok(result);
-        }
-
-        /// <summary>
-        /// Obtiene los detalles completos de una reserva específica por su identificador.
-        /// </summary>
-        /// <param name="id">Identificador único de la reserva.</param>
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
-        {
-            var result = await _reservationService.GetByIdAsync(id);
-            if (result == null)
-                return NotFound("Reserva no encontrada.");
-
-            return Ok(result);
-        }
-
-        /// <summary>
-        /// Obtiene todas las reservas realizadas por un usuario específico.
-        /// </summary>
-        /// <param name="userId">Identificador del usuario.</param>
-        [HttpGet("by-user/{userId}")]
-        [Authorize(Roles = "Admin, Broker, User")]
-        public async Task<IActionResult> GetByUser(int userId)
-        {
-            var result = await _reservationService.GetByUserAsync(userId);
-            return Ok(result);
-        }
-
-        /// <summary>
-        /// Crea una nueva reserva en el sistema.
-        /// </summary>
-        /// <param name="dto">Datos necesarios para registrar la reserva.</param>
+        /// <param name="dto">Datos de la reserva a crear.</param>
+        /// <returns>Información completa de la reserva creada.</returns>
         [HttpPost]
-        [Authorize(Roles = "Admin, Broker, User")]
-        public async Task<IActionResult> Create([FromBody] ReservationCreateDto dto)
+        public async Task<ActionResult<ReservationResponseDto>> CreateReservation([FromBody] ReservationCreateDto dto)
         {
-            var created = await _reservationService.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
-        }
+            try
+            {
+                // 🔹 Obtener el ID del usuario autenticado
+                int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-        /// <summary>
-        /// Elimina una reserva existente del sistema.
-        /// Solo los administradores pueden realizar esta acción.
-        /// </summary>
-        /// <param name="id">Identificador único de la reserva a eliminar.</param>
-        [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            var deleted = await _reservationService.DeleteAsync(id);
-            if (!deleted)
-                return NotFound("Reserva no encontrada.");
-
-            return NoContent();
+                var result = await _reservationService.CreateAsync(userId, dto);
+                return CreatedAtAction(nameof(GetReservationById), new { id = result.Id }, result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error al crear la reserva: {ex.Message}" });
+            }
         }
 
         // ======================================================
-        // 🧭 ACCIONES DE NEGOCIO (cancelar, confirmar, etc.)
+        // 🔍 GET: api/reservations/{id}
         // ======================================================
-
         /// <summary>
-        /// Cancela una reserva existente cambiando su estado a "Cancelada".
+        /// Obtiene el detalle completo de una reserva.
         /// </summary>
         /// <param name="id">Identificador único de la reserva.</param>
-        [HttpPatch("{id}/cancel")]
-        [Authorize(Roles = "Admin, Broker, User")]
-        public async Task<IActionResult> Cancel(int id)
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<ReservationResponseDto>> GetReservationById(int id)
         {
-            var success = await _reservationService.CancelAsync(id);
-            return success
-                ? Ok(new { Message = "Reserva cancelada correctamente." })
-                : NotFound(new { Message = "Reserva no encontrada o ya cancelada." });
+            var reservation = await _reservationService.GetByIdAsync(id);
+            if (reservation == null)
+                return NotFound(new { message = "Reserva no encontrada." });
+
+            return Ok(reservation);
         }
 
+        // ======================================================
+        // 📋 GET: api/reservations/my
+        // ======================================================
         /// <summary>
-        /// Confirma una reserva cambiando su estado a "Confirmada".
+        /// Obtiene todas las reservas realizadas por el usuario autenticado.
         /// </summary>
-        /// <param name="id">Identificador único de la reserva.</param>
-        [HttpPatch("{id}/confirm")]
-        [Authorize(Roles = "Admin, Broker")]
-        public async Task<IActionResult> Confirm(int id)
+        [HttpGet("my")]
+        public async Task<ActionResult<IEnumerable<ReservationResponseDto>>> GetMyReservations()
         {
-            var success = await _reservationService.ConfirmAsync(id);
-            return success
-                ? Ok(new { Message = "Reserva confirmada correctamente." })
-                : NotFound(new { Message = "Reserva no encontrada o ya confirmada." });
+            int userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var reservations = await _reservationService.GetByUserAsync(userId);
+
+            if (!reservations.Any())
+                return NotFound(new { message = "No tiene reservas registradas." });
+
+            return Ok(reservations);
         }
 
         // ======================================================
-        // 🧳 GESTIÓN DE PASAJEROS
+        // ❌ PUT: api/reservations/{id}/cancel
         // ======================================================
-
         /// <summary>
-        /// Agrega un nuevo pasajero a una reserva existente.
+        /// Cancela una reserva existente (y libera las aeronaves asociadas).
         /// </summary>
-        /// <param name="id">Identificador de la reserva.</param>
-        /// <param name="dto">Datos personales del pasajero a agregar.</param>
-        [HttpPost("{id}/add-passenger")]
-        [Authorize(Roles = "Admin, Broker, User")]
-        public async Task<IActionResult> AddPassenger(int id, [FromBody] PassengerCreateDto dto)
+        /// <param name="id">Identificador único de la reserva a cancelar.</param>
+        [HttpPut("{id:int}/cancel")]
+        public async Task<IActionResult> CancelReservation(int id)
         {
-            var updated = await _reservationService.AddPassengerAsync(id, dto);
-            return updated == null
-                ? NotFound(new { Message = "Reserva no encontrada." })
-                : Ok(updated);
+            bool success = await _reservationService.CancelAsync(id);
+
+            if (!success)
+                return NotFound(new { message = "No se encontró la reserva a cancelar." });
+
+            return Ok(new { message = "Reserva cancelada correctamente." });
         }
 
-        // ======================================================
-        // ✈️ ASIGNACIÓN DE VUELOS
-        // ======================================================
-
-        /// <summary>
-        /// Asigna un vuelo existente a una reserva específica.
-        /// </summary>
-        /// <param name="id">Identificador de la reserva.</param>
-        /// <param name="flightId">Identificador del vuelo a asociar.</param>
-        [HttpPatch("{id}/assign-flight/{flightId}")]
-        [Authorize(Roles = "Admin, Broker")]
-        public async Task<IActionResult> AssignFlight(int id, int flightId)
+        [HttpPost("estimate")]
+        [Authorize(Roles = "User,Admin,CompanyAdmin")]
+        public async Task<ActionResult<ReservationEstimateResponseDto>> EstimateReservation([FromBody] ReservationEstimateDto dto)
         {
-            var updated = await _reservationService.AssignFlightAsync(id, flightId);
-            return updated == null
-                ? NotFound(new { Message = "Reserva o vuelo no encontrado." })
-                : Ok(updated);
+            try
+            {
+                var result = await _reservationService.EstimatePriceAsync(dto);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
+
     }
 }

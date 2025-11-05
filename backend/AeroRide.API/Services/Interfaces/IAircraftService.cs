@@ -1,4 +1,5 @@
 ﻿using AeroRide.API.Models.DTOs.Aircrafts;
+using AeroRide.API.Models.Enums;
 
 namespace AeroRide.API.Interfaces
 {
@@ -75,7 +76,7 @@ namespace AeroRide.API.Interfaces
         /// <returns>
         /// Una tupla con un valor booleano indicando éxito y un mensaje descriptivo.
         /// </returns>
-        Task<(bool Success, string Message)> UpdateStateAsync(int id, string newState);
+        Task<(bool Success, string Message)> UpdateStateAsync(int id, AircraftState newState);
 
         // ======================================================
         // 🔹 FILTRO Y AGRUPACIÓN (USADO EN RESERVAS)

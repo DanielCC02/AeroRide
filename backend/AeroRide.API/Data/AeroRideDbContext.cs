@@ -5,9 +5,7 @@ namespace AeroRide.API.Data
 {
     /// <summary>
     /// Contexto principal de base de datos para la aplicación AeroRide.
-    /// 
     /// Configura entidades, relaciones, restricciones, índices y datos semilla.
-    /// Integra PostGIS, manejo de tokens, usuarios, vuelos y bitácoras.
     /// </summary>
     public class AeroRideDbContext : DbContext
     {
@@ -19,6 +17,7 @@ namespace AeroRide.API.Data
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<Role> Roles { get; set; } = null!;
         public DbSet<Company> Companies { get; set; } = null!;
+        public DbSet<CompanyBase> CompanyBases { get; set; } = null!;
         public DbSet<Reservation> Reservations { get; set; } = null!;
         public DbSet<Flight> Flights { get; set; } = null!;
         public DbSet<PassengerDetail> PassengerDetails { get; set; } = null!;
@@ -29,7 +28,7 @@ namespace AeroRide.API.Data
         public DbSet<FlightAssignment> FlightAssignments { get; set; } = null!;
         public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
         public DbSet<RevokedToken> RevokedTokens { get; set; } = null!;
-
+        public DbSet<AircraftAvailability> AircraftAvailabilities { get; set; } = null!;
 
 
         /// <summary>
@@ -42,23 +41,18 @@ namespace AeroRide.API.Data
             // ======================================================
             // 👤 USERS / ROLES
             // ======================================================
-
-            // 🔹 Filtro global: oculta usuarios inactivos (IsActive = false)
             modelBuilder.Entity<User>().HasQueryFilter(u => u.IsActive);
 
-            // 🔹 Relación User -> RefreshTokens (1:N)
             modelBuilder.Entity<RefreshToken>()
                 .HasOne(r => r.User)
                 .WithMany(u => u.RefreshTokens)
                 .HasForeignKey(r => r.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // 🔹 RefreshToken.Token único
             modelBuilder.Entity<RefreshToken>()
                 .HasIndex(r => r.Token)
                 .IsUnique();
 
-            // 🔹 User
             modelBuilder.Entity<User>(e =>
             {
                 e.ToTable("Users");
@@ -75,7 +69,6 @@ namespace AeroRide.API.Data
                  .OnDelete(DeleteBehavior.SetNull);
             });
 
-            // 🔹 Role
             modelBuilder.Entity<Role>(e =>
             {
                 e.ToTable("Roles");
@@ -83,7 +76,6 @@ namespace AeroRide.API.Data
                 e.Property(r => r.Name).HasMaxLength(50).IsRequired();
             });
 
-            // 🔹 Seed inicial de roles
             modelBuilder.Entity<Role>().HasData(
                 new Role { Id = 1, Name = "Admin" },
                 new Role { Id = 2, Name = "CompanyAdmin" },
@@ -103,6 +95,24 @@ namespace AeroRide.API.Data
                  .WithMany()
                  .HasForeignKey(rt => rt.UserId)
                  .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ======================================================
+            // 🏠 COMPANY BASES (NUEVO)
+            // ======================================================
+            modelBuilder.Entity<CompanyBase>(e =>
+            {
+                e.ToTable("CompanyBases");
+
+                e.HasOne(cb => cb.Company)
+                 .WithMany(c => c.Bases)
+                 .HasForeignKey(cb => cb.CompanyId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasOne(cb => cb.Airport)
+                 .WithMany()
+                 .HasForeignKey(cb => cb.AirportId)
+                 .OnDelete(DeleteBehavior.Restrict);
             });
 
             // ======================================================
@@ -140,11 +150,7 @@ namespace AeroRide.API.Data
             modelBuilder.Entity<PassengerDetail>(e =>
             {
                 e.ToTable("PassengerDetails");
-
-                // 🔹 Convierte el enum GenderType en texto (string) en PostgreSQL
-                e.Property(p => p.Gender)
-                 .HasConversion<string>()
-                 .HasMaxLength(15);
+                e.Property(p => p.Gender).HasMaxLength(15);
             });
 
             // ======================================================
@@ -155,14 +161,47 @@ namespace AeroRide.API.Data
                 e.ToTable("Aircrafts");
 
                 e.HasOne(a => a.Company)
-                  .WithMany(c => c.Aircrafts)
-                  .HasForeignKey(a => a.CompanyId)
-                  .OnDelete(DeleteBehavior.Cascade);
+                 .WithMany(c => c.Aircrafts)
+                 .HasForeignKey(a => a.CompanyId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
+                // 🔹 Aeropuerto base
+                e.HasOne(a => a.BaseAirport)
+                 .WithMany()
+                 .HasForeignKey(a => a.BaseAirportId)
+                 .OnDelete(DeleteBehavior.Restrict);
+
+                // 🔹 Aeropuerto actual
+                e.HasOne(a => a.CurrentAirport)
+                 .WithMany()
+                 .HasForeignKey(a => a.CurrentAirportId)
+                 .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // 🔹 Filtra automáticamente las aeronaves inactivas
             modelBuilder.Entity<Aircraft>()
                 .HasQueryFilter(a => a.IsActive);
+
+            // ======================================================
+            // 🌎 AircraftAvailabilities
+            // ======================================================
+
+            modelBuilder.Entity<AircraftAvailability>(e =>
+            {
+                e.ToTable("AircraftAvailabilities");
+
+                e.HasOne(a => a.Aircraft)
+                 .WithMany()
+                 .HasForeignKey(a => a.AircraftId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasOne(a => a.Reservation)
+                 .WithMany()
+                 .HasForeignKey(a => a.ReservationId)
+                 .OnDelete(DeleteBehavior.SetNull);
+
+                e.HasIndex(a => new { a.AircraftId, a.StartTime, a.EndTime });
+            });
+
 
             // ======================================================
             // 🌎 AIRPORTS (PostGIS)
@@ -170,7 +209,6 @@ namespace AeroRide.API.Data
             modelBuilder.Entity<Airport>(e =>
             {
                 e.ToTable("Airports");
-
                 e.HasIndex(a => a.CodeIATA).IsUnique();
                 e.HasIndex(a => a.CodeOACI).IsUnique();
 
@@ -186,7 +224,6 @@ namespace AeroRide.API.Data
             modelBuilder.Entity<Flight>(e =>
             {
                 e.ToTable("Flights");
-
                 e.HasIndex(f => f.DepartureTime);
                 e.HasIndex(f => f.ArrivalTime);
 
@@ -246,12 +283,8 @@ namespace AeroRide.API.Data
                  .HasForeignKey(fa => fa.PilotUserId)
                  .OnDelete(DeleteBehavior.Restrict);
 
-                e.Property(fa => fa.AssignedAt)
-                 .HasDefaultValueSql("now()");
-
-                e.Property(fa => fa.Status)
-                 .HasConversion<string>()
-                 .HasMaxLength(20)
+                e.Property(fa => fa.AssignedAt).HasDefaultValueSql("now()");
+                e.Property(fa => fa.Status).HasMaxLength(20)
                  .HasDefaultValue(FlightAssignment.AssignmentStatus.Assigned);
 
                 e.HasIndex(fa => new { fa.FlightId, fa.PilotUserId }).IsUnique();
@@ -283,6 +316,32 @@ namespace AeroRide.API.Data
                 e.HasIndex(fl => fl.FlightId);
                 e.HasIndex(fl => fl.UserId);
             });
+
+            // ======================================================
+            // ⚙️ ENUMS → STRING CONVERSION GLOBAL
+            // ======================================================
+            ConvertAllEnumsToStrings(modelBuilder);
+        }
+
+        /// <summary>
+        /// Aplica conversión automática de todos los enums del modelo a texto (string) en la base de datos.
+        /// </summary>
+        private static void ConvertAllEnumsToStrings(ModelBuilder modelBuilder)
+        {
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                if (entityType.ClrType == null) continue;
+
+                var enumProperties = entityType.ClrType.GetProperties()
+                    .Where(p => p.PropertyType.IsEnum);
+
+                foreach (var prop in enumProperties)
+                {
+                    modelBuilder.Entity(entityType.Name)
+                        .Property(prop.Name)
+                        .HasConversion<string>();
+                }
+            }
         }
     }
 }

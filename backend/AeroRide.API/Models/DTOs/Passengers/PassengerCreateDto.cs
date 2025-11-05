@@ -1,47 +1,36 @@
-﻿namespace AeroRide.API.Models.DTOs.Passengers
+﻿using System.ComponentModel.DataAnnotations;
+using AeroRide.API.Models.Enums;
+
+namespace AeroRide.API.Models.DTOs.Passengers
 {
     /// <summary>
-    /// Objeto de transferencia utilizado para registrar un nuevo pasajero dentro de una reserva.
-    /// 
-    /// Este DTO representa los datos personales que el usuario debe proporcionar
-    /// al momento de añadir un pasajero a una reserva existente.
+    /// Datos necesarios para registrar un pasajero dentro de una reserva.
     /// </summary>
     public class PassengerCreateDto
     {
-        /// <summary>
-        /// Primer nombre del pasajero.
-        /// </summary>
+        [Required(ErrorMessage = "El nombre del pasajero es obligatorio.")]
+        [StringLength(50)]
         public string Name { get; set; } = null!;
 
-        /// <summary>
-        /// Segundo nombre del pasajero (opcional).
-        /// </summary>
+        [StringLength(50)]
         public string? MiddleName { get; set; }
 
-        /// <summary>
-        /// Apellido del pasajero.
-        /// </summary>
+        [Required(ErrorMessage = "El apellido del pasajero es obligatorio.")]
+        [StringLength(50)]
         public string LastName { get; set; } = null!;
 
-        /// <summary>
-        /// Número de pasaporte o documento de identidad del pasajero.
-        /// </summary>
+        [Required(ErrorMessage = "El número de pasaporte es obligatorio.")]
+        [StringLength(30)]
         public string Passport { get; set; } = null!;
 
-        /// <summary>
-        /// Fecha de nacimiento del pasajero.
-        /// </summary>
+        [Required(ErrorMessage = "La nacionalidad es obligatoria.")]
+        [StringLength(50)]
+        public string Nationality { get; set; } = null!;
+
+        [Required(ErrorMessage = "La fecha de nacimiento es obligatoria.")]
         public DateTime DateOfBirth { get; set; }
 
-        /// <summary>
-        /// Género del pasajero. 
-        /// Debe ser uno de los valores definidos en la enumeración:
-        /// <list type="bullet">
-        /// <item><term>Male</term> — Masculino</item>
-        /// <item><term>Female</term> — Femenino</item>
-        /// <item><term>Other</term> — Otro / No especificado</item>
-        /// </list>
-        /// </summary>
-        public string Gender { get; set; } = null!;
+        [Required(ErrorMessage = "Debe especificarse el género del pasajero.")]
+        public GenderType Gender { get; set; }
     }
 }

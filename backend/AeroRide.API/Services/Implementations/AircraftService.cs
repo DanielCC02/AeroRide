@@ -12,28 +12,14 @@ namespace AeroRide.API.Services
 {
     /// <summary>
     /// Servicio que implementa la lógica de negocio para la gestión de aeronaves (avionetas).
-    /// Permite realizar operaciones CRUD sobre la entidad <see cref="Aircraft"/>.
+    /// Permite realizar operaciones CRUD y filtrado agrupado por modelo y compañía.
     /// </summary>
     public class AircraftService : IAircraftService
     {
-        /// <summary>
-        /// Contexto de base de datos principal de la aplicación.
-        /// Permite realizar operaciones sobre las tablas mediante Entity Framework Core.
-        /// </summary>
         private readonly AeroRideDbContext _db;
-
-        /// <summary>
-        /// Instancia de AutoMapper para mapear entidades de dominio hacia DTOs y viceversa.
-        /// </summary>
         private readonly IMapper _mapper;
-
         private readonly IImageService _imageService;
 
-        /// <summary>
-        /// Inicializa una nueva instancia del servicio <see cref="AircraftService"/>.
-        /// </summary>
-        /// <param name="db">Contexto de base de datos inyectado.</param>
-        /// <param name="mapper">Instancia de <see cref="IMapper"/> para conversiones entre objetos.</param>
         public AircraftService(AeroRideDbContext db, IMapper mapper, IImageService imageService)
         {
             _db = db;
@@ -41,110 +27,72 @@ namespace AeroRide.API.Services
             _imageService = imageService;
         }
 
-        /// <summary>
-        /// Crea una nueva aeronave en la base de datos.
-        /// </summary>
-        /// <param name="dto">Objeto que contiene los datos necesarios para registrar la aeronave.</param>
-        /// <returns>
-        /// Un objeto <see cref="AircraftResponseDto"/> con los datos de la aeronave recién creada,
-        /// incluyendo su identificador asignado por la base de datos.
-        /// </returns>
-        /// <exception cref="ArgumentNullException">Se lanza si el parámetro <paramref name="dto"/> es nulo.</exception>
+        // ======================================================
+        // 🟢 CREATE
+        // ======================================================
         public async Task<AircraftResponseDto> CreateAsync(AircraftCreateDto dto)
         {
             if (dto == null)
                 throw new ArgumentNullException(nameof(dto), "El objeto de creación no puede ser nulo.");
 
-            // Validar duplicado de matrícula
+            // 🔹 Validar duplicado de matrícula
             bool exists = await _db.Aircrafts.AnyAsync(a => a.Patent.ToLower() == dto.Patent.ToLower());
             if (exists)
                 throw new InvalidOperationException($"Ya existe una aeronave con la matrícula '{dto.Patent}'.");
 
+            // 🔹 Validar compañía
+            bool companyExists = await _db.Companies.AnyAsync(c => c.Id == dto.CompanyId);
+            if (!companyExists)
+                throw new InvalidOperationException($"No se encontró la compañía con ID {dto.CompanyId}.");
 
-            // 🔹 Validar el estado antes de crear
-            var (isValid, message) = ValidateState(dto.State);
-            if (!isValid)
-                throw new InvalidOperationException(message);
+            // 🔹 Validar aeropuerto base
+            bool baseExists = await _db.Airports.AnyAsync(a => a.Id == dto.BaseAirportId);
+            if (!baseExists)
+                throw new InvalidOperationException($"No se encontró el aeropuerto base con ID {dto.BaseAirportId}.");
 
-            // Mapeo DTO → Entidad
+            // 🔹 Validar aeropuerto actual (si se envía)
+            if (dto.CurrentAirportId.HasValue)
+            {
+                bool currentExists = await _db.Airports.AnyAsync(a => a.Id == dto.CurrentAirportId.Value);
+                if (!currentExists)
+                    throw new InvalidOperationException($"El aeropuerto actual con ID {dto.CurrentAirportId} no existe.");
+            }
+
+            // 🔹 Validar estado
+            if (!Enum.IsDefined(typeof(AircraftState), dto.State))
+                throw new InvalidOperationException($"El estado '{dto.State}' no es válido. Use Disponible, EnMantenimiento o FueraDeServicio.");
+
+            // 🧩 Crear entidad
             var entity = _mapper.Map<Aircraft>(dto);
 
-            // Inserción en la base de datos
+            // Si no viene aeropuerto actual, se asume igual al base
+            if (entity.CurrentAirportId == null)
+                entity.CurrentAirportId = entity.BaseAirportId;
+
+            entity.StatusLastUpdated = DateTime.UtcNow;
+
             await _db.Aircrafts.AddAsync(entity);
             await _db.SaveChangesAsync();
 
-            // 🔹 Cargar la relación de compañía solo si existe una asociada
-            if (entity.CompanyId != 0)
-                await _db.Entry(entity).Reference(a => a.Company).LoadAsync();
+            // 🔗 Cargar relaciones
+            await _db.Entry(entity).Reference(a => a.Company).LoadAsync();
+            await _db.Entry(entity).Reference(a => a.BaseAirport).LoadAsync();
+            if (entity.CurrentAirportId.HasValue)
+                await _db.Entry(entity).Reference(a => a.CurrentAirport).LoadAsync();
 
-            // Retorno del DTO de respuesta
             return _mapper.Map<AircraftResponseDto>(entity);
         }
 
-        /// <summary>
-        /// Obtiene la lista completa de aeronaves registradas en el sistema.
-        /// </summary>
-        /// <returns>
-        /// Una colección enumerable de objetos <see cref="AircraftResponseDto"/> que representan las aeronaves registradas.
-        /// Retorna una lista vacía si no existen registros.
-        /// </returns>
-        public async Task<IEnumerable<AircraftResponseDto>> GetAllAsync()
-        {
-            return await _db.Aircrafts
-                .AsNoTracking()
-                .ProjectTo<AircraftResponseDto>(_mapper.ConfigurationProvider)
-                .ToListAsync();
-        }
-
-        /// <summary>
-        /// Obtiene todas las aeronaves registradas, sin aplicar el filtro global de estado.
-        /// Incluye tanto aeronaves activas como inactivas.
-        /// </summary>
-        /// <returns>Lista completa de aeronaves (activas e inactivas).</returns>
-        public async Task<IEnumerable<AircraftResponseDto>> GetAllIncludingInactiveAsync()
-        {
-            return await _db.Aircrafts
-                .IgnoreQueryFilters()
-                .AsNoTracking()
-                .ProjectTo<AircraftResponseDto>(_mapper.ConfigurationProvider)
-                .ToListAsync();
-        }
-
-        /// <summary>
-        /// Obtiene la información de una aeronave específica según su identificador único.
-        /// </summary>
-        /// <param name="id">Identificador de la aeronave a consultar.</param>
-        /// <returns>
-        /// Un objeto <see cref="AircraftResponseDto"/> si la aeronave existe; de lo contrario, <c>null</c>.
-        /// </returns>
-        public async Task<AircraftResponseDto?> GetByIdAsync(int id)
-        {
-            var aircraft = await _db.Aircrafts
-                .IgnoreQueryFilters()
-                .AsNoTracking()
-                .FirstOrDefaultAsync(a => a.Id == id);
-
-            return aircraft == null ? null : _mapper.Map<AircraftResponseDto>(aircraft);
-        }
-
-        /// <summary>
-        /// Actualiza parcialmente los datos de una aeronave existente.
-        /// Si se proporciona una nueva imagen, elimina la anterior del contenedor.
-        /// </summary>
-        /// <param name="id">Identificador único de la aeronave.</param>
-        /// <param name="dto">Datos a modificar.</param>
-        /// <returns>DTO actualizado de la aeronave, o <c>null</c> si no se encontró.</returns>
+        // ======================================================
+        // ✏️ UPDATE
+        // ======================================================
         public async Task<AircraftResponseDto?> UpdateAsync(int id, AircraftUpdateDto dto)
         {
-            var aircraft = await _db.Aircrafts
-                .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(a => a.Id == id);
-
-
+            var aircraft = await _db.Aircrafts.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Id == id);
             if (aircraft == null)
                 return null;
 
-            // 🔹 Validar el estado si se envía en el DTO
+            // 🔹 Validar estado
             if (!string.IsNullOrWhiteSpace(dto.State))
             {
                 var (isValid, message) = ValidateState(dto.State);
@@ -152,7 +100,14 @@ namespace AeroRide.API.Services
                     throw new InvalidOperationException(message);
             }
 
-            // 🔹 Manejo especial para la imagen (antes del mapeo)
+            // 🔹 Validar aeropuertos si se cambian
+            if (dto.BaseAirportId.HasValue && !await _db.Airports.AnyAsync(a => a.Id == dto.BaseAirportId.Value))
+                throw new InvalidOperationException($"El aeropuerto base con ID {dto.BaseAirportId} no existe.");
+
+            if (dto.CurrentAirportId.HasValue && !await _db.Airports.AnyAsync(a => a.Id == dto.CurrentAirportId.Value))
+                throw new InvalidOperationException($"El aeropuerto actual con ID {dto.CurrentAirportId} no existe.");
+
+            // 🔹 Manejar cambio de imagen
             if (dto.Image != null && dto.Image != aircraft.Image)
             {
                 try
@@ -166,184 +121,125 @@ namespace AeroRide.API.Services
                 }
             }
 
-            // 🔹 Mapeo automático de propiedades no nulas
             _mapper.Map(dto, aircraft);
+            aircraft.StatusLastUpdated = DateTime.UtcNow;
 
             await _db.SaveChangesAsync();
-
             return _mapper.Map<AircraftResponseDto>(aircraft);
         }
 
-
-        /// <summary>
-        /// Desactiva (elimina lógicamente) una aeronave existente en la base de datos.
-        /// </summary>
-        /// <param name="id">Identificador único de la aeronave.</param>
-        /// <returns>
-        /// <c>true</c> si la aeronave fue desactivada correctamente;
-        /// <c>false</c> si no existe o ya está inactiva.
-        /// </returns>
-        public async Task<bool> DeleteAsync(int id)
+        // ======================================================
+        // ⚙️ UPDATE STATE DIRECTO
+        // ======================================================
+        public async Task<(bool Success, string Message)> UpdateStateAsync(int id, AircraftState newState)
         {
-            // Buscar aeronave existente
-            var aircraft = await _db.Aircrafts.FirstOrDefaultAsync(a => a.Id == id);
-
-            if (aircraft == null || !aircraft.IsActive)
-                return false;
-
-            // Marcar como inactiva
-            aircraft.IsActive = false;
-            await _db.SaveChangesAsync();
-
-            return true;
-        }
-
-        /// <summary>
-        /// Reactiva una aeronave previamente desactivada.
-        /// </summary>
-        /// <param name="id">Identificador único de la aeronave.</param>
-        /// <returns>
-        /// <c>true</c> si se reactivó correctamente; <c>false</c> si no existe o ya estaba activa.
-        /// </returns>
-        public async Task<bool> ReactivateAsync(int id)
-        {
-            // Buscar aeronave ignorando filtro global
-            var aircraft = await _db.Aircrafts
-                .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(a => a.Id == id);
-
-            if (aircraft == null || aircraft.IsActive)
-                return false;
-
-            // Reactivar aeronave
-            aircraft.IsActive = true;
-            await _db.SaveChangesAsync();
-
-            return true;
-        }
-
-
-        /// <summary>
-        /// Actualiza únicamente el estado operativo de una aeronave.
-        /// Valida los estados permitidos y guarda los cambios en la base de datos.
-        /// </summary>
-        /// <param name="id">Identificador único de la aeronave.</param>
-        /// <param name="newState">Nuevo estado operativo (Disponible, En vuelo, En mantenimiento, etc.).</param>
-        /// <returns>
-        /// Una tupla con un valor booleano indicando éxito, y un mensaje descriptivo.
-        /// </returns>
-        public async Task<(bool Success, string Message)> UpdateStateAsync(int id, string newState)
-        {
-            var (isValid, message) = ValidateState(newState);
-            if (!isValid)
-                return (false, message);
-
             var aircraft = await _db.Aircrafts.FirstOrDefaultAsync(a => a.Id == id);
             if (aircraft == null)
                 return (false, "Aeronave no encontrada.");
 
-            aircraft.State = newState;
-            await _db.SaveChangesAsync();
-
-            return (true, $"Estado de la aeronave ID {id} actualizado a '{newState}'.");
-        }
-
-
-        private (bool IsValid, string Message) ValidateState(string? state)
-        {
-            if (string.IsNullOrWhiteSpace(state))
-                return (false, "Debe especificar un estado válido.");
-
-            // 🔹 Normalizar el texto para evitar errores por mayúsculas o espacios
-            var normalized = Regex.Replace(state, @"\s+", "").ToLower();
-
-            // 🔹 Intentar convertirlo al enum (ignorando mayúsculas)
-            bool parsed = Enum.TryParse(typeof(AircraftState), normalized, true, out var _);
-
-            if (!parsed)
+            if (newState is AircraftState.Disponible or AircraftState.EnMantenimiento or AircraftState.FueraDeServicio)
             {
-                var validStates = string.Join(", ", Enum.GetNames(typeof(AircraftState)));
-                return (false, $"El estado '{state}' no es válido. Estados permitidos: {validStates}.");
+                aircraft.State = newState;
+                aircraft.StatusLastUpdated = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+                return (true, $"Estado de la aeronave ID {id} actualizado a '{newState}'.");
             }
 
-            return (true, string.Empty);
+            return (false, "Estado no permitido. Use Disponible, EnMantenimiento o FueraDeServicio.");
         }
 
-        //// ======================================================
-        //// 🔍 FILTER BY SEATS AND STATE = "Disponible"
-        //// ======================================================
+        // ======================================================
+        // ❌ DELETE (SOFT DELETE)
+        // ======================================================
+        public async Task<bool> DeleteAsync(int id)
+        {
+            var aircraft = await _db.Aircrafts.FirstOrDefaultAsync(a => a.Id == id);
+            if (aircraft == null || !aircraft.IsActive)
+                return false;
 
-        ///// <summary>
-        ///// Devuelve aeronaves activas y disponibles filtradas por número de asientos.
-        ///// Ideal para mostrar avionetas listas para reserva según la selección del usuario.
-        ///// </summary>
-        ///// <param name="minSeats">Cantidad mínima de asientos requerida.</param>
-        ///// <param name="maxSeats">Cantidad máxima de asientos (opcional).</param>
-        ///// <returns>Lista de aeronaves disponibles que cumplen con el filtro.</returns>
-        //public async Task<IEnumerable<AircraftResponseDto>> FilterBySeatsAsync(int minSeats, int? maxSeats)
-        //{
-        //    // Base query: aeronaves activas y disponibles
-        //    var query = _db.Aircrafts
-        //        .Where(a => a.IsActive && a.State.ToLower() == "disponible" && a.Seats >= minSeats);
-
-        //    // Filtro adicional: cantidad máxima de asientos
-        //    if (maxSeats.HasValue)
-        //        query = query.Where(a => a.Seats <= maxSeats.Value);
-
-        //    // Ordenar por cantidad de asientos
-        //    return await query
-        //        .OrderBy(a => a.Seats)
-        //        .ProjectTo<AircraftResponseDto>(_mapper.ConfigurationProvider)
-        //        .ToListAsync();
-        //}
+            aircraft.IsActive = false;
+            await _db.SaveChangesAsync();
+            return true;
+        }
 
         // ======================================================
-        // 🆕 FILTRO + AGRUPACIÓN POR MODELO Y COMPAÑÍA
+        // 🔁 REACTIVATE
         // ======================================================
-        /// <summary>
-        /// Devuelve las aeronaves disponibles agrupadas por modelo y compañía,
-        /// aplicando filtros opcionales por cantidad de asientos.
-        /// </summary>
-        /// <param name="minSeats">Cantidad mínima de asientos (opcional).</param>
-        /// <param name="maxSeats">Cantidad máxima de asientos (opcional).</param>
-        /// <returns>
-        /// Una lista de categorías de aeronaves disponibles agrupadas por modelo y compañía.
-        /// </returns>       
+        public async Task<bool> ReactivateAsync(int id)
+        {
+            var aircraft = await _db.Aircrafts.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Id == id);
+            if (aircraft == null || aircraft.IsActive)
+                return false;
+
+            aircraft.IsActive = true;
+            await _db.SaveChangesAsync();
+            return true;
+        }
+
+        // ======================================================
+        // 🔍 GET METHODS
+        // ======================================================
+        public async Task<IEnumerable<AircraftResponseDto>> GetAllAsync()
+        {
+            return await _db.Aircrafts
+                .AsNoTracking()
+                .ProjectTo<AircraftResponseDto>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<AircraftResponseDto>> GetAllIncludingInactiveAsync()
+        {
+            return await _db.Aircrafts
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .ProjectTo<AircraftResponseDto>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+        }
+
+        public async Task<AircraftResponseDto?> GetByIdAsync(int id)
+        {
+            var aircraft = await _db.Aircrafts
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            return aircraft == null ? null : _mapper.Map<AircraftResponseDto>(aircraft);
+        }
+
+        // ======================================================
+        // 🧾 GROUPED BY MODEL + COMPANY
+        // ======================================================
         public async Task<IEnumerable<AircraftCategoryDto>> GetAvailableGroupedBySeatsAsync(int? minSeats, int? maxSeats)
         {
             var query = _db.Aircrafts
                 .Include(a => a.Company)
-                .Where(a => a.IsActive && a.State.ToLower() == "disponible");
+                .Where(a => a.IsActive && a.State == AircraftState.Disponible);
 
-            // ✅ Filtrar por número de asientos si se especifica
             if (minSeats.HasValue)
                 query = query.Where(a => a.Seats >= minSeats.Value);
+
             if (maxSeats.HasValue)
                 query = query.Where(a => a.Seats <= maxSeats.Value);
 
-            // ✅ Usar AutoMapper para proyección
             var projected = await query
                 .ProjectTo<AircraftCategoryDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
-            // ✅ Agrupar ya sobre los DTOs mapeados
-            var result = projected
+            return projected
                 .GroupBy(a => new { a.Model, a.Seats, a.CompanyName, a.State })
-                .Select(g => g.First()) // una entrada por grupo
+                .Select(g => g.First())
                 .OrderBy(x => x.CompanyName)
                 .ThenBy(x => x.Model)
                 .ToList();
-
-            return result;
         }
 
-        // ============================================================
-        // 🔹 OBTENER TODAS LAS AERONAVES (ACTIVAS + INACTIVAS) DE UNA EMPRESA
-        // ============================================================
+        // ======================================================
+        // 🔹 AERONAVES POR EMPRESA
+        // ======================================================
         public async Task<IEnumerable<AircraftResponseDto>> GetAllByCompanyAsync(int companyId)
         {
             var aircrafts = await _db.Aircrafts
-                .IgnoreQueryFilters() // incluye inactivas
+                .IgnoreQueryFilters()
                 .Where(a => a.CompanyId == companyId)
                 .Include(a => a.Company)
                 .AsNoTracking()
@@ -353,9 +249,6 @@ namespace AeroRide.API.Services
             return aircrafts;
         }
 
-        // ============================================================
-        // 🔹 OBTENER SOLO AERONAVES ACTIVAS DE UNA EMPRESA
-        // ============================================================
         public async Task<IEnumerable<AircraftResponseDto>> GetActiveByCompanyAsync(int companyId)
         {
             var aircrafts = await _db.Aircrafts
@@ -368,6 +261,21 @@ namespace AeroRide.API.Services
             return aircrafts;
         }
 
+        // ======================================================
+        // 🔍 VALIDACIÓN DE ESTADO (PARA UPDATE)
+        // ======================================================
+        private (bool IsValid, string Message) ValidateState(string? state)
+        {
+            if (string.IsNullOrWhiteSpace(state))
+                return (false, "Debe especificar un estado válido.");
 
+            var normalized = Regex.Replace(state, @"\\s+", "").ToLower();
+            bool parsed = Enum.TryParse(typeof(AircraftState), normalized, true, out var _);
+
+            if (!parsed)
+                return (false, $"El estado '{state}' no es válido. Use: Disponible, EnMantenimiento o FueraDeServicio.");
+
+            return (true, string.Empty);
+        }
     }
 }

@@ -2,19 +2,18 @@
 {
     /// <summary>
     /// Representa los estados operativos posibles de una aeronave dentro del sistema AeroRide.
+    /// Este estado describe su condición técnica o administrativa,
+    /// no su disponibilidad temporal.
     /// </summary>
     public enum AircraftState
     {
-        /// <summary>Aeronave disponible para asignación o vuelo.</summary>
+        /// <summary>Aeronave operativa y lista para asignación de vuelos.</summary>
         Disponible = 1,
 
-        /// <summary>Aeronave actualmente en vuelo.</summary>
-        EnVuelo = 2,
-
         /// <summary>Aeronave en mantenimiento o revisión técnica.</summary>
-        EnMantenimiento = 3,
+        EnMantenimiento = 2,
 
-        /// <summary>Aeronave fuera de servicio temporal o permanentemente.</summary>
-        FueraDeServicio = 4
+        /// <summary>Aeronave fuera de servicio (baja temporal o permanente).</summary>
+        FueraDeServicio = 3
     }
 }

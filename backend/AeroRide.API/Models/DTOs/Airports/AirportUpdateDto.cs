@@ -21,6 +21,8 @@
         /// <summary>Nuevo país donde se localiza el aeropuerto (opcional).</summary>
         public string? Country { get; set; }
 
+        public string? TimeZone { get; set; }  // agregado
+
         /// <summary>Hora de apertura actualizada (opcional).</summary>
         public TimeSpan? OpeningTime { get; set; }
 
@@ -44,5 +46,9 @@
         /// Si se envía <c>true</c>, se reactiva; si se envía <c>false</c>, se desactiva.
         /// </summary>
         public bool? IsActive { get; set; }
+
+        /// <summary>Actualiza el peso máximo permitido en el aeropuerto (en kg).</summary>
+        public int? MaxAllowedWeight { get; set; }
+
     }
 }

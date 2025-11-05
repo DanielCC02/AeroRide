@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Serialization;
 
 /// <summary>
 /// Punto de entrada principal de la aplicación AeroRide API.
@@ -32,6 +33,13 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
+
+
 /// <summary>
 /// Configura AutoMapper para el mapeo entre entidades y DTOs.
 /// </summary>
@@ -46,6 +54,7 @@ builder.Services.AddScoped<IAircraftService, AircraftService>();
 builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<IAirportService, AirportService>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
+builder.Services.AddScoped<IReservationService, ReservationService>();
 
 
 // 🔹 Aquí podrás registrar otros servicios en el futuro, como IFlightService, IReservationService, etc.
