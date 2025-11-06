@@ -1,5 +1,6 @@
 // lib/services/airport_service.dart
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import 'api_config.dart';
@@ -173,5 +174,323 @@ class AirportService {
         .replaceAll(RegExp(r'[^a-z0-9 ]'), ' ')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
+  }
+
+  // ======================================================
+  // 🔹 GET: /api/airports/all
+  // ======================================================
+  /// Obtiene todos los aeropuertos (activos e inactivos) del sistema.
+  /// Solo accesible por administradores o CompanyAdmin.
+  Future<List<Airport>> getAllAirports() async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
+
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/airports/all');
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+
+      // Mapea cada elemento JSON al modelo Airport
+      return data
+          .map((e) => Airport.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } else {
+      print('⚠️ Error al obtener aeropuertos: ${response.statusCode}');
+      throw Exception('Error al obtener la lista de aeropuertos');
+    }
+  }
+
+  // ======================================================
+  // 🌎 GET: /api/airports  → Solo aeropuertos activos
+  // ======================================================
+  /// Obtiene únicamente los aeropuertos activos (ordenados por Id ascendente).
+  /// Endpoint: GET /api/airports
+  /// Roles permitidos: Admin, CompanyAdmin, Pilot, User
+  Future<List<Airport>> getActiveAirports() async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
+
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/airports');
+    print('GET $url');
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    print('📥 Status: ${response.statusCode}');
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((e) => Airport.fromJson(e)).toList();
+    } else {
+      print('❌ Error al obtener aeropuertos activos: ${response.body}');
+      throw Exception('Error al obtener la lista de aeropuertos activos');
+    }
+  }
+
+  // ======================================================
+  // 🔹 GET: Obtener aeropuerto por ID
+  // ======================================================
+  Future<Airport> getAirportById(int id) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
+
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/airports/$id');
+
+    print('🌍 GET $url');
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return Airport.fromJson(data);
+    } else if (response.statusCode == 404) {
+      throw Exception('Aeropuerto no encontrado');
+    } else {
+      print('❌ Error al obtener aeropuerto: ${response.body}');
+      throw Exception(
+        'Error al obtener aeropuerto (status: ${response.statusCode})',
+      );
+    }
+  }
+
+  // ======================================================
+  // ✈️ POST: Crear un nuevo aeropuerto
+  // ======================================================
+  Future<void> createAirport({
+    required String name,
+    required String codeIATA,
+    required String codeOACI,
+    required String city,
+    required String country,
+    required String timeZone,
+    required double latitude,
+    required double longitude,
+    required String imageUrl,
+    int? maxAllowedWeight,
+    String? openingTime, // formato "HH:mm:ss"
+    String? closingTime, // formato "HH:mm:ss"
+  }) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
+
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/airports');
+
+    final body = {
+      'name': name,
+      'codeIATA': codeIATA,
+      'codeOACI': codeOACI,
+      'city': city,
+      'country': country,
+      'timeZone': timeZone,
+      'latitude': latitude,
+      'longitude': longitude,
+      'image': imageUrl,
+      if (maxAllowedWeight != null) 'maxAllowedWeight': maxAllowedWeight,
+      if (openingTime != null && openingTime.isNotEmpty)
+        'openingTime': openingTime,
+      if (closingTime != null && closingTime.isNotEmpty)
+        'closingTime': closingTime,
+    };
+
+    print('🌍 POST $url');
+    print('Body enviado: $body');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+
+    print('📥 Status: ${response.statusCode}');
+    print('📥 Response: ${response.body}');
+
+    if (response.statusCode == 201) {
+      print('✅ Aeropuerto creado correctamente');
+    } else {
+      print('❌ Error al crear aeropuerto: ${response.body}');
+      throw Exception('Error al crear aeropuerto');
+    }
+  }
+
+  // ======================================================
+  // 🖼️ POST: Subir imagen de aeropuerto
+  // ======================================================
+  Future<String> uploadAirportImage(File imageFile) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
+
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/airports/ImageUpload');
+
+    final request = http.MultipartRequest('POST', url)
+      ..headers['Authorization'] = 'Bearer $token'
+      ..files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    print('🖼️ Subiendo imagen: ${imageFile.path}');
+    print('📥 Status: ${response.statusCode}');
+    print('📥 Response: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['imageUrl']; // URL pública del blob en Azure
+    } else {
+      print('❌ Error al subir imagen: ${response.body}');
+      throw Exception('Error al subir imagen de aeropuerto');
+    }
+  }
+
+  // ===========================================================
+  // 🛠️ PUT: Actualizar aeropuerto
+  // ===========================================================
+  Future<void> updateAirport({
+    required int id,
+    required String name,
+    required String codeIATA,
+    required String codeOACI,
+    required String city,
+    required String country,
+    required double latitude,
+    required double longitude,
+    required String timeZone,
+    String? openingTime, // formato HH:mm:ss opcional
+    String? closingTime, // formato HH:mm:ss opcional
+    int? maxAllowedWeight,
+    String? imageUrl, // puede actualizarse o mantenerse igual
+  }) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
+
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/airports/$id');
+
+    // 📦 Construimos el cuerpo del request con datos opcionales manejados correctamente
+    final body = {
+      'name': name,
+      'codeIATA': codeIATA,
+      'codeOACI': codeOACI,
+      'city': city,
+      'country': country,
+      'latitude': latitude,
+      'longitude': longitude,
+      'timeZone': timeZone,
+      if (openingTime != null && openingTime.isNotEmpty)
+        'openingTime': openingTime,
+      if (closingTime != null && closingTime.isNotEmpty)
+        'closingTime': closingTime,
+      if (maxAllowedWeight != null && maxAllowedWeight > 0)
+        'maxAllowedWeight': maxAllowedWeight,
+      if (imageUrl != null && imageUrl.isNotEmpty) 'image': imageUrl,
+    };
+
+    print('🛠️ PUT $url');
+    print('📦 Body enviado: $body');
+
+    final response = await http.put(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    );
+
+    print('📥 Status: ${response.statusCode}');
+    print('📥 Response: ${response.body}');
+
+    if (response.statusCode == 200) {
+      print('✅ Aeropuerto actualizado correctamente');
+    } else if (response.statusCode == 404) {
+      throw Exception('Aeropuerto no encontrado');
+    } else if (response.statusCode == 400) {
+      throw Exception('Datos inválidos: ${response.body}');
+    } else {
+      throw Exception(
+        'Error al actualizar aeropuerto (status: ${response.statusCode})',
+      );
+    }
+  }
+
+  // ===========================================================
+  // 🛑 DELETE: Desactivar aeropuerto (soft delete)
+  // ===========================================================
+  Future<void> deactivateAirport(int id) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
+
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/airports/$id');
+
+    print('🛑 DELETE $url');
+
+    final response = await http.delete(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      print('✅ Aeropuerto desactivado correctamente');
+    } else if (response.statusCode == 404) {
+      throw Exception('Aeropuerto no encontrado');
+    } else {
+      print('❌ Error al desactivar aeropuerto: ${response.body}');
+      throw Exception(
+        'Error al desactivar aeropuerto (status: ${response.statusCode})',
+      );
+    }
+  }
+
+  // ===========================================================
+  // ♻️ PUT: Reactivar aeropuerto
+  // ===========================================================
+  Future<void> reactivateAirport(int id) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
+
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/airports/reactivate/$id');
+
+    print('♻️ PUT $url');
+
+    final response = await http.put(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      print('✅ Aeropuerto reactivado correctamente');
+    } else if (response.statusCode == 404) {
+      throw Exception('Aeropuerto no encontrado');
+    } else {
+      print('❌ Error al reactivar aeropuerto: ${response.body}');
+      throw Exception(
+        'Error al reactivar aeropuerto (status: ${response.statusCode})',
+      );
+    }
   }
 }

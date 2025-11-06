@@ -92,12 +92,11 @@ namespace AeroRide.API.Services
             if (aircraft == null)
                 return null;
 
-            // 🔹 Validar estado
-            if (!string.IsNullOrWhiteSpace(dto.State))
+            // 🔹 Validar estado (solo si viene en el DTO)
+            if (dto.State.HasValue)
             {
-                var (isValid, message) = ValidateState(dto.State);
-                if (!isValid)
-                    throw new InvalidOperationException(message);
+                if (!Enum.IsDefined(typeof(AircraftState), dto.State.Value))
+                    throw new InvalidOperationException($"El estado '{dto.State.Value}' no es válido. Use Disponible, EnMantenimiento o FueraDeServicio.");
             }
 
             // 🔹 Validar aeropuertos si se cambian
@@ -121,12 +120,21 @@ namespace AeroRide.API.Services
                 }
             }
 
+            // 🔹 Aplicar cambios parciales
             _mapper.Map(dto, aircraft);
             aircraft.StatusLastUpdated = DateTime.UtcNow;
 
             await _db.SaveChangesAsync();
+
+            // 🔁 Cargar relaciones para devolver nombres correctos
+            await _db.Entry(aircraft).Reference(a => a.Company).LoadAsync();
+            await _db.Entry(aircraft).Reference(a => a.BaseAirport).LoadAsync();
+            if (aircraft.CurrentAirportId.HasValue)
+                await _db.Entry(aircraft).Reference(a => a.CurrentAirport).LoadAsync();
+
             return _mapper.Map<AircraftResponseDto>(aircraft);
         }
+
 
         // ======================================================
         // ⚙️ UPDATE STATE DIRECTO
@@ -201,10 +209,14 @@ namespace AeroRide.API.Services
             var aircraft = await _db.Aircrafts
                 .IgnoreQueryFilters()
                 .AsNoTracking()
+                .Include(a => a.Company)
+                .Include(a => a.BaseAirport)
+                .Include(a => a.CurrentAirport)
                 .FirstOrDefaultAsync(a => a.Id == id);
 
             return aircraft == null ? null : _mapper.Map<AircraftResponseDto>(aircraft);
         }
+
 
         // ======================================================
         // 🧾 GROUPED BY MODEL + COMPANY

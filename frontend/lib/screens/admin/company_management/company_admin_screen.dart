@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/models/user_model.dart';
+import 'package:frontend/screens/admin/company_management/company_admin_detail_screen.dart';
 import 'package:frontend/screens/admin/company_management/create_admin_screen.dart';
 import 'package:frontend/services/user_service.dart';
 
@@ -35,14 +36,14 @@ class _CompanyAdminsScreenState extends State<CompanyAdminsScreen> {
         builder: (_) => CreateAdminScreen(companyId: widget.companyId),
       ),
     );
-    await _refreshAdmins(); // 🔁 Refresca la lista al volver
+    await _refreshAdmins();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Company administrators'),
+        title: const Text('Company Administrators'),
         centerTitle: true,
       ),
       body: FutureBuilder<List<UserModel>>(
@@ -113,6 +114,21 @@ class _CompanyAdminsScreenState extends State<CompanyAdminsScreen> {
                         ),
                       ],
                     ),
+
+                    // 👇 Nuevo comportamiento: ir al detalle del admin
+                    onTap: () async {
+                      final refresh = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CompanyAdminDetailScreen(adminId: admin.id),
+                        ),
+                      );
+
+                      // 🔁 Si hubo cambios, refresca la lista
+                      if (refresh == true && context.mounted) {
+                        _refreshAdmins();
+                      }
+                    },
                   ),
                 );
               },
