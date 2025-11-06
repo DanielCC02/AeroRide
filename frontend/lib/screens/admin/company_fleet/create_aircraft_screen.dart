@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart'; 
+import 'package:provider/provider.dart';
 import 'package:frontend/providers/company_id_provider.dart';
-import '../../../services/aircraft_service.dart';
+import 'package:frontend/models/airport_model.dart';
+import 'package:frontend/services/aircraft_service.dart';
+import 'package:frontend/services/airport_service.dart';
 
 class CreateAircraftScreen extends StatefulWidget {
   const CreateAircraftScreen({super.key});
@@ -15,44 +17,64 @@ class CreateAircraftScreen extends StatefulWidget {
 class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
   final _formKey = GlobalKey<FormState>();
   final _aircraftService = AircraftService();
+  final _airportService = AirportService();
 
+  // ✈️ Controladores
   final _patent = TextEditingController();
   final _model = TextEditingController();
-  final _price = TextEditingController();
+  final _minuteCost = TextEditingController();
   final _seats = TextEditingController();
+  final _emptyWeight = TextEditingController();
   final _maxWeight = TextEditingController();
+  final _cruisingSpeed = TextEditingController();
+
+  bool _canFlyInternational = false;
   String _state = 'Disponible'; // Estado por defecto
+
+  Airport? _selectedBaseAirport;
+  Airport? _selectedCurrentAirport;
 
   bool _isLoading = false;
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
 
+  late Future<List<Airport>> _airportsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _airportsFuture = _airportService.getActiveAirports();
+  }
+
   // ======================================================
-  // 🔹 Seleccionar imagen desde galería
+  // Seleccionar imagen
   // ======================================================
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-
     if (pickedFile != null) {
       setState(() {
         _selectedImage = File(pickedFile.path);
       });
-      print('📸 Imagen seleccionada: ${pickedFile.path}');
     }
   }
 
   // ======================================================
-  // 🔹 Crear aeronave (con subida de imagen y companyId)
+  // Crear aeronave
   // ======================================================
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedBaseAirport == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Seleccione el aeropuerto base')),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      // Obtener el companyId desde el Provider
-      final companyId = Provider.of<CompanyIdProvider>(context, listen: false).companyId;
-
-      print('CreateAircraftScreen - companyId: $companyId');
+      final companyId =
+          Provider.of<CompanyIdProvider>(context, listen: false).companyId;
 
       if (companyId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -62,31 +84,31 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
       }
 
       String? imageUrl;
-
-      // 🔹 Subir imagen si el usuario seleccionó una
       if (_selectedImage != null) {
-        print('📤 Subiendo imagen de aeronave...');
         imageUrl = await _aircraftService.uploadAircraftImage(_selectedImage!);
-        print('✅ Imagen subida con URL: $imageUrl');
       }
 
-      // 🔹 Crear aeronave
       await _aircraftService.createAircraft(
         patent: _patent.text.trim(),
         model: _model.text.trim(),
-        price: double.parse(_price.text.trim()),
+        minuteCost: double.parse(_minuteCost.text.trim()),
         seats: int.parse(_seats.text.trim()),
+        emptyWeight: int.parse(_emptyWeight.text.trim()),
         maxWeight: int.parse(_maxWeight.text.trim()),
+        cruisingSpeed: double.parse(_cruisingSpeed.text.trim()),
+        canFlyInternational: _canFlyInternational,
         state: _state,
         image: imageUrl,
-        companyId: companyId, // 👈 Se pasa automáticamente desde el Provider
+        baseAirportId: _selectedBaseAirport!.id,
+        currentAirportId: _selectedCurrentAirport?.id,
+        companyId: companyId,
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('✅ Aeronave creada correctamente')),
         );
-        Navigator.pop(context, true); // 🔁 Devuelve "true" para refrescar la lista
+        Navigator.pop(context, true);
       }
     } catch (e) {
       print('❌ Error al crear aeronave: $e');
@@ -100,123 +122,195 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
     }
   }
 
+  // ======================================================
+  // Dispose controladores
+  // ======================================================
+  @override
+  void dispose() {
+    _patent.dispose();
+    _model.dispose();
+    _minuteCost.dispose();
+    _seats.dispose();
+    _emptyWeight.dispose();
+    _maxWeight.dispose();
+    _cruisingSpeed.dispose();
+    super.dispose();
+  }
+
+  // ======================================================
+  // UI
+  // ======================================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Add New Aircraft')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _patent,
-                decoration: const InputDecoration(labelText: 'Patent'),
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Enter patent' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _model,
-                decoration: const InputDecoration(labelText: 'Model'),
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Enter model' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _price,
-                decoration: const InputDecoration(labelText: 'Price'),
-                keyboardType: TextInputType.number,
-                validator: (v) => v == null || double.tryParse(v) == null
-                    ? 'Enter price'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _seats,
-                decoration: const InputDecoration(labelText: 'Seats'),
-                keyboardType: TextInputType.number,
-                validator: (v) =>
-                    v == null || int.tryParse(v) == null ? 'Enter seats' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _maxWeight,
-                decoration: const InputDecoration(labelText: 'Max Weight'),
-                keyboardType: TextInputType.number,
-                validator: (v) => v == null || int.tryParse(v) == null
-                    ? 'Enter max weight'
-                    : null,
-              ),
-              const SizedBox(height: 12),
+      body: FutureBuilder<List<Airport>>(
+        future: _airportsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(
+              child: Text('⚠️ Error al cargar aeropuertos: ${snapshot.error}'),
+            );
+          }
 
-              // 🔹 Dropdown de estado
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'State'),
-                value: _state,
-                items: const [
-                  DropdownMenuItem(
-                    value: 'Disponible',
-                    child: Text('Disponible'),
+          final airports = snapshot.data ?? [];
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  _buildTextField(_patent, 'Patent', 'Enter patent'),
+                  const SizedBox(height: 12),
+                  _buildTextField(_model, 'Model', 'Enter model'),
+                  const SizedBox(height: 12),
+                  _buildNumberField(
+                      _minuteCost, 'Minute Cost', 'Enter minute cost'),
+                  const SizedBox(height: 12),
+                  _buildNumberField(_seats, 'Seats', 'Enter seats'),
+                  const SizedBox(height: 12),
+                  _buildNumberField(
+                      _emptyWeight, 'Empty Weight (kg)', 'Enter empty weight'),
+                  const SizedBox(height: 12),
+                  _buildNumberField(
+                      _maxWeight, 'Max Weight (kg)', 'Enter max weight'),
+                  const SizedBox(height: 12),
+                  _buildNumberField(
+                      _cruisingSpeed, 'Cruising Speed (km/h)', 'Enter speed'),
+                  const SizedBox(height: 16),
+
+                  // 🌍 Puede volar internacionalmente
+                  SwitchListTile(
+                    title: const Text('Can Fly International'),
+                    value: _canFlyInternational,
+                    onChanged: (v) =>
+                        setState(() => _canFlyInternational = v),
                   ),
-                  DropdownMenuItem(value: 'EnVuelo', child: Text('En vuelo')),
-                  DropdownMenuItem(
-                    value: 'EnMantenimiento',
-                    child: Text('En mantenimiento'),
+                  const SizedBox(height: 12),
+
+                  // 🛫 Aeropuerto Base
+                  DropdownButtonFormField<Airport>(
+                    decoration:
+                        const InputDecoration(labelText: 'Base Airport'),
+                    value: _selectedBaseAirport,
+                    items: airports
+                        .map((a) => DropdownMenuItem(
+                              value: a,
+                              child: Text('${a.name} (${a.codeIATA})'),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() => _selectedBaseAirport = value);
+                    },
+                    validator: (v) =>
+                        v == null ? 'Seleccione aeropuerto base' : null,
                   ),
-                  DropdownMenuItem(
-                    value: 'FueraDeServicio',
-                    child: Text('Fuera de servicio'),
+                  const SizedBox(height: 12),
+
+                  // 🛬 Aeropuerto Actual (opcional)
+                  DropdownButtonFormField<Airport>(
+                    decoration:
+                        const InputDecoration(labelText: 'Current Airport (optional)'),
+                    value: _selectedCurrentAirport,
+                    items: airports
+                        .map((a) => DropdownMenuItem(
+                              value: a,
+                              child: Text('${a.name} (${a.codeIATA})'),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() => _selectedCurrentAirport = value);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ⚙️ Estado técnico
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(labelText: 'State'),
+                    value: _state,
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'Disponible',
+                        child: Text('Disponible'),
+                      ),
+                      DropdownMenuItem(value: 'EnMantenimiento', child: Text('En mantenimiento')),
+                      DropdownMenuItem(value: 'FueraDeServicio', child: Text('Fuera de servicio')),
+                    ],
+                    onChanged: (v) => setState(() => _state = v ?? 'Disponible'),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 📸 Imagen
+                  if (_selectedImage != null)
+                    Column(
+                      children: [
+                        Image.file(_selectedImage!,
+                            height: 150, fit: BoxFit.cover),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+
+                  ElevatedButton.icon(
+                    onPressed: _pickImage,
+                    icon: const Icon(Icons.image),
+                    label: const Text('Select Image'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueGrey,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // 💾 Botón de guardar
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: _isLoading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.save),
+                      label: Text(_isLoading ? 'Saving...' : 'Create Aircraft'),
+                      onPressed: _isLoading ? null : _submit,
+                    ),
                   ),
                 ],
-                onChanged: (v) => setState(() => _state = v ?? 'Disponible'),
               ),
-              const SizedBox(height: 16),
-
-              // 🔹 Imagen seleccionada (preview)
-              if (_selectedImage != null)
-                Column(
-                  children: [
-                    Image.file(_selectedImage!, height: 150, fit: BoxFit.cover),
-                    const SizedBox(height: 8),
-                  ],
-                ),
-
-              // 🔹 Botón para seleccionar imagen
-              ElevatedButton.icon(
-                onPressed: _pickImage,
-                icon: const Icon(Icons.image),
-                label: const Text('Select Image'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueGrey,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // 🔹 Botón para crear aeronave
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: _isLoading
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.save),
-                  label: Text(_isLoading ? 'Saving...' : 'Create Aircraft'),
-                  onPressed: _isLoading ? null : _submit,
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
+    );
+  }
+
+  // ======================================================
+  // Widgets reutilizables
+  // ======================================================
+  Widget _buildTextField(
+      TextEditingController controller, String label, String validatorMsg) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(labelText: label),
+      validator: (v) => v == null || v.isEmpty ? validatorMsg : null,
+    );
+  }
+
+  Widget _buildNumberField(
+      TextEditingController controller, String label, String validatorMsg) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(labelText: label),
+      keyboardType: TextInputType.number,
+      validator: (v) =>
+          v == null || double.tryParse(v) == null ? validatorMsg : null,
     );
   }
 }

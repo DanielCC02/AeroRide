@@ -50,14 +50,26 @@ class AircraftService {
 // POST: Crear una nueva aeronave (asociada a una compañía)
 // ===========================================================
 Future<void> createAircraft({
+  // 🔑 Identificación
   required String patent,
   required String model,
-  required double price,
+
+  // 💰 Características técnicas
+  required double minuteCost,
   required int seats,
+  required int emptyWeight,
   required int maxWeight,
+  required double cruisingSpeed,
+  required bool canFlyInternational,
+
+  // ⚙️ Estado técnico
   required String state,
   String? image, // opcional
-  int? companyId, // Nuevo campo opcional
+
+  // 🌎 Ubicación y relaciones
+  required int baseAirportId,
+  int? currentAirportId, // opcional
+  required int companyId, // siempre requerido por backend
 }) async {
   final token = await TokenStorage.getAccessToken();
   if (token == null) throw Exception('Token no disponible');
@@ -67,16 +79,21 @@ Future<void> createAircraft({
   final body = {
     'patent': patent,
     'model': model,
-    'price': price,
+    'minuteCost': minuteCost,
     'seats': seats,
+    'emptyWeight': emptyWeight,
     'maxWeight': maxWeight,
+    'cruisingSpeed': cruisingSpeed,
+    'canFlyInternational': canFlyInternational,
     'state': state,
-    'image': image ?? '', // puede ser vacío por ahora
-    if (companyId != null) 'companyId': companyId, // 🔹 Solo si viene
+    'image': image ?? '', // puede ser vacío
+    'baseAirportId': baseAirportId,
+    'companyId': companyId,
+    if (currentAirportId != null) 'currentAirportId': currentAirportId,
   };
 
-  print('POST $url');
-  print('Body enviado: $body');
+  print('🚀 POST $url');
+  print('📤 Body enviado: $body');
 
   final response = await http.post(
     url,
@@ -91,43 +108,45 @@ Future<void> createAircraft({
   print('📥 Response: ${response.body}');
 
   if (response.statusCode == 201) {
-    print('Aeronave creada correctamente');
+    print('✅ Aeronave creada correctamente');
   } else {
-    print('Error al crear aeronave: ${response.body}');
+    print('❌ Error al crear aeronave: ${response.body}');
     throw Exception('Error al crear aeronave');
   }
 }
 
  // ===========================================================
-  //  POST: Subir imagen de aeronave (opcional)
-  // ===========================================================
-  Future<String> uploadAircraftImage(File imageFile) async {
-    final token = await TokenStorage.getAccessToken();
-    if (token == null) throw Exception('Token no disponible');
+//  POST: Subir imagen de aeronave (opcional)
+// ===========================================================
+Future<String> uploadAircraftImage(File imageFile) async {
+  final token = await TokenStorage.getAccessToken();
+  if (token == null) throw Exception('Token no disponible');
 
-    final url = Uri.parse('${ApiConfig.baseUrl}/api/aircrafts/ImageUpload');
+  // 👇 Ruta correcta según tu backend
+  final url = Uri.parse('${ApiConfig.baseUrl}/api/aircrafts/upload-image');
 
-    final request = http.MultipartRequest('POST', url)
-      ..headers['Authorization'] = 'Bearer $token'
-      ..files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+  final request = http.MultipartRequest('POST', url)
+    ..headers['Authorization'] = 'Bearer $token'
+    ..files.add(await http.MultipartFile.fromPath('file', imageFile.path));
 
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
+  print('📤 Subiendo imagen a: $url');
+  print('🖼️ Archivo: ${imageFile.path}');
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['imageUrl']; // devuelve la URL pública
-    } else {
-      print('❌ Error al subir imagen: ${response.body}');
-      throw Exception('Error al subir imagen');
-    }
+  final streamedResponse = await request.send();
+  final response = await http.Response.fromStream(streamedResponse);
+
+  print('📥 Status: ${response.statusCode}');
+  print('📥 Body: ${response.body}');
+
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    return data['imageUrl'];
+  } else {
+    final body = response.body.isNotEmpty ? response.body : 'Respuesta vacía';
+    throw Exception(
+        'Error al subir imagen (status: ${response.statusCode}) → $body');
   }
-
-
-
-
-
-
+}
 
 
   // ===========================================================
@@ -162,50 +181,6 @@ Future<void> createAircraft({
   }
 
   // ===========================================================
-  // POST: Crear una nueva aeronave
-  // ===========================================================
-  /*Future<void> createAircraft({
-    required String patent,
-    required String model,
-    required double price,
-    required int seats,
-    required int maxWeight,
-    required String state,
-    String? image, // opcional
-  }) async {
-    final token = await TokenStorage.getAccessToken();
-    if (token == null) throw Exception('Token no disponible');
-
-    final url = Uri.parse('${ApiConfig.baseUrl}/api/aircrafts');
-
-    final body = {
-      'patent': patent,
-      'model': model,
-      'price': price,
-      'seats': seats,
-      'maxWeight': maxWeight,
-      'state': state,
-      'image': image ?? '', // puede ser vacío por ahora
-    };
-
-    final response = await http.post(
-      url,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode(body),
-    );
-
-    if (response.statusCode == 201) {
-      print('✅ Aeronave creada correctamente');
-    } else {
-      print('❌ Error al crear aeronave: ${response.body}');
-      throw Exception('Error al crear aeronave');
-    }
-  }*/
-
-  // ===========================================================
   // GET: Obtener aeronave por ID
   // ===========================================================
   Future<AircraftModel> getAircraftById(int id) async {
@@ -234,49 +209,68 @@ Future<void> createAircraft({
   }
 
   // ===========================================================
-  // PUT: Actualizar aeronave
-  // ===========================================================
-  Future<void> updateAircraft({
-    required int id,
-    required String patent,
-    required String model,
-    required double price,
-    required int seats,
-    required int maxWeight,
-    required String state,
-    String? imageUrl,
-  }) async {
-    final token = await TokenStorage.getAccessToken();
-    if (token == null) throw Exception('Token no disponible');
+// PUT: Actualizar aeronave (excepto compañía)
+// ===========================================================
+Future<void> updateAircraft({
+  required int id,
+  required String patent,
+  required String model,
+  required double minuteCost,
+  required int seats,
+  required int emptyWeight,
+  required int maxWeight,
+  required double cruisingSpeed,
+  required bool canFlyInternational,
+  required String state,
+  required int baseAirportId,
+  int? currentAirportId,
+  String? imageUrl,
+}) async {
+  final token = await TokenStorage.getAccessToken();
+  if (token == null) throw Exception('Token no disponible');
 
-    final url = Uri.parse('${ApiConfig.baseUrl}/api/aircrafts/$id');
+  final url = Uri.parse('${ApiConfig.baseUrl}/api/aircrafts/$id');
 
-    final body = {
-      'patent': patent,
-      'model': model,
-      'price': price,
-      'seats': seats,
-      'maxWeight': maxWeight,
-      'state': state,
-      if (imageUrl != null && imageUrl.isNotEmpty) 'image': imageUrl,
-    };
+  final body = {
+    'patent': patent,
+    'model': model,
+    'minuteCost': minuteCost,
+    'seats': seats,
+    'emptyWeight': emptyWeight,
+    'maxWeight': maxWeight,
+    'cruisingSpeed': cruisingSpeed,
+    'canFlyInternational': canFlyInternational,
+    'state': state,
+    'baseAirportId': baseAirportId,
+    if (currentAirportId != null) 'currentAirportId': currentAirportId,
+    if (imageUrl != null && imageUrl.isNotEmpty) 'image': imageUrl,
+  };
 
-    final response = await http.put(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode(body),
-    );
+  print('🛠️ PUT $url');
+  print('📦 Body: $body');
 
-    if (response.statusCode == 200) {
-      print('✅ Aeronave actualizada correctamente');
-    } else {
-      print('❌ Error al actualizar aeronave: ${response.body}');
-      throw Exception('Error al actualizar aeronave');
-    }
+  final response = await http.put(
+    url,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+    body: jsonEncode(body),
+  );
+
+  print('📥 Status: ${response.statusCode}');
+  print('📥 Response: ${response.body}');
+
+  if (response.statusCode == 200) {
+    print('✅ Aeronave actualizada correctamente');
+  } else if (response.statusCode == 404) {
+    throw Exception('Aeronave no encontrada');
+  } else if (response.statusCode == 400) {
+    throw Exception('Datos inválidos: ${response.body}');
+  } else {
+    throw Exception('Error al actualizar aeronave (${response.statusCode})');
   }
+}
 
   // ======================================================
   // 🔻 Desactivar aeronave

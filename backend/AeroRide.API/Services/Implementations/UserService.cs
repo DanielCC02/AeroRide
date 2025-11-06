@@ -260,9 +260,10 @@ namespace AeroRide.API.Services.Implementations
         public async Task<IEnumerable<UserListDto>> GetAdminsByCompanyAsync(int companyId)
         {
             var admins = await _db.Users
+                .IgnoreQueryFilters()
                 .Include(u => u.Role)
                 .Include(u => u.Company)
-                .Where(u => u.IsActive && u.CompanyId == companyId && u.Role.Name == "CompanyAdmin")
+                .Where(u => u.CompanyId == companyId && u.Role.Name == "CompanyAdmin")
                 .OrderBy(u => u.Id)
                 .AsNoTracking()
                 .ToListAsync();

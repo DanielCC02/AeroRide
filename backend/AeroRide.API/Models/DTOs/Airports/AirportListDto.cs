@@ -14,6 +14,9 @@
         /// <summary>Código IATA.</summary>
         public string CodeIATA { get; set; } = null!;
 
+        /// <summary>Código IATA.</summary>
+        public string CodeOACI { get; set; } = null!;
+
         /// <summary>Ciudad donde se encuentra.</summary>
         public string City { get; set; } = null!;
 

@@ -43,15 +43,40 @@ namespace AeroRide.API.Mappings
                     if (srcMember is string s && string.IsNullOrWhiteSpace(s))
                         return false;
 
-                    // Intentar obtener el tipo del destino mediante la configuración
-                    var destinationProperty = opt.DestinationMember as System.Reflection.PropertyInfo;
+                    var destinationProperty = opt.DestinationMember as PropertyInfo;
                     if (destinationProperty == null)
-                        return true; // no aplica restricción si no se puede determinar el tipo
+                        return true;
 
                     var memberType = destinationProperty.PropertyType;
                     bool isNullable = Nullable.GetUnderlyingType(memberType) != null;
 
-                    // ❌ Evitar sobrescribir con valores por defecto (solo si no es nullable)
+                    // ⚙️ Evitar usar Activator.CreateInstance con strings
+                    if (memberType == typeof(string))
+                        return true;
+
+                    // ⚙️ Excepción especial para MaxAllowedWeight
+                    if (destinationProperty.Name == nameof(Airport.MaxAllowedWeight))
+                    {
+                        double value = 0;
+
+                        if (srcMember is int)
+                            value = Convert.ToDouble(srcMember);
+                        else if (srcMember is int?)
+                            value = Convert.ToDouble((int?)srcMember ?? 0);
+                        else if (srcMember is double)
+                            value = (double)srcMember;
+                        else if (srcMember is double?)
+                            value = ((double?)srcMember) ?? 0;
+                        else if (srcMember is decimal)
+                            value = (double)(decimal)srcMember;
+                        else if (srcMember is decimal?)
+                            value = (double)(((decimal?)srcMember) ?? 0);
+
+                        // ✅ Solo mapear si es > 0
+                        return value > 0;
+                    }
+
+                    // ❌ Evitar sobrescribir con valores por defecto
                     if (!isNullable)
                     {
                         var defaultValue = Activator.CreateInstance(memberType);
@@ -59,11 +84,9 @@ namespace AeroRide.API.Mappings
                             return false;
                     }
 
-                    // ✅ Si pasa todas las condiciones, se mapea
-                    return true;
+                    return true; // ✅ Mapear en cualquier otro caso válido
                 });
             });
-
 
             // 🔁 Recalcular ubicación si cambian las coordenadas
             updateMap.AfterMap((src, dest) =>
@@ -77,6 +100,8 @@ namespace AeroRide.API.Mappings
                     { SRID = 4326 };
                 }
             });
+
+
 
             // ======================================================
             // 🧾 DOMAIN → RESPONSE

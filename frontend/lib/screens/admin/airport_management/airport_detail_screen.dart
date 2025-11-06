@@ -1,33 +1,32 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/screens/admin/company_fleet/edit_aircraft_screen.dart';
-import '../../../models/aircraft_model.dart';
-import '../../../services/aircraft_service.dart';
+import 'package:frontend/models/airport_model.dart';
+import 'package:frontend/services/airport_service.dart';
+import 'edit_airport_screen.dart'; // ⚙️ crea luego esta pantalla para edición
 
-/// Pantalla que muestra la información detallada de una aeronave.
-/// Accesible para el administrador desde el Fleet Management.
-class AircraftDetailScreen extends StatefulWidget {
-  final int aircraftId;
+/// Pantalla de detalle de aeropuerto (solo para Admin o CompanyAdmin)
+class AirportDetailScreen extends StatefulWidget {
+  final int airportId;
 
-  const AircraftDetailScreen({super.key, required this.aircraftId});
+  const AirportDetailScreen({super.key, required this.airportId});
 
   @override
-  State<AircraftDetailScreen> createState() => _AircraftDetailScreenState();
+  State<AirportDetailScreen> createState() => _AirportDetailScreenState();
 }
 
-class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
-  final AircraftService _aircraftService = AircraftService();
-  late Future<AircraftModel> _aircraftFuture;
+class _AirportDetailScreenState extends State<AirportDetailScreen> {
+  final AirportService _airportService = AirportService();
+  late Future<Airport> _airportFuture;
 
   @override
   void initState() {
     super.initState();
-    _aircraftFuture = _aircraftService.getAircraftById(widget.aircraftId);
+    _airportFuture = _airportService.getAirportById(widget.airportId);
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<AircraftModel>(
-      future: _aircraftFuture,
+    return FutureBuilder<Airport>(
+      future: _airportFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -35,7 +34,7 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
           );
         } else if (snapshot.hasError) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Aircraft Details')),
+            appBar: AppBar(title: const Text('Airport Details')),
             body: Center(
               child: Text(
                 '⚠️ Error: ${snapshot.error}',
@@ -45,31 +44,42 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
           );
         } else if (!snapshot.hasData) {
           return const Scaffold(
-            body: Center(child: Text('Aircraft not found.')),
+            body: Center(child: Text('Airport not found.')),
           );
         }
 
-        final aircraft = snapshot.data!;
+        final airport = snapshot.data!;
 
         return Scaffold(
           appBar: AppBar(
-            title: Text(aircraft.model),
+            title: Text(airport.name),
             centerTitle: true,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () {
+                Navigator.pop(
+                  context,
+                  true,
+                ); // indica a la pantalla anterior que recargue
+              },
+            ),
             actions: [
               IconButton(
                 icon: const Icon(Icons.edit),
+                tooltip: 'Edit airport',
                 onPressed: () async {
                   final refresh = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => EditAircraftScreen(aircraft: aircraft),
+                      builder: (_) => EditAirportScreen(airport: airport),
                     ),
                   );
 
                   if (refresh == true && context.mounted) {
                     setState(() {
-                      _aircraftFuture =
-                          _aircraftService.getAircraftById(widget.aircraftId);
+                      _airportFuture = _airportService.getAirportById(
+                        widget.airportId,
+                      );
                     });
                   }
                 },
@@ -81,27 +91,28 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 📸 Imagen
-                if (aircraft.image.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: AspectRatio(
-                        aspectRatio: 16 / 9,
-                        child: Image.network(
-                          aircraft.image,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (context, child, progress) {
-                            if (progress == null) return child;
-                            return const Center(
-                                child: CircularProgressIndicator());
-                          },
-                          errorBuilder: (_, __, ___) => Container(
-                            color: Colors.grey.shade200,
-                            alignment: Alignment.center,
-                            child: const Icon(Icons.broken_image,
-                                size: 48, color: Colors.grey),
+                // 📸 Imagen del aeropuerto
+                if (airport.image.isNotEmpty)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: Image.network(
+                        airport.image,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: Colors.grey.shade200,
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.broken_image,
+                            size: 48,
+                            color: Colors.grey,
                           ),
                         ),
                       ),
@@ -111,46 +122,51 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
                 const Divider(),
                 const SizedBox(height: 10),
 
-                // 🧾 Datos generales
+                // 🧾 Información general
                 _buildSectionTitle('General Information'),
-                _buildDetailRow('Patent', aircraft.patent),
-                _buildDetailRow('Model', aircraft.model),
-                _buildDetailRow('Minute Cost',
-                    '₡${aircraft.minuteCost.toStringAsFixed(2)}'),
-                _buildDetailRow('Seats', '${aircraft.seats}'),
-                _buildDetailRow('Empty Weight', '${aircraft.emptyWeight} kg'),
-                _buildDetailRow('Max Weight', '${aircraft.maxWeight} kg'),
-                _buildDetailRow(
-                    'Cruising Speed', '${aircraft.cruisingSpeed} km/h'),
-                _buildDetailRow('Can Fly International',
-                    aircraft.canFlyInternational ? 'Yes' : 'No'),
+                _buildDetailRow('Name', airport.name),
+                _buildDetailRow('Code IATA', airport.codeIATA),
+                _buildDetailRow('Code OACI', airport.codeOACI),
+                _buildDetailRow('City', airport.city),
+                _buildDetailRow('Country', airport.country),
                 const SizedBox(height: 20),
 
-                // 🌍 Ubicación (con nombres)
-                _buildSectionTitle('Base & Current Airport'),
-                _buildDetailRow('Base Airport', aircraft.baseAirportName),
-                _buildDetailRow('Current Airport',
-                    aircraft.currentAirportName ?? '—'),
+                // 🌍 Ubicación y zona horaria
+                _buildSectionTitle('Location & Time Zone'),
+                _buildDetailRow('Latitude', '${airport.latitude}'),
+                _buildDetailRow('Longitude', '${airport.longitude}'),
+                _buildDetailRow('Time Zone', airport.timeZone),
                 const SizedBox(height: 20),
 
-                // ⚙️ Estado y compañía
-                _buildSectionTitle('Status & Ownership'),
-                _buildDetailRow('State', aircraft.state,
-                    color: Colors.blueGrey),
+                // 🕓 Horarios y restricciones
+                _buildSectionTitle('Operating Hours'),
+                _buildDetailRow('Opening Time', airport.openingTime ?? '—'),
+                _buildDetailRow('Closing Time', airport.closingTime ?? '—'),
+                const SizedBox(height: 20),
+
+                // ⚙️ Configuración técnica
+                _buildSectionTitle('Technical Details'),
                 _buildDetailRow(
-                  'Status',
-                  aircraft.isActive ? 'Active' : 'Inactive',
-                  color: aircraft.isActive ? Colors.green : Colors.red,
+                  'Max Allowed Weight',
+                  '${airport.maxAllowedWeight ?? 0} kg',
                 ),
-                _buildDetailRow('Company', aircraft.companyName),
-                const SizedBox(height: 30),
+                const SizedBox(height: 20),
 
-                // 🔘 Botón activar/desactivar
+                // 🔘 Estado actual
+                _buildSectionTitle('Status'),
+                _buildDetailRow(
+                  'Active',
+                  airport.isActive ? 'Yes' : 'No',
+                  color: airport.isActive ? Colors.green : Colors.red,
+                ),
+                const SizedBox(height: 24),
+
+                // 🔘 Botón Activar / Desactivar
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: aircraft.isActive
+                      backgroundColor: airport.isActive
                           ? Colors.redAccent
                           : Colors.green,
                       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -159,28 +175,31 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
                       ),
                     ),
                     icon: Icon(
-                      aircraft.isActive
+                      airport.isActive
                           ? Icons.delete_forever
                           : Icons.restart_alt,
                       color: Colors.white,
                     ),
                     label: Text(
-                      aircraft.isActive
-                          ? 'Deactivate Aircraft'
-                          : 'Reactivate Aircraft',
-                      style:
-                          const TextStyle(color: Colors.white, fontSize: 16),
+                      airport.isActive
+                          ? 'Deactivate Airport'
+                          : 'Reactivate Airport',
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
                     ),
                     onPressed: () async {
                       final confirm = await showDialog<bool>(
                         context: context,
                         builder: (_) => AlertDialog(
-                          title: Text(aircraft.isActive
-                              ? 'Deactivate Aircraft'
-                              : 'Reactivate Aircraft'),
-                          content: Text(aircraft.isActive
-                              ? 'Are you sure you want to deactivate this aircraft?'
-                              : 'Do you want to reactivate this aircraft?'),
+                          title: Text(
+                            airport.isActive
+                                ? 'Deactivate Airport'
+                                : 'Reactivate Airport',
+                          ),
+                          content: Text(
+                            airport.isActive
+                                ? 'Are you sure you want to deactivate this airport?'
+                                : 'Do you want to reactivate this airport?',
+                          ),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context, false),
@@ -189,7 +208,7 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
                             ElevatedButton(
                               onPressed: () => Navigator.pop(context, true),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: aircraft.isActive
+                                backgroundColor: airport.isActive
                                     ? Colors.redAccent
                                     : Colors.green,
                               ),
@@ -201,20 +220,18 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
 
                       if (confirm == true) {
                         try {
-                          if (aircraft.isActive) {
-                            await _aircraftService
-                                .deactivateAircraft(aircraft.id);
+                          if (airport.isActive) {
+                            await _airportService.deactivateAirport(airport.id);
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('🛑 Aircraft deactivated'),
+                                content: Text('🛑 Airport deactivated'),
                               ),
                             );
                           } else {
-                            await _aircraftService
-                                .reactivateAircraft(aircraft.id);
+                            await _airportService.reactivateAirport(airport.id);
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('♻️ Aircraft reactivated'),
+                                content: Text('♻️ Airport reactivated'),
                               ),
                             );
                           }

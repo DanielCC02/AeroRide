@@ -11,6 +11,9 @@
         public string State { get; set; } = null!;
         public bool IsActive { get; set; }
 
+        /// <summary>Peso en vacío de la aeronave (kg).</summary>
+        public int EmptyWeight { get; set; }
+
         /// <summary>Nombre de la compañía a la que pertenece.</summary>
         public string CompanyName { get; set; } = null!;
 

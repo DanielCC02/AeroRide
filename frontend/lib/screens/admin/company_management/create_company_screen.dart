@@ -11,15 +11,28 @@ class CreateCompanyScreen extends StatefulWidget {
 
 class _CreateCompanyScreenState extends State<CreateCompanyScreen> {
   final _formKey = GlobalKey<FormState>();
+
+  // 🧱 Controladores básicos
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
   final _discountController = TextEditingController(text: "0.5");
 
+  // 💰 Nuevos controladores opcionales
+  final _domesticWaitHourController = TextEditingController();
+  final _internationalWaitHourController = TextEditingController();
+  final _domesticOvernightController = TextEditingController();
+  final _internationalOvernightController = TextEditingController();
+  final _airportTaxController = TextEditingController();
+  final _handlingController = TextEditingController();
+
   bool _isLoading = false;
   final CompanyService _companyService = CompanyService();
 
+  // =============================================================
+  // 🚀 Crear empresa
+  // =============================================================
   Future<void> _createCompany() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -32,13 +45,21 @@ class _CreateCompanyScreenState extends State<CreateCompanyScreen> {
         phoneNumber: _phoneController.text.trim(),
         address: _addressController.text.trim(),
         emptyLegDiscount: double.tryParse(_discountController.text.trim()) ?? 0.5,
+
+        // 💰 Campos opcionales
+        domesticWaitHourCost: double.tryParse(_domesticWaitHourController.text.trim()),
+        internationalWaitHourCost: double.tryParse(_internationalWaitHourController.text.trim()),
+        domesticOvernightCost: double.tryParse(_domesticOvernightController.text.trim()),
+        internationalOvernightCost: double.tryParse(_internationalOvernightController.text.trim()),
+        airportTaxPerPassenger: double.tryParse(_airportTaxController.text.trim()),
+        handlingPerPassenger: double.tryParse(_handlingController.text.trim()),
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('✅ Empresa creada: ${newCompany.name}')),
         );
-        Navigator.pop(context, true); // Regresa a la pantalla anterior
+        Navigator.pop(context, true);
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -49,6 +70,9 @@ class _CreateCompanyScreenState extends State<CreateCompanyScreen> {
     }
   }
 
+  // =============================================================
+  // 🧹 Liberar controladores
+  // =============================================================
   @override
   void dispose() {
     _nameController.dispose();
@@ -56,9 +80,18 @@ class _CreateCompanyScreenState extends State<CreateCompanyScreen> {
     _phoneController.dispose();
     _addressController.dispose();
     _discountController.dispose();
+    _domesticWaitHourController.dispose();
+    _internationalWaitHourController.dispose();
+    _domesticOvernightController.dispose();
+    _internationalOvernightController.dispose();
+    _airportTaxController.dispose();
+    _handlingController.dispose();
     super.dispose();
   }
 
+  // =============================================================
+  // 🧩 UI
+  // =============================================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -72,6 +105,12 @@ class _CreateCompanyScreenState extends State<CreateCompanyScreen> {
           key: _formKey,
           child: ListView(
             children: [
+              const Text(
+                'Company Information',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+
               _buildTextField(
                 label: 'Company Name',
                 controller: _nameController,
@@ -95,11 +134,44 @@ class _CreateCompanyScreenState extends State<CreateCompanyScreen> {
                 validatorMsg: 'Enter address',
               ),
               _buildTextField(
-                label: 'Empty Leg Discount (%)',
+                label: 'Empty Leg Discount (0 - 1)',
                 controller: _discountController,
                 keyboardType: TextInputType.number,
                 validatorMsg: 'Enter discount (e.g., 0.5)',
               ),
+
+              const SizedBox(height: 24),
+              const Text(
+                'Optional Rates',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+
+              _buildOptionalField(
+                label: 'Domestic Wait Hour Cost',
+                controller: _domesticWaitHourController,
+              ),
+              _buildOptionalField(
+                label: 'International Wait Hour Cost',
+                controller: _internationalWaitHourController,
+              ),
+              _buildOptionalField(
+                label: 'Domestic Overnight Cost',
+                controller: _domesticOvernightController,
+              ),
+              _buildOptionalField(
+                label: 'International Overnight Cost',
+                controller: _internationalOvernightController,
+              ),
+              _buildOptionalField(
+                label: 'Airport Tax per Passenger',
+                controller: _airportTaxController,
+              ),
+              _buildOptionalField(
+                label: 'Handling per Passenger',
+                controller: _handlingController,
+              ),
+
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: _isLoading ? null : _createCompany,
@@ -122,7 +194,11 @@ class _CreateCompanyScreenState extends State<CreateCompanyScreen> {
     );
   }
 
-  /// 🔹 Reutilizable para crear cada campo
+  // =============================================================
+  // 🧱 Campos reutilizables
+  // =============================================================
+
+  /// Campo obligatorio
   Widget _buildTextField({
     required String label,
     required TextEditingController controller,
@@ -141,6 +217,33 @@ class _CreateCompanyScreenState extends State<CreateCompanyScreen> {
         validator: (value) {
           if (value == null || value.trim().isEmpty) {
             return validatorMsg;
+          }
+          return null;
+        },
+      ),
+    );
+  }
+
+  /// Campo opcional para valores numéricos
+  Widget _buildOptionalField({
+    required String label,
+    required TextEditingController controller,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        decoration: InputDecoration(
+          labelText: '$label (optional)',
+          border: const OutlineInputBorder(),
+        ),
+        validator: (value) {
+          if (value != null && value.isNotEmpty) {
+            final val = double.tryParse(value);
+            if (val == null || val < 0) {
+              return 'Enter a valid positive number';
+            }
           }
           return null;
         },

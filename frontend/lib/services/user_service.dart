@@ -7,7 +7,6 @@ import '../services/token_storage.dart';
 /// Servicio encargado de la comunicación con el backend
 /// para operaciones relacionadas con usuarios (solo accesible por admin).
 class UserService {
-
   /// Crea un nuevo usuario en el sistema (solo administradores o CompanyAdmin).
   Future<void> createUser({
     required String name,
@@ -51,111 +50,206 @@ class UserService {
   }
 
   /// Obtiene todos los administradores de una empresa específica.
-Future<List<UserModel>> getCompanyAdmins(int companyId) async {
-  final token = await TokenStorage.getAccessToken();
-  if (token == null) throw Exception('Token no disponible');
+  Future<List<UserModel>> getCompanyAdmins(int companyId) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
 
-  // ✅ CORRECTA: Mayúscula en "Users" y plural "admins"
-  final url = Uri.parse('${ApiConfig.baseUrl}/api/Users/company/$companyId/admins');
-  final response = await http.get(
-    url,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    },
-  );
+    // ✅ CORRECTA: Mayúscula en "Users" y plural "admins"
+    final url = Uri.parse(
+      '${ApiConfig.baseUrl}/api/Users/company/$companyId/admins',
+    );
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
 
-  print('📡 GET $url');
-  print('📥 Status: ${response.statusCode}');
-  print('📥 Body: ${response.body}');
+    print('📡 GET $url');
+    print('📥 Status: ${response.statusCode}');
+    print('📥 Body: ${response.body}');
 
-  if (response.statusCode == 200) {
-    try {
+    if (response.statusCode == 200) {
+      try {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((user) => UserModel.fromJson(user)).toList();
+      } catch (e) {
+        print('❌ Error al parsear JSON: $e');
+        throw Exception('Formato de datos inválido del servidor');
+      }
+    } else {
+      print('⚠️ Error al obtener administradores: ${response.body}');
+      throw Exception('Error al obtener los administradores de la empresa');
+    }
+  }
+
+  /// Obtiene todos los pilotos pertenecientes a una compañía específica
+  Future<List<UserModel>> getPilotsByCompany(int companyId) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
+
+    final url = Uri.parse(
+      '${ApiConfig.baseUrl}/api/users/company/$companyId/pilots',
+    );
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((user) => UserModel.fromJson(user)).toList();
-    } catch (e) {
-      print('❌ Error al parsear JSON: $e');
-      throw Exception('Formato de datos inválido del servidor');
+    } else {
+      print('⚠️ Error loading pilots: ${response.body}');
+      throw Exception('Error getting pilots for the company');
     }
-  } else {
-    print('⚠️ Error al obtener administradores: ${response.body}');
-    throw Exception('Error al obtener los administradores de la empresa');
   }
-}
 
-/// Obtiene todos los pilotos pertenecientes a una compañía específica
-Future<List<UserModel>> getPilotsByCompany(int companyId) async {
-  final token = await TokenStorage.getAccessToken();
-  if (token == null) throw Exception('Token no disponible');
+  /// ===========================================================
+  /// Actualiza la información de un piloto (solo para CompanyAdmin)
+  /// ===========================================================
+  Future<void> updatePilotByCompanyAdmin({
+    required int id, // ID del piloto
+    required String name,
+    required String lastName,
+    required String email,
+    required String phoneNumber,
+    bool? isActive, // opcional: activar/desactivar piloto
+  }) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
 
-  final url = Uri.parse('${ApiConfig.baseUrl}/api/users/company/$companyId/pilots');
-  final response = await http.get(
-    url,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    },
-  );
+    // URL del endpoint
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/users/$id');
 
-  if (response.statusCode == 200) {
-    final List<dynamic> data = jsonDecode(response.body);
-    return data.map((user) => UserModel.fromJson(user)).toList();
-  } else {
-    print('⚠️ Error loading pilots: ${response.body}');
-    throw Exception('Error getting pilots for the company');
+    // Armamos el cuerpo
+    final body = {
+      'name': name,
+      'lastName': lastName,
+      'email': email,
+      'phoneNumber': phoneNumber,
+      'roleId': 3, // siempre Piloto
+      if (isActive != null) 'isActive': isActive,
+    };
+
+    print('📡 PUT $url');
+    print('📦 Body enviado: $body');
+
+    final response = await http.put(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    );
+
+    print('📥 Status: ${response.statusCode}');
+    print('📥 Response: ${response.body}');
+
+    if (response.statusCode == 200) {
+      print('✅ Piloto actualizado correctamente');
+    } else if (response.statusCode == 404) {
+      throw Exception('❌ Piloto no encontrado');
+    } else {
+      throw Exception('❌ Error al actualizar piloto: ${response.body}');
+    }
   }
-}
 
-/// ===========================================================
-/// Actualiza la información de un piloto (solo para CompanyAdmin)
-/// ===========================================================
-Future<void> updatePilotByCompanyAdmin({
-  required int id, // ID del piloto
-  required String name,
-  required String lastName,
-  required String email,
-  required String phoneNumber,
-  bool? isActive, // opcional: activar/desactivar piloto
-}) async {
-  final token = await TokenStorage.getAccessToken();
-  if (token == null) throw Exception('Token no disponible');
+  // ===========================================================
+  // 👤 GET: Obtener usuario (admin de compañía) por ID
+  // ===========================================================
+  Future<UserModel> getCompanyAdminById(int id) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
 
-  // URL del endpoint
-  final url = Uri.parse('${ApiConfig.baseUrl}/api/users/$id');
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/users/$id');
 
-  // Armamos el cuerpo
-  final body = {
-    'name': name,
-    'lastName': lastName,
-    'email': email,
-    'phoneNumber': phoneNumber,
-    'roleId': 3, // siempre Piloto
-    if (isActive != null) 'isActive': isActive,
-  };
+    print('👤 GET $url');
 
-  print('📡 PUT $url');
-  print('📦 Body enviado: $body');
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
 
-  final response = await http.put(
-    url,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    },
-    body: jsonEncode(body),
-  );
+    print('📥 Status: ${response.statusCode}');
 
-  print('📥 Status: ${response.statusCode}');
-  print('📥 Response: ${response.body}');
-
-  if (response.statusCode == 200) {
-    print('✅ Piloto actualizado correctamente');
-  } else if (response.statusCode == 404) {
-    throw Exception('❌ Piloto no encontrado');
-  } else {
-    throw Exception('❌ Error al actualizar piloto: ${response.body}');
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      print(
+        '✅ Usuario obtenido correctamente: ${data['name'] ?? data['email']}',
+      );
+      return UserModel.fromJson(data);
+    } else if (response.statusCode == 404) {
+      print('⚠️ Usuario con ID $id no encontrado');
+      throw Exception('Usuario no encontrado');
+    } else {
+      print('❌ Error al obtener detalle del usuario: ${response.body}');
+      throw Exception(
+        'Error al obtener detalle del usuario (status: ${response.statusCode})',
+      );
+    }
   }
-}
+
+  // ===========================================================
+  // PUT: Actualizar información del administrador de compañía
+  // ===========================================================
+  Future<void> updateCompanyAdmin({
+    required int id, // ID del administrador
+    required String name,
+    required String lastName,
+    required String email,
+    required String phoneNumber,
+    bool? isActive, // opcional: activar/desactivar
+  }) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
+
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/users/$id');
+
+    final body = {
+      'name': name,
+      'lastName': lastName,
+      'email': email,
+      'phoneNumber': phoneNumber,
+      'roleId': 2, // 👈 Rol fijo: CompanyAdmin
+      if (isActive != null) 'isActive': isActive,
+    };
+
+    print('🏢 PUT $url');
+    print('📦 Body enviado: $body');
+
+    final response = await http.put(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    );
+
+    print('📥 Status: ${response.statusCode}');
+    print('📥 Response: ${response.body}');
+
+    if (response.statusCode == 200) {
+      print('✅ Administrador de compañía actualizado correctamente');
+    } else if (response.statusCode == 404) {
+      throw Exception('❌ Administrador no encontrado');
+    } else if (response.statusCode == 400) {
+      throw Exception('❌ Datos inválidos: ${response.body}');
+    } else {
+      throw Exception(
+        '❌ Error al actualizar administrador (status: ${response.statusCode})',
+      );
+    }
+  }
 
   /// Obtiene el detalle de un usuario por su ID.
   Future<UserModel> getUserById(int id) async {

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// Panel principal de acciones para el administrador.
 ///
 /// Muestra una lista de botones con las principales opciones
-/// de gestión del sistema (por ahora sin funcionalidad).
+/// de gestión del sistema.
 class AdminActionsPanel extends StatelessWidget {
   const AdminActionsPanel({super.key});
 
@@ -12,6 +12,7 @@ class AdminActionsPanel extends StatelessWidget {
     // Lista de acciones que tendrá el panel
     final List<Map<String, dynamic>> actions = [
       {'label': 'Company Management', 'icon': Icons.business},
+      {'label': 'Airport Management', 'icon': Icons.flight_takeoff}, // ✈️ NUEVO
     ];
 
     return Padding(
@@ -19,7 +20,7 @@ class AdminActionsPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Generar botones a partir de la lista
+          // Generar botones dinámicamente a partir de la lista
           ...actions.map(
             (action) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -41,6 +42,11 @@ class AdminActionsPanel extends StatelessWidget {
 
                   if (label == 'Company Management') {
                     Navigator.pushNamed(context, '/admin/company_management');
+                    return;
+                  }
+
+                  if (label == 'Airport Management') {
+                    Navigator.pushNamed(context, '/admin/airport_management');
                     return;
                   }
 
