@@ -10,6 +10,7 @@
         public string Model { get; set; } = null!;
         public double MinuteCost { get; set; }
         public int Seats { get; set; }
+        public int EmptyWeight { get; set; }
         public int MaxWeight { get; set; }
         public double CruisingSpeed { get; set; }
         public bool CanFlyInternational { get; set; }
