@@ -11,10 +11,11 @@
         /// <summary>Nombre del aeropuerto.</summary>
         public string Name { get; set; } = null!;
 
+
         /// <summary>Código IATA.</summary>
         public string CodeIATA { get; set; } = null!;
 
-        /// <summary>Código IATA.</summary>
+        /// <summary>Código OACI (cuatro letras).</summary>
         public string CodeOACI { get; set; } = null!;
 
         /// <summary>Ciudad donde se encuentra.</summary>
