@@ -23,7 +23,7 @@ class AdminCompanyActionsPanel extends StatelessWidget {
     // Lista de acciones disponibles
     final List<Map<String, dynamic>> actions = [
       {'label': 'See Calendar', 'icon': Icons.calendar_today},
-      {'label': 'User Management', 'icon': Icons.people},
+      //{'label': 'User Management', 'icon': Icons.people},
       {'label': 'Fleet Management', 'icon': Icons.airplanemode_active},
       {'label': 'Pilot Management', 'icon': Icons.flight_takeoff},
     ];
@@ -56,13 +56,13 @@ class AdminCompanyActionsPanel extends StatelessWidget {
                   final label = action['label'] as String;
 
                   // Usamos el companyId desde el Provider en lugar de pasar como argumento
-                  if (label == 'User Management') {
+                  /*if (label == 'User Management') {
                     Navigator.pushNamed(
                       context,
                       '/admin/users',
                     );
                     return;
-                  }
+                  }*/
 
                   if (label == 'Fleet Management') {
                     Navigator.pushNamed(

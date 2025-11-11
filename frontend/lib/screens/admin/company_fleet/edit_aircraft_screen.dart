@@ -2,7 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../models/aircraft_model.dart';
+import '../../../models/airport_model.dart';
 import '../../../services/aircraft_service.dart';
+import '../../../services/airport_service.dart';
 
 /// Pantalla que permite al administrador editar los datos de una aeronave existente.
 class EditAircraftScreen extends StatefulWidget {
@@ -17,45 +19,58 @@ class EditAircraftScreen extends StatefulWidget {
 class _EditAircraftScreenState extends State<EditAircraftScreen> {
   final _formKey = GlobalKey<FormState>();
   final _aircraftService = AircraftService();
+  final _airportService = AirportService();
   final ImagePicker _picker = ImagePicker();
 
   bool _isLoading = false;
 
+  // Controladores
   late TextEditingController _patent;
   late TextEditingController _model;
-  late TextEditingController _price;
+  late TextEditingController _minuteCost;
   late TextEditingController _seats;
+  late TextEditingController _emptyWeight;
   late TextEditingController _maxWeight;
+  late TextEditingController _cruisingSpeed;
+  bool _canFlyInternational = false;
   late String _state;
-
   String? _imageUrl;
+
+  // Aeropuertos
+  Airport? _selectedBaseAirport;
+  Airport? _selectedCurrentAirport;
+  late Future<List<Airport>> _airportsFuture;
 
   @override
   void initState() {
     super.initState();
-    _patent = TextEditingController(text: widget.aircraft.patent);
-    _model = TextEditingController(text: widget.aircraft.model);
-    _price = TextEditingController(text: widget.aircraft.price.toString());
-    _seats = TextEditingController(text: widget.aircraft.seats.toString());
-    _maxWeight = TextEditingController(
-      text: widget.aircraft.maxWeight.toString(),
-    );
-    _state = widget.aircraft.state;
-    _imageUrl = widget.aircraft.image;
+
+    final a = widget.aircraft;
+
+    _patent = TextEditingController(text: a.patent);
+    _model = TextEditingController(text: a.model);
+    _minuteCost = TextEditingController(text: a.minuteCost.toString());
+    _seats = TextEditingController(text: a.seats.toString());
+    _emptyWeight = TextEditingController(text: a.emptyWeight.toString());
+    _maxWeight = TextEditingController(text: a.maxWeight.toString());
+    _cruisingSpeed = TextEditingController(text: a.cruisingSpeed.toString());
+    _canFlyInternational = a.canFlyInternational;
+    _state = a.state;
+    _imageUrl = a.image;
+
+    _airportsFuture = _airportService.getActiveAirports();
   }
 
+  // ======================================================
+  // 📸 Seleccionar nueva imagen
+  // ======================================================
   Future<void> _pickImage() async {
     final picked = await _picker.pickImage(source: ImageSource.gallery);
     if (picked != null) {
       try {
         setState(() => _isLoading = true);
-
-        // ✅ Convertir XFile → File
         final file = File(picked.path);
-
-        // ✅ Subir imagen al backend (Azure)
         final uploadedUrl = await _aircraftService.uploadAircraftImage(file);
-
         setState(() => _imageUrl = uploadedUrl);
       } catch (e) {
         ScaffoldMessenger.of(
@@ -67,8 +82,18 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
     }
   }
 
+  // ======================================================
+  // 💾 Guardar cambios
+  // ======================================================
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_selectedBaseAirport == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Seleccione el aeropuerto base')),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -77,10 +102,16 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
         id: widget.aircraft.id,
         patent: _patent.text.trim(),
         model: _model.text.trim(),
-        price: double.parse(_price.text.trim()),
+        minuteCost: double.parse(_minuteCost.text.trim()),
         seats: int.parse(_seats.text.trim()),
+        emptyWeight: int.parse(_emptyWeight.text.trim()),
         maxWeight: int.parse(_maxWeight.text.trim()),
+        cruisingSpeed: double.parse(_cruisingSpeed.text.trim()),
+        canFlyInternational: _canFlyInternational,
         state: _state,
+        baseAirportId:
+            _selectedBaseAirport?.id ?? widget.aircraft.baseAirportId,
+        currentAirportId: _selectedCurrentAirport?.id,
         imageUrl: _imageUrl,
       );
 
@@ -101,179 +132,271 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
     }
   }
 
+  // ======================================================
+  // 🧱 Interfaz de usuario
+  // ======================================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Aircraft')),
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.all(20),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Imagen (clickeable para cambiar)
-                Center(
-                  child: GestureDetector(
-                    onTap: _isLoading ? null : _pickImage,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: _imageUrl != null && _imageUrl!.isNotEmpty
-                              ? Image.network(
-                                  _imageUrl!,
-                                  height: 200,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                )
-                              : Container(
-                                  height: 200,
-                                  width: double.infinity,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade200,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: const Icon(
-                                    Icons.camera_alt,
-                                    size: 50,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                        ),
+        child: FutureBuilder<List<Airport>>(
+          future: _airportsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(
+                child: Text(
+                  '⚠️ Error al cargar aeropuertos: ${snapshot.error}',
+                ),
+              );
+            }
 
-                        // 🔹 Overlay visual para indicar acción
-                        Container(
-                          height: 200,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            color: Colors.black.withOpacity(0.3),
-                          ),
+            final airports = snapshot.data ?? [];
+
+            return SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(20),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Imagen
+                    Center(
+                      child: GestureDetector(
+                        onTap: _isLoading ? null : _pickImage,
+                        child: Stack(
                           alignment: Alignment.center,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.edit, color: Colors.white, size: 32),
-                              SizedBox(height: 8),
-                              Text(
-                                'Change Image',
-                                style: TextStyle(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: _imageUrl != null && _imageUrl!.isNotEmpty
+                                  ? Image.network(
+                                      _imageUrl!,
+                                      height: 200,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Container(
+                                      height: 200,
+                                      width: double.infinity,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: const Icon(
+                                        Icons.camera_alt,
+                                        size: 50,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                            ),
+                            Container(
+                              height: 200,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                color: Colors.black.withOpacity(0.3),
+                              ),
+                              alignment: Alignment.center,
+                              child: const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.edit,
+                                    color: Colors.white,
+                                    size: 32,
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Change Image',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (_isLoading)
+                              Container(
+                                height: 200,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: Colors.black.withOpacity(0.4),
+                                ),
+                                alignment: Alignment.center,
+                                child: const CircularProgressIndicator(
                                   color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ],
-                          ),
+                          ],
                         ),
-
-                        // 🔹 Indicador de carga
-                        if (_isLoading)
-                          Container(
-                            height: 200,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: Colors.black.withOpacity(0.4),
-                            ),
-                            alignment: Alignment.center,
-                            child: const CircularProgressIndicator(
-                              color: Colors.white,
-                            ),
-                          ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                TextFormField(
-                  controller: _patent,
-                  decoration: const InputDecoration(labelText: 'Patent'),
-                  validator: (v) =>
-                      v == null || v.isEmpty ? 'Enter the patent' : null,
-                ),
-                const SizedBox(height: 12),
+                    const SizedBox(height: 24),
 
-                TextFormField(
-                  controller: _model,
-                  decoration: const InputDecoration(labelText: 'Model'),
-                  validator: (v) =>
-                      v == null || v.isEmpty ? 'Enter the model' : null,
-                ),
-                const SizedBox(height: 12),
-
-                TextFormField(
-                  controller: _price,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Price'),
-                ),
-                const SizedBox(height: 12),
-
-                TextFormField(
-                  controller: _seats,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Seats'),
-                ),
-                const SizedBox(height: 12),
-
-                TextFormField(
-                  controller: _maxWeight,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Max Weight'),
-                ),
-                const SizedBox(height: 12),
-
-                // 🔹 Dropdown para estado operativo (enum)
-                DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(labelText: 'State'),
-                  initialValue: _state,
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'Disponible',
-                      child: Text('Disponible'),
+                    _buildTextField(_patent, 'Patent', 'Enter the patent'),
+                    _buildTextField(_model, 'Model', 'Enter the model'),
+                    _buildNumberField(
+                      _minuteCost,
+                      'Minute Cost',
+                      'Enter minute cost',
                     ),
-                    DropdownMenuItem(value: 'EnVuelo', child: Text('En vuelo')),
-                    DropdownMenuItem(
-                      value: 'EnMantenimiento',
-                      child: Text('En mantenimiento'),
+                    _buildNumberField(_seats, 'Seats', 'Enter seats'),
+                    _buildNumberField(
+                      _emptyWeight,
+                      'Empty Weight (kg)',
+                      'Enter empty weight',
                     ),
-                    DropdownMenuItem(
-                      value: 'FueraDeServicio',
-                      child: Text('Fuera de servicio'),
+                    _buildNumberField(
+                      _maxWeight,
+                      'Max Weight (kg)',
+                      'Enter max weight',
                     ),
-                  ],
-                  onChanged: (v) => setState(() => _state = v ?? 'Disponible'),
-                ),
+                    _buildNumberField(
+                      _cruisingSpeed,
+                      'Cruising Speed (km/h)',
+                      'Enter speed',
+                    ),
+                    const SizedBox(height: 16),
 
-                const SizedBox(height: 32),
+                    SwitchListTile(
+                      title: const Text('Can Fly International'),
+                      value: _canFlyInternational,
+                      onChanged: (v) =>
+                          setState(() => _canFlyInternational = v),
+                    ),
+                    const SizedBox(height: 16),
 
-                // 🔹 Botón Guardar
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
+                    DropdownButtonFormField<Airport>(
+                      decoration: const InputDecoration(
+                        labelText: 'Base Airport',
+                      ),
+                      value: airports.firstWhere(
+                        (a) => a.name == widget.aircraft.baseAirportName,
+                        orElse: () => airports.first,
+                      ),
+                      items: airports
+                          .map(
+                            (a) => DropdownMenuItem(
+                              value: a,
+                              child: Text('${a.name} (${a.codeIATA})'),
                             ),
                           )
-                        : const Icon(Icons.save),
-                    label: Text(_isLoading ? 'Saving...' : 'Save Changes'),
-                    onPressed: _isLoading ? null : _submit,
-                  ),
+                          .toList(),
+                      onChanged: (v) =>
+                          setState(() => _selectedBaseAirport = v),
+                    ),
+                    const SizedBox(height: 12),
+
+                    DropdownButtonFormField<Airport>(
+                      decoration: const InputDecoration(
+                        labelText: 'Current Airport (optional)',
+                      ),
+                      value: airports.firstWhere(
+                        (a) =>
+                            a.name == widget.aircraft.currentAirportName &&
+                            widget.aircraft.currentAirportName != null,
+                        orElse: () => airports.first,
+                      ),
+                      items: airports
+                          .map(
+                            (a) => DropdownMenuItem(
+                              value: a,
+                              child: Text('${a.name} (${a.codeIATA})'),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) =>
+                          setState(() => _selectedCurrentAirport = v),
+                    ),
+                    const SizedBox(height: 12),
+
+                    DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(labelText: 'State'),
+                      value: _state,
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'Disponible',
+                          child: Text('Disponible'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'EnMantenimiento',
+                          child: Text('En mantenimiento'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'FueraDeServicio',
+                          child: Text('Fuera de servicio'),
+                        ),
+                      ],
+                      onChanged: (v) =>
+                          setState(() => _state = v ?? 'Disponible'),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: _isLoading
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.save),
+                        label: Text(_isLoading ? 'Saving...' : 'Save Changes'),
+                        onPressed: _isLoading ? null : _submit,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
+      ),
+    );
+  }
+
+  // ======================================================
+  // 🔹 Widgets auxiliares
+  // ======================================================
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label,
+    String validatorMsg,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: TextFormField(
+        controller: controller,
+        decoration: InputDecoration(labelText: label),
+        validator: (v) => v == null || v.isEmpty ? validatorMsg : null,
+      ),
+    );
+  }
+
+  Widget _buildNumberField(
+    TextEditingController controller,
+    String label,
+    String validatorMsg,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: TextFormField(
+        controller: controller,
+        decoration: InputDecoration(labelText: label),
+        keyboardType: TextInputType.number,
+        validator: (v) =>
+            v == null || double.tryParse(v) == null ? validatorMsg : null,
       ),
     );
   }

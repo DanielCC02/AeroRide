@@ -209,10 +209,14 @@ namespace AeroRide.API.Services
             var aircraft = await _db.Aircrafts
                 .IgnoreQueryFilters()
                 .AsNoTracking()
+                .Include(a => a.Company)
+                .Include(a => a.BaseAirport)
+                .Include(a => a.CurrentAirport)
                 .FirstOrDefaultAsync(a => a.Id == id);
 
             return aircraft == null ? null : _mapper.Map<AircraftResponseDto>(aircraft);
         }
+
 
         // ======================================================
         // 🧾 GROUPED BY MODEL + COMPANY

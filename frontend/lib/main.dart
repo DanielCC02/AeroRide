@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/admin/airport_management/airport_management_screen.dart';
 import 'package:provider/provider.dart'; // Importar el provider
 import 'package:http/http.dart' as http;
 import 'package:frontend/screens/admin/company_management/company_management_screen.dart';
@@ -11,7 +12,7 @@ import 'package:frontend/screens/welcome_screen.dart';
 import 'package:frontend/screens/homepage_screen.dart';
 import 'package:frontend/screens/homepage_pilot.dart';
 import 'package:frontend/screens/homepage_admin_company.dart';
-import 'package:frontend/screens/admin/user_management_screen.dart';
+//import 'package:frontend/screens/admin/user_management_screen.dart';
 import 'package:frontend/screens/admin/company_fleet/fleet_management_screen.dart';
 import 'package:frontend/providers/company_id_provider.dart'; // Importar el provider que creamos
 
@@ -175,7 +176,8 @@ class _MyAppState extends State<MyApp> {
         '/admin/company': (_) => const HomePageAdminCompany(), // No pasamos companyId como parámetro
         '/admin/pilots': (_) => const CompanyPilotsScreen(), // No pasamos companyId como parámetro
         '/admin/company_management': (_) => const CompanyManagementScreen(),
-        '/admin/users': (_) => const UserManagementScreen(),
+        '/admin/airport_management': (context) => const AirportManagementScreen(),
+        //'/admin/users': (_) => const UserManagementScreen(),
         '/admin/fleet': (_) => const FleetManagementScreen(),
       },
     );
