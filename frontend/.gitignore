@@ -13,7 +13,7 @@
 migrate_working_dir/
 
 # Configuración sensible del frontend
-aeroride/frontend/lib/services/api_config.dart
+frontend/lib/services/api_config.dart
 
 # IntelliJ related
 *.iml
