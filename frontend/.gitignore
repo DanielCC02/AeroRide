@@ -12,6 +12,9 @@
 .swiftpm/
 migrate_working_dir/
 
+# Configuración sensible del frontend
+aeroride/frontend/lib/services/api_config.dart
+
 # IntelliJ related
 *.iml
 *.ipr
@@ -57,3 +60,4 @@ ios/Flutter/Generated.xcconfig.d
 # Env files (para claves/API privadas)
 .env
 .env.*
+
