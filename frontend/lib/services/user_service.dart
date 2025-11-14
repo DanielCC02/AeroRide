@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:frontend/models/flight_assigned_pilot_model.dart';
 import 'package:http/http.dart' as http;
 import '../models/user_model.dart';
 import '../services/api_config.dart';
@@ -108,6 +109,29 @@ class UserService {
       throw Exception('Error getting pilots for the company');
     }
   }
+
+    /// Obtiene los pilotos ya asignados a un vuelo específico
+  Future<List<FlightAssignedPilotModel>> getAssignedPilotsByFlight(int flightId) async {
+  final token = await TokenStorage.getAccessToken();
+  if (token == null) throw Exception('Token no disponible');
+
+  final url = Uri.parse('${ApiConfig.baseUrl}/api/flights/$flightId/pilots');
+
+  final response = await http.get(
+    url,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+  );
+
+  if (response.statusCode == 200) {
+    final List<dynamic> data = jsonDecode(response.body);
+    return data.map((p) => FlightAssignedPilotModel.fromJson(p)).toList();
+  } else {
+    throw Exception('Error getting assigned pilots for flight');
+  }
+}
 
   /// ===========================================================
   /// Actualiza la información de un piloto (solo para CompanyAdmin)

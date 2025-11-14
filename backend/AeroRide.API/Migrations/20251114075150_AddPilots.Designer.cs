@@ -3,6 +3,7 @@ using System;
 using AeroRide.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AeroRide.API.Migrations
 {
     [DbContext(typeof(AeroRideDbContext))]
-    partial class AeroRideDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251114075150_AddPilots")]
+    partial class AddPilots
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -360,10 +363,6 @@ namespace AeroRide.API.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("now()");
-
-                    b.Property<string>("CrewRole")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<int>("FlightId")
                         .HasColumnType("integer");

@@ -51,4 +51,45 @@ class CompanyFlightService {
           'Error al obtener vuelos (${response.statusCode}): ${response.body}');
     }
   }
+  // ======================================================
+  // POST: Asignar piloto y copiloto a un vuelo
+  // ======================================================
+  Future<void> assignPilotsToFlight({
+    required int flightId,
+    required int pilotId,
+    int? coPilotId,
+  }) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
+
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/flights/$flightId/assign');
+
+    final body = {
+      'pilotId': pilotId,
+      if (coPilotId != null) 'coPilotId': coPilotId,
+    };
+
+    print('🛫 POST $url');
+    print('📤 Body: $body');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    );
+
+    print('📥 Status: ${response.statusCode}');
+    print('📥 Body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      print('✅ Pilotos asignados correctamente.');
+    } else {
+      final msg = response.body.isNotEmpty ? response.body : 'Error desconocido';
+      throw Exception('❌ Error al asignar pilotos: $msg');
+    }
+  }
 }
+
