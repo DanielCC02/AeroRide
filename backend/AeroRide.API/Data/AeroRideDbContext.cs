@@ -1,4 +1,5 @@
 ﻿using AeroRide.API.Models.Domain;
+using AeroRide.API.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace AeroRide.API.Data
@@ -9,7 +10,12 @@ namespace AeroRide.API.Data
     /// </summary>
     public class AeroRideDbContext : DbContext
     {
-        public AeroRideDbContext(DbContextOptions<AeroRideDbContext> options) : base(options) { }
+        public AeroRideDbContext(DbContextOptions<AeroRideDbContext> options) : base(options)
+        {
+            // 🩵 Activa compatibilidad con fechas "Unspecified" (comportamiento anterior de Npgsql)
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+        }
+
 
         // ======================================================
         // 🧩 Tablas (DbSet)
@@ -36,6 +42,7 @@ namespace AeroRide.API.Data
         /// </summary>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+
             base.OnModelCreating(modelBuilder);
 
             // ======================================================
@@ -279,16 +286,21 @@ namespace AeroRide.API.Data
                 e.ToTable("FlightAssignments");
 
                 e.HasOne(fa => fa.PilotUser)
-                 .WithMany()
+                 .WithMany(u => u.FlightAssignments)
                  .HasForeignKey(fa => fa.PilotUserId)
                  .OnDelete(DeleteBehavior.Restrict);
 
-                e.Property(fa => fa.AssignedAt).HasDefaultValueSql("now()");
-                e.Property(fa => fa.Status).HasMaxLength(20)
-                 .HasDefaultValue(FlightAssignment.AssignmentStatus.Assigned);
+                e.Property(fa => fa.AssignedAt)
+                    .HasDefaultValueSql("now()");
+
+                e.Property(fa => fa.Status)
+                    .HasMaxLength(20)
+                    .HasDefaultValue(FlightAssignmentStatus.Assigned);
 
                 e.HasIndex(fa => new { fa.FlightId, fa.PilotUserId }).IsUnique();
             });
+
+
 
             // ======================================================
             // 📘 FLIGHT LOGS
