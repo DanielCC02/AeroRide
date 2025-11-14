@@ -31,6 +31,7 @@ namespace AeroRide.API.Services.Implementations
                 .Include(f => f.Aircraft)
                 .Include(f => f.Company)
                 .Include(f => f.Reservation)
+                .Include(f => f.Assignments) 
                 .Where(f => f.CompanyId == companyId)
                 .OrderByDescending(f => f.DepartureTime)
                 .ToListAsync();
