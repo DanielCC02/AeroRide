@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/models/company_flight_model.dart';
 import 'package:frontend/providers/company_id_provider.dart';
+import 'package:frontend/screens/admin/company_flights_management/flight_detail_screen.dart';
 import 'package:frontend/services/company_flight_service.dart';
 import 'package:frontend/widgets/flights_of_day_bottomsheet.dart';
 import 'package:provider/provider.dart';
@@ -40,6 +41,7 @@ class _FlightScheduleScreenState extends State<FlightScheduleScreen> {
 
     try {
       final flights = await _flightService.getFlightsByCompany(companyId);
+
       final daysWithFlights = flights
           .map((f) =>
               DateTime(f.departureTime.year, f.departureTime.month, f.departureTime.day))
@@ -70,9 +72,10 @@ class _FlightScheduleScreenState extends State<FlightScheduleScreen> {
     }).toList();
   }
 
-  void _showFlightsModal(DateTime day) {
+ Future<void> _showFlightsModal(DateTime day) async {
     final flightsOfDay = _flightsForDay(day);
-    showModalBottomSheet(
+
+    final selectedFlight = await showModalBottomSheet<CompanyFlightModel>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
@@ -84,7 +87,21 @@ class _FlightScheduleScreenState extends State<FlightScheduleScreen> {
         flights: flightsOfDay,
       ),
     );
-  }
+
+    if (selectedFlight != null) {
+      final updated = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => FlightDetailScreen(flight: selectedFlight),
+        ),
+      );
+
+      if (updated == true) {
+        await _loadFlights();
+        setState(() {});
+      }
+    }
+}
 
   @override
   Widget build(BuildContext context) {

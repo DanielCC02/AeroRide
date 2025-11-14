@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:frontend/models/company_flight_model.dart';
-import 'package:frontend/screens/admin/company_flights_management/flight_detail_screen.dart';
 
-/// Widget reutilizable que muestra los vuelos de un día en un BottomSheet.
 class FlightsOfDayBottomSheet extends StatelessWidget {
   final DateTime selectedDay;
   final List<CompanyFlightModel> flights;
@@ -47,6 +45,7 @@ class FlightsOfDayBottomSheet extends StatelessWidget {
                   ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
+
             if (flights.isEmpty)
               const Center(
                 child: Padding(
@@ -61,8 +60,8 @@ class FlightsOfDayBottomSheet extends StatelessWidget {
                   itemCount: flights.length,
                   itemBuilder: (context, index) {
                     final flight = flights[index];
-                    final departure =
-                        DateFormat.Hm().format(flight.departureTime.toLocal());
+                    final departure = DateFormat.Hm()
+                        .format(flight.departureTime.toLocal());
                     final arrival =
                         DateFormat.Hm().format(flight.arrivalTime.toLocal());
 
@@ -73,13 +72,44 @@ class FlightsOfDayBottomSheet extends StatelessWidget {
                       ),
                       margin: const EdgeInsets.symmetric(vertical: 8),
                       child: ListTile(
-                        leading: const Icon(Icons.flight_takeoff,
-                            color: Colors.blueAccent),
+                        leading: const Icon(
+                          Icons.flight_takeoff,
+                          color: Colors.blueAccent,
+                        ),
+
                         title: Text(
-                            '${flight.departureAirportName ?? 'Unknown'} → ${flight.arrivalAirportName ?? 'Unknown'}'),
-                        subtitle: Text(
-                            '$departure - $arrival\n${flight.aircraftModel ?? ''}'),
+                          '${flight.departureAirportName ?? 'Unknown'} → ${flight.arrivalAirportName ?? 'Unknown'}',
+                        ),
+
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('$departure - $arrival'),
+                            Text(flight.aircraftModel ?? ''),
+                            const SizedBox(height: 6),
+
+                            // ⭐ CREW INFO
+                            if (flight.hasAssignedPilots)
+                              Text(
+                                'Crew assigned (${flight.assignedPilotCount})',
+                                style: const TextStyle(
+                                  color: Colors.teal,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              )
+                            else
+                              const Text(
+                                'No crew assigned',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                          ],
+                        ),
+
                         isThreeLine: true,
+
                         trailing: Text(
                           flight.status,
                           style: TextStyle(
@@ -89,14 +119,9 @@ class FlightsOfDayBottomSheet extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+
                         onTap: () {
-                          Navigator.pop(context); // cierra el modal
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => FlightDetailScreen(flight: flight),
-                            ),
-                          );
+                          Navigator.pop(context, flight); // 🔥 return selected flight
                         },
                       ),
                     );

@@ -32,4 +32,7 @@
 
     // 🧾 Reserva
     public string? ReservationCode { get; set; }
+
+    public bool HasAssignedPilots { get; set; }
+    public int AssignedPilotCount { get; set; }
 }

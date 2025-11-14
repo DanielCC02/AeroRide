@@ -96,6 +96,13 @@ class _LoginSheetState extends State<LoginSheet> {
         roleId = userData['roleId'] as int;
       }
 
+            // Guardar userId (sirve como pilotId cuando el rol es Pilot)
+      if (userData['id'] is int) {
+        await TokenStorage.saveUserId(userData['id'] as int);
+      } else {
+        await TokenStorage.saveUserId(null);
+      }
+
       // Guardar companyId (solo si viene)
       int? companyId;
       if (userData['companyId'] is int) {
