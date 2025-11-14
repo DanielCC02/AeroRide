@@ -70,6 +70,9 @@ namespace AeroRide.API.Services.Implementations
 
             if (dto.CoPilotId.HasValue)
             {
+                if (dto.CoPilotId.Value == dto.PilotId)
+                    throw new Exception("El copiloto no puede ser igual al piloto principal.");
+
                 coPilot = await _db.Users
                     .Include(u => u.Role)
                     .FirstOrDefaultAsync(u => u.Id == dto.CoPilotId.Value);
@@ -82,31 +85,44 @@ namespace AeroRide.API.Services.Implementations
             }
 
             // ===========================
-            // Crear asignaciones
+            // Eliminar asignaciones anteriores
             // ===========================
-            var assignments = new List<FlightAssignment>()
-            {
-                new FlightAssignment
-                {
-                    FlightId = flightId,
-                    PilotUserId = pilot.Id,
-                    Status = FlightAssignmentStatus.Assigned
-                }
-            };
+            var existingAssignments = await _db.FlightAssignments
+                .Where(a => a.FlightId == flightId)
+                .ToListAsync();
+
+            _db.FlightAssignments.RemoveRange(existingAssignments);
+            await _db.SaveChangesAsync();
+
+            // ===========================
+            // Crear asignaciones nuevas (CON CrewRole)
+            // ===========================
+            var newAssignments = new List<FlightAssignment>()
+    {
+        new FlightAssignment
+        {
+            FlightId = flightId,
+            PilotUserId = pilot.Id,
+            CrewRole = CrewRole.Pilot,
+            Status = FlightAssignmentStatus.Assigned
+        }
+    };
 
             if (coPilot != null)
             {
-                assignments.Add(new FlightAssignment
+                newAssignments.Add(new FlightAssignment
                 {
                     FlightId = flightId,
                     PilotUserId = coPilot.Id,
+                    CrewRole = CrewRole.CoPilot,
                     Status = FlightAssignmentStatus.Assigned
                 });
             }
 
-            await _db.FlightAssignments.AddRangeAsync(assignments);
+            await _db.FlightAssignments.AddRangeAsync(newAssignments);
             await _db.SaveChangesAsync();
         }
+
 
 
         // ======================================================
@@ -130,6 +146,16 @@ namespace AeroRide.API.Services.Implementations
                 .ToListAsync();
 
             return _mapper.Map<IEnumerable<FlightResponseDto>>(flights);
+        }
+        public async Task<IEnumerable<FlightPilotDto>> GetPilotsByFlightAsync(int flightId)
+        {
+            var assignments = await _db.FlightAssignments
+                .Where(a => a.FlightId == flightId)
+                .Include(a => a.PilotUser)
+                .OrderBy(a => a.PilotUser.Name)
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<FlightPilotDto>>(assignments);
         }
     }
 }

@@ -32,5 +32,8 @@ namespace AeroRide.API.Models.Domain
         /// Estado actual de la asignación.
         /// </summary>
         public FlightAssignmentStatus Status { get; set; } = FlightAssignmentStatus.Assigned;
+
+        public CrewRole CrewRole { get; set; } = CrewRole.Pilot;
+
     }
 }

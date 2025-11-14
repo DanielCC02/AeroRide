@@ -12,5 +12,6 @@ namespace AeroRide.API.Services.Interfaces
         Task<IEnumerable<FlightResponseDto>> GetFlightsByCompanyAsync(int companyId);
         Task AssignPilotsToFlightAsync(int flightId, FlightAssignmentCreateDto dto);
         Task<IEnumerable<FlightResponseDto>> GetFlightsByPilotAsync(int pilotUserId);
+        Task<IEnumerable<FlightPilotDto>> GetPilotsByFlightAsync(int flightId);
     }
 }
