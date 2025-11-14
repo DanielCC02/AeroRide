@@ -20,6 +20,7 @@ using System.Text.Json.Serialization;
 /// </summary>
 var builder = WebApplication.CreateBuilder(args);
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 
 // ======================================================
@@ -56,7 +57,6 @@ builder.Services.AddScoped<IAirportService, AirportService>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IFlightService, FlightService>();
-
 
 
 // 🔹 Aquí podrás registrar otros servicios en el futuro, como IFlightService, IReservationService, etc.

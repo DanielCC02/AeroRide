@@ -60,8 +60,6 @@ namespace AeroRide.API.Services.Implementations
                 if (aircraft.State != AircraftState.Disponible)
                     throw new Exception($"La aeronave seleccionada no está disponible ({availability.Reason}).");
 
-
-
                 // 🔹 Validar coherencia temporal de cada segmento
                 foreach (var segment in dto.Segments)
                 {
@@ -71,7 +69,6 @@ namespace AeroRide.API.Services.Implementations
                             $"tiene una hora de llegada anterior o igual a la salida."
                         );
                 }
-
 
                 // ======================================================
                 // 2️⃣ CREAR RESERVA BASE
@@ -129,7 +126,15 @@ namespace AeroRide.API.Services.Implementations
                 if (firstSegment.DepartureAirportId != baseAirport.Id)
                 {
                     var origin = await _db.Airports.FirstAsync(a => a.Id == firstSegment.DepartureAirportId);
-                    double duracionMin = CalcularDuracionVuelo(baseAirport, origin, aircraft);
+                    double duracionMin = FlightMathHelper.CalcularDuracionVuelo(baseAirport, origin, aircraft);
+
+                    // Convertir hora local del aeropuerto a UTC
+                    var departureUtc = TimeHelper.ToUtc(firstSegment.DepartureTime.AddMinutes(-duracionMin - 60), origin.TimeZone);
+                    var arrivalUtc = TimeHelper.ToUtc(firstSegment.DepartureTime.AddMinutes(-60), origin.TimeZone);
+
+                    // Redondear
+                    departureUtc = TimeHelper.RedondearAHoraProxima(departureUtc, 5);
+                    arrivalUtc = TimeHelper.RedondearAHoraProxima(arrivalUtc, 5);
 
                     allFlights.Add(new Flight
                     {
@@ -138,8 +143,8 @@ namespace AeroRide.API.Services.Implementations
                         ReservationId = null,
                         DepartureAirportId = baseAirport.Id,
                         ArrivalAirportId = origin.Id,
-                        DepartureTime = firstSegment.DepartureTime.AddMinutes(-duracionMin - 60),
-                        ArrivalTime = firstSegment.DepartureTime.AddMinutes(-60),
+                        DepartureTime = departureUtc,
+                        ArrivalTime = arrivalUtc,
                         DurationMinutes = duracionMin,
                         IsEmptyLeg = true,
                         IsInternational = baseAirport.Country != origin.Country,
@@ -148,6 +153,7 @@ namespace AeroRide.API.Services.Implementations
                     });
                 }
 
+
                 // 🟦 Vuelos comerciales del cliente
                 for (int i = 0; i < dto.Segments.Count; i++)
                 {
@@ -155,22 +161,29 @@ namespace AeroRide.API.Services.Implementations
                     var dep = await _db.Airports.FirstAsync(a => a.Id == seg.DepartureAirportId);
                     var arr = await _db.Airports.FirstAsync(a => a.Id == seg.ArrivalAirportId);
 
-                    // 🕓 Validar horario de aeropuerto
-                    if (!AirportTimeHelper.IsWithinOperatingHours(seg.DepartureTime, dep))
+                    // 🔹 Convertir horas locales a UTC (según cada aeropuerto)
+                    var depUtc = TimeHelper.ToUtc(seg.DepartureTime, dep.TimeZone);
+                    var arrUtc = TimeHelper.ToUtc(seg.ArrivalTime, arr.TimeZone);
+
+                    // 🔹 Validar horarios operativos (en hora UTC)
+                    if (!AirportTimeHelper.IsWithinOperatingHours(depUtc, dep))
                         throw new InvalidOperationException($"El aeropuerto {dep.Name} está cerrado en esa hora de salida.");
 
-                    if (!AirportTimeHelper.IsWithinOperatingHours(seg.ArrivalTime, arr))
+                    if (!AirportTimeHelper.IsWithinOperatingHours(arrUtc, arr))
                         throw new InvalidOperationException($"El aeropuerto {arr.Name} está cerrado en esa hora de llegada.");
-
 
                     // 🌎 Validar vuelo internacional
                     bool isInternational = dep.Country.Trim().ToLower() != arr.Country.Trim().ToLower();
                     if (isInternational && !aircraft.CanFlyInternational)
                         throw new InvalidOperationException($"La aeronave '{aircraft.Model}' no puede realizar vuelos internacionales.");
 
-                    // ⏱ Calcular duración y crear vuelo
-                    double duracionMin = CalcularDuracionVuelo(dep, arr, aircraft);
+                    // ⏱ Calcular duración real por distancia
+                    double duracionMin = FlightMathHelper.CalcularDuracionVuelo(dep, arr, aircraft);
                     if (duracionMin < 10) duracionMin = 10;
+
+                    // 🔹 Redondear horas en UTC
+                    depUtc = TimeHelper.RedondearAHoraProxima(depUtc, 5);
+                    arrUtc = TimeHelper.RedondearAHoraProxima(depUtc.AddMinutes(duracionMin), 5);
 
                     allFlights.Add(new Flight
                     {
@@ -179,8 +192,8 @@ namespace AeroRide.API.Services.Implementations
                         ReservationId = reservation.Id,
                         DepartureAirportId = dep.Id,
                         ArrivalAirportId = arr.Id,
-                        DepartureTime = seg.DepartureTime,
-                        ArrivalTime = seg.DepartureTime.AddMinutes(duracionMin),
+                        DepartureTime = depUtc,
+                        ArrivalTime = arrUtc,
                         DurationMinutes = duracionMin,
                         IsEmptyLeg = false,
                         IsInternational = isInternational,
@@ -188,14 +201,15 @@ namespace AeroRide.API.Services.Implementations
                         CreatedAt = DateTime.UtcNow
                     });
 
-                    // 🕐 R3 – Espera mínima de 45 minutos entre vuelos
+                    // 🕐 R3 – Espera mínima de 30 minutos entre vuelos
                     if (i < dto.Segments.Count - 1)
                     {
                         var siguiente = dto.Segments[i + 1];
-                        if ((siguiente.DepartureTime - seg.ArrivalTime).TotalMinutes < 45)
-                            throw new InvalidOperationException("Debe haber al menos 45 minutos entre vuelos consecutivos.");
+                        if ((siguiente.DepartureTime - seg.ArrivalTime).TotalMinutes < 30)
+                            throw new InvalidOperationException("Debe haber al menos 30 minutos entre vuelos consecutivos.");
                     }
                 }
+
 
                 // 🟥 Empty leg regreso — destino cliente → base (solo one-way)
                 if (!isRoundTrip && lastSegment.ArrivalAirportId != baseAirport.Id)
@@ -205,7 +219,15 @@ namespace AeroRide.API.Services.Implementations
                     // 🚫 Evitar duplicar si se activará una pernocta
                     if (!AirportTimeHelper.ShouldOvernight(destinationAirport, lastSegment.ArrivalTime))
                     {
-                        double duracionMin = CalcularDuracionVuelo(destinationAirport, baseAirport, aircraft);
+                        double duracionMin = FlightMathHelper.CalcularDuracionVuelo(destinationAirport, baseAirport, aircraft);
+
+                        // 🔹 Calcular horas en UTC
+                        var departureUtc = TimeHelper.ToUtc(lastSegment.ArrivalTime.AddMinutes(30), destinationAirport.TimeZone);
+                        var arrivalUtc = departureUtc.AddMinutes(duracionMin);
+
+                        // 🔹 Redondear
+                        departureUtc = TimeHelper.RedondearAHoraProxima(departureUtc, 5);
+                        arrivalUtc = TimeHelper.RedondearAHoraProxima(arrivalUtc, 5);
 
                         allFlights.Add(new Flight
                         {
@@ -214,8 +236,8 @@ namespace AeroRide.API.Services.Implementations
                             ReservationId = null,
                             DepartureAirportId = destinationAirport.Id,
                             ArrivalAirportId = baseAirport.Id,
-                            DepartureTime = lastSegment.ArrivalTime.AddMinutes(30),
-                            ArrivalTime = lastSegment.ArrivalTime.AddMinutes(30 + duracionMin),
+                            DepartureTime = departureUtc,
+                            ArrivalTime = arrivalUtc,
                             DurationMinutes = duracionMin,
                             IsEmptyLeg = true,
                             IsInternational = destinationAirport.Country != baseAirport.Country,
@@ -226,20 +248,29 @@ namespace AeroRide.API.Services.Implementations
                 }
 
 
+
                 // ======================================================
                 // 🌙 7️⃣ Pernocta automática si llega tarde
                 // ======================================================
                 var destinoFinal = await _db.Airports.FirstAsync(a => a.Id == lastSegment.ArrivalAirportId);
                 if (destinoFinal.Id != baseAirport.Id && AirportTimeHelper.ShouldOvernight(destinoFinal, lastSegment.ArrivalTime))
                 {
-                    var salidaManana = TimeHelper.ToUtc(
-                        TimeHelper.ToLocalTime(lastSegment.ArrivalTime, destinoFinal.TimeZone).Date
-                            .AddDays(1)
-                            .Add(destinoFinal.OpeningTime ?? new TimeSpan(6, 0, 0)),
-                        destinoFinal.TimeZone
-                    );
+                    // 🔹 Convertir hora de llegada local → UTC
+                    var arrivalUtc = TimeHelper.ToUtc(lastSegment.ArrivalTime, destinoFinal.TimeZone);
 
-                    var duracionMin = CalcularDuracionVuelo(destinoFinal, baseAirport, aircraft);
+                    // 🔹 Calcular hora de salida del día siguiente (hora local del aeropuerto)
+                    var localArrival = TimeHelper.ToLocalTime(arrivalUtc, destinoFinal.TimeZone);
+                    var salidaLocal = localArrival.Date.AddDays(1).Add(destinoFinal.OpeningTime ?? new TimeSpan(6, 0, 0));
+
+                    // 🔹 Convertir esa salida local a UTC
+                    var salidaUtc = TimeHelper.ToUtc(salidaLocal, destinoFinal.TimeZone);
+
+                    double duracionMin = FlightMathHelper.CalcularDuracionVuelo(destinoFinal, baseAirport, aircraft);
+
+                    // 🔹 Redondear
+                    salidaUtc = TimeHelper.RedondearAHoraProxima(salidaUtc, 5);
+                    var llegadaUtc = TimeHelper.RedondearAHoraProxima(salidaUtc.AddMinutes(duracionMin), 5);
+
                     allFlights.Add(new Flight
                     {
                         CompanyId = dto.CompanyId,
@@ -247,8 +278,8 @@ namespace AeroRide.API.Services.Implementations
                         ReservationId = null,
                         DepartureAirportId = destinoFinal.Id,
                         ArrivalAirportId = baseAirport.Id,
-                        DepartureTime = salidaManana,
-                        ArrivalTime = salidaManana.AddMinutes(duracionMin),
+                        DepartureTime = salidaUtc,
+                        ArrivalTime = llegadaUtc,
                         DurationMinutes = duracionMin,
                         IsEmptyLeg = true,
                         IsInternational = destinoFinal.Country != baseAirport.Country,
@@ -258,8 +289,9 @@ namespace AeroRide.API.Services.Implementations
                 }
 
 
+
                 // ======================================================
-                // 🔁 8️⃣ R11 – ROUNDTRIP EXTENDIDO (>4h de espera)
+                // 🔁 8️⃣ R11 – ROUNDTRIP EXTENDIDO (>6h de espera)
                 // ======================================================
                 if (isRoundTrip && dto.Segments.Count == 2)
                 {
@@ -271,8 +303,16 @@ namespace AeroRide.API.Services.Implementations
                     {
                         var arrIda = await _db.Airports.FirstAsync(a => a.Id == segIda.ArrivalAirportId);
 
-                        // Empty leg regreso base después de ida
-                        double durRegreso = CalcularDuracionVuelo(arrIda, baseAirport, aircraft);
+                        // 🔹 Calcular vuelo regreso base tras la ida
+                        double durRegreso = FlightMathHelper.CalcularDuracionVuelo(arrIda, baseAirport, aircraft);
+
+                        var departureBackUtc = TimeHelper.ToUtc(segIda.ArrivalTime.AddMinutes(30), arrIda.TimeZone);
+                        var arrivalBackUtc = departureBackUtc.AddMinutes(durRegreso);
+
+                        // Redondear
+                        departureBackUtc = TimeHelper.RedondearAHoraProxima(departureBackUtc, 5);
+                        arrivalBackUtc = TimeHelper.RedondearAHoraProxima(arrivalBackUtc, 5);
+
                         allFlights.Add(new Flight
                         {
                             CompanyId = dto.CompanyId,
@@ -280,15 +320,23 @@ namespace AeroRide.API.Services.Implementations
                             ReservationId = null,
                             DepartureAirportId = arrIda.Id,
                             ArrivalAirportId = baseAirport.Id,
-                            DepartureTime = segIda.ArrivalTime.AddMinutes(30),
-                            ArrivalTime = segIda.ArrivalTime.AddMinutes(30 + durRegreso),
+                            DepartureTime = departureBackUtc,
+                            ArrivalTime = arrivalBackUtc,
                             DurationMinutes = durRegreso,
                             IsEmptyLeg = true,
                             Status = FlightStatus.Programado
                         });
 
-                        // Empty leg de salida para recoger vuelta
-                        double durSalida = CalcularDuracionVuelo(baseAirport, arrIda, aircraft);
+                        // 🔹 Calcular empty leg de salida para recoger vuelta
+                        double durSalida = FlightMathHelper.CalcularDuracionVuelo(baseAirport, arrIda, aircraft);
+
+                        var departureOutUtc = TimeHelper.ToUtc(segVuelta.DepartureTime.AddMinutes(-durSalida - 60), arrIda.TimeZone);
+                        var arrivalOutUtc = TimeHelper.ToUtc(segVuelta.DepartureTime.AddMinutes(-60), arrIda.TimeZone);
+
+                        // Redondear
+                        departureOutUtc = TimeHelper.RedondearAHoraProxima(departureOutUtc, 5);
+                        arrivalOutUtc = TimeHelper.RedondearAHoraProxima(arrivalOutUtc, 5);
+
                         allFlights.Add(new Flight
                         {
                             CompanyId = dto.CompanyId,
@@ -296,8 +344,8 @@ namespace AeroRide.API.Services.Implementations
                             ReservationId = null,
                             DepartureAirportId = baseAirport.Id,
                             ArrivalAirportId = arrIda.Id,
-                            DepartureTime = segVuelta.DepartureTime.AddMinutes(-durSalida - 60),
-                            ArrivalTime = segVuelta.DepartureTime.AddMinutes(-60),
+                            DepartureTime = departureOutUtc,
+                            ArrivalTime = arrivalOutUtc,
                             DurationMinutes = durSalida,
                             IsEmptyLeg = true,
                             Status = FlightStatus.Programado
@@ -305,13 +353,14 @@ namespace AeroRide.API.Services.Implementations
                     }
                 }
 
+
                 // ======================================================
-                // 9️⃣ GUARDAR Y BLOQUEAR HORARIOS
+                // 9️⃣ GUARDAR Y BLOQUEAR HORARIOS (agrupado con 30 min)
                 // ======================================================
                 await _db.Flights.AddRangeAsync(allFlights);
                 await _db.SaveChangesAsync();
 
-                // Agrupa vuelos contiguos con menos de 1h entre ellos
+                // 🔹 Ordenar vuelos por hora UTC
                 var orderedFlights = allFlights.OrderBy(f => f.DepartureTime).ToList();
                 var grupos = new List<(DateTime inicio, DateTime fin)>();
 
@@ -321,14 +370,19 @@ namespace AeroRide.API.Services.Implementations
                 for (int i = 1; i < orderedFlights.Count; i++)
                 {
                     var gap = orderedFlights[i].DepartureTime - grupoFin;
-                    if (gap.TotalMinutes <= 60)
+
+                    // 🔹 Unir vuelos si están cercanos (<90 min)
+                    //    o si pertenecen al mismo día y reserva,
+                    //    pero si hay más de 6h entre vuelos, crear bloque separado
+                    bool mismoDia = orderedFlights[i].DepartureTime.Date == grupoInicio.Date;
+                    bool mismaReserva = orderedFlights[i].ReservationId == orderedFlights[i - 1].ReservationId;
+
+                    if ((gap.TotalMinutes <= 90 || (mismaReserva && mismoDia)) && gap.TotalHours < 6)
                     {
-                        // Es parte del mismo bloque
                         grupoFin = orderedFlights[i].ArrivalTime;
                     }
                     else
                     {
-                        // Nuevo bloque
                         grupos.Add((grupoInicio, grupoFin));
                         grupoInicio = orderedFlights[i].DepartureTime;
                         grupoFin = orderedFlights[i].ArrivalTime;
@@ -336,15 +390,19 @@ namespace AeroRide.API.Services.Implementations
                 }
                 grupos.Add((grupoInicio, grupoFin));
 
-                // Guarda un registro por bloque
+                // 🔹 Crear registros de disponibilidad (en UTC)
                 foreach (var g in grupos)
                 {
+                    // Redondear el bloque a múltiplos de 5 minutos
+                    var startUtc = TimeHelper.RedondearAHoraProxima(g.inicio, 5);
+                    var endUtc = TimeHelper.RedondearAHoraProxima(g.fin.AddMinutes(30), 5); // margen 30 min post-vuelo
+
                     await _db.AircraftAvailabilities.AddAsync(new AircraftAvailability
                     {
                         AircraftId = aircraft.Id,
                         ReservationId = reservation.Id,
-                        StartTime = g.inicio,
-                        EndTime = g.fin.AddMinutes(45),
+                        StartTime = startUtc,
+                        EndTime = endUtc,
                         Type = "Reserva",
                         Status = "Confirmado"
                     });
@@ -352,17 +410,27 @@ namespace AeroRide.API.Services.Implementations
 
                 await _db.SaveChangesAsync();
 
+
                 // ======================================================
-                // 🔟 ACTUALIZAR UBICACIÓN
+                // 🔟 ACTUALIZAR UBICACIÓN FINAL DEL AVIÓN
                 // ======================================================
+
+                // ✅ Siempre mantener coherencia UTC en los registros
                 aircraft.StatusLastUpdated = DateTime.UtcNow;
-                aircraft.CurrentAirportId = baseAirport.Id;
+
+                // 🔹 Si el vuelo final termina en la base → actualizar ubicación
+                var ultimoVuelo = orderedFlights.Last();
+                aircraft.CurrentAirportId = (ultimoVuelo.ArrivalAirportId == baseAirport.Id)
+                    ? baseAirport.Id
+                    : ultimoVuelo.ArrivalAirportId;
+
                 await _db.SaveChangesAsync();
 
                 await transaction.CommitAsync();
 
+
                 // ======================================================
-                // 🔁 DEVOLVER RESULTADO COMPLETO
+                // 🔁 DEVOLVER RESULTADO COMPLETO (incluye vuelos y pasajeros)
                 // ======================================================
                 var created = await _db.Reservations
                     .Include(r => r.Company)
@@ -373,12 +441,26 @@ namespace AeroRide.API.Services.Implementations
                     .FirstAsync(r => r.Id == reservation.Id);
 
                 return _mapper.Map<ReservationResponseDto>(created);
+
+                Console.WriteLine($"{dto.Segments[0].DepartureTime:o} - Kind: {dto.Segments[0].DepartureTime.Kind}");
+
+
             }
-            catch
+            catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                throw;
+
+                // Extraer el mensaje de la inner exception (la que tiene el detalle SQL)
+                string inner = ex.InnerException?.Message ?? ex.Message;
+
+                // Opcional: si hay una inner de inner (por ejemplo PostgresException.InnerException)
+                if (ex.InnerException?.InnerException != null)
+                    inner += $" → {ex.InnerException.InnerException.Message}";
+
+                // Mostrar el detalle real del error al frontend
+                throw new Exception($"Error al crear la reserva: {inner}");
             }
+
         }
 
 
@@ -431,7 +513,7 @@ namespace AeroRide.API.Services.Implementations
                 }
 
                 // Calcular duración del segmento
-                totalMinutos += CalcularDuracionVuelo(airportFrom, airportTo, aircraft);
+                totalMinutos += FlightMathHelper.CalcularDuracionVuelo(airportFrom, airportTo, aircraft);
             }
 
             // ======================================================
@@ -495,9 +577,6 @@ namespace AeroRide.API.Services.Implementations
                 IsInternational = esInternacional
             };
         }
-
-
-
 
         // ======================================================
         // 🔍 GET RESERVATION BY ID
@@ -570,36 +649,6 @@ namespace AeroRide.API.Services.Implementations
         }
 
         // ======================================================
-        // 📏 CÁLCULOS DE DISTANCIA Y DURACIÓN
-        // ======================================================
-        private double CalcularDistanciaKm(decimal lat1, decimal lon1, decimal lat2, decimal lon2)
-        {
-            const double R = 6371;
-            double dLat = Math.PI / 180 * ((double)lat2 - (double)lat1);
-            double dLon = Math.PI / 180 * ((double)lon2 - (double)lon1);
-
-            double a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-                       Math.Cos(Math.PI / 180 * (double)lat1) *
-                       Math.Cos(Math.PI / 180 * (double)lat2) *
-                       Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
-
-            double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
-            return R * c;
-        }
-
-        private double CalcularDuracionVuelo(Airport origen, Airport destino, Aircraft avion)
-        {
-            double distanciaKm = CalcularDistanciaKm(
-                origen.Latitude, origen.Longitude,
-                destino.Latitude, destino.Longitude
-            );
-
-            double velocidadKmH = avion.CruisingSpeed > 0 ? avion.CruisingSpeed : 250;
-            double horas = distanciaKm / velocidadKmH;
-            return horas * 60 + 10; // 10 min extra
-        }
-
-        // ======================================================
         // 🔍 VALIDACIÓN DE DISPONIBILIDAD
         // ======================================================
         /// <summary>
@@ -612,11 +661,11 @@ namespace AeroRide.API.Services.Implementations
             string model,
             int totalPassengers,
             DateTime requestedStart,
-            DateTime requestedEnd)
+            DateTime requestedEnd
+            )
         {
-            const int turnaroundMinutesBase = 45;     // margen mínimo entre vuelos
-            const int turnaroundMinutesRemote = 60;   // margen si no está en base
-            const int ventanaMinimaLibreHoras = 6;    // tiempo mínimo entre bloques grandes
+            const int turnaroundMinutes = 30;       // 🔹 margen estándar entre vuelos
+            const int ventanaMinimaLibreHoras = 6;  // 🔹 si el hueco es mayor a 6h, se considera ventana aprovechable
 
             var aircrafts = await _db.Aircrafts
                 .Include(a => a.BaseAirport)
@@ -638,17 +687,14 @@ namespace AeroRide.API.Services.Implementations
                     .OrderBy(av => av.StartTime)
                     .ToListAsync();
 
-                // ✅ Sin reservas → totalmente libre
+                // ✅ Sin reservas → libre
                 if (!ocupaciones.Any())
                     return new AircraftAvailabilityResult { Aircraft = aircraft, Reason = "Aeronave libre (sin reservas previas)." };
 
-                // ⚙️ Detectar si la última reserva deja al avión en base
-                bool ultimoEnBase = aircraft.CurrentAirportId == aircraft.BaseAirportId;
-
-                // 📆 Revisar conflictos directos
+                // ⚠️ Conflicto directo con otra reserva
                 bool conflicto = ocupaciones.Any(av =>
-                    requestedStart < av.EndTime.AddMinutes(turnaroundMinutesRemote) &&
-                    requestedEnd > av.StartTime.AddMinutes(-turnaroundMinutesRemote));
+                    requestedStart < av.EndTime.AddMinutes(turnaroundMinutes) &&
+                    requestedEnd > av.StartTime.AddMinutes(-turnaroundMinutes));
 
                 if (!conflicto)
                     return new AircraftAvailabilityResult { Aircraft = aircraft, Reason = "Aeronave libre (sin solapamientos directos)." };
@@ -662,45 +708,46 @@ namespace AeroRide.API.Services.Implementations
 
                     if (gap.TotalHours >= ventanaMinimaLibreHoras)
                     {
-                        // 🕓 Detectar si entre reservas está en base
-                        bool enBase = ultimoEnBase || aircraft.CurrentAirportId == aircraft.BaseAirportId;
-                        int margen = enBase ? turnaroundMinutesBase : turnaroundMinutesRemote;
+                        var ventanaInicio = actual.EndTime.AddMinutes(turnaroundMinutes);
+                        var ventanaFin = siguiente.StartTime.AddMinutes(-turnaroundMinutes);
+                        double minutosVentana = (ventanaFin - ventanaInicio).TotalMinutes;
 
-                        var ventanaInicio = actual.EndTime.AddMinutes(margen);
-                        var ventanaFin = siguiente.StartTime.AddMinutes(-margen);
+                        // 🕓 calcular distancia (ida y vuelta a base)
+                        var baseAirport = await _db.Airports.FirstAsync(a => a.Id == aircraft.BaseAirportId);
+                        double duracionIda = 0, duracionVuelta = 0;
 
-                        // Si la solicitud cabe completa en esa ventana
-                        if (requestedStart >= ventanaInicio && requestedEnd <= ventanaFin)
+                        // Determinar aeropuerto actual del avión (por ahora tomamos base)
+                        var aeropuertoActual = baseAirport;
+
+                        // Calcular tiempos de traslado desde/hacia base
+                        if (aeropuertoActual.Id != baseAirport.Id)
                         {
-                            double duracionMin = (requestedEnd - requestedStart).TotalMinutes;
+                            duracionIda = FlightMathHelper.CalcularDuracionVuelo(aeropuertoActual, baseAirport, aircraft);
+                            duracionVuelta = FlightMathHelper.CalcularDuracionVuelo(baseAirport, aeropuertoActual, aircraft);
+                        }
 
-                            // 🧮 Calcular tiempo disponible real de la ventana
-                            double minutosVentana = (ventanaFin - ventanaInicio).TotalMinutes;
+                        // Duración total estimada (vuelo solicitado + traslado base ↔ origen + margen 30 min)
+                        double duracionSolicitada = (requestedEnd - requestedStart).TotalMinutes;
+                        double duracionTotal = duracionIda + duracionVuelta + duracionSolicitada + (turnaroundMinutes * 2);
 
-                            if (duracionMin <= minutosVentana)
+                        if (requestedStart >= ventanaInicio && requestedEnd <= ventanaFin && duracionTotal <= minutosVentana)
+                        {
+                            return new AircraftAvailabilityResult
                             {
-                                return new AircraftAvailabilityResult
-                                {
-                                    Aircraft = aircraft,
-                                    Reason = $"Disponible en base entre reservas ({ventanaInicio:t}–{ventanaFin:t})."
-                                };
-                            }
+                                Aircraft = aircraft,
+                                Reason = $"Disponible en ventana libre ({ventanaInicio:t}–{ventanaFin:t}). Duración total: {duracionTotal:F0} min"
+                            };
                         }
                     }
                 }
             }
 
-            // 🚫 Si ninguna aeronave aplica
+            // 🚫 Ninguna aeronave aplicó
             return new AircraftAvailabilityResult
             {
                 Reason = "Todas las aeronaves del modelo están ocupadas o sin suficiente ventana libre."
             };
         }
-
-
-
-
-
 
 
     }

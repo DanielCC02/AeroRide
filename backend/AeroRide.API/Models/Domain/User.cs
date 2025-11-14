@@ -141,5 +141,11 @@
         /// Permite mantener sesiones seguras y múltiples dispositivos autenticados.
         /// </summary>
         public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+
+        /// <summary>
+        /// Vuelos asignados al piloto.
+        /// </summary>
+        public ICollection<FlightAssignment> FlightAssignments { get; set; } = new List<FlightAssignment>();
+
     }
 }

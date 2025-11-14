@@ -1,4 +1,5 @@
-﻿using AeroRide.API.Services.Interfaces;
+﻿using AeroRide.API.Models.DTOs.FlightAssignments;
+using AeroRide.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -28,6 +29,27 @@ namespace AeroRide.API.Controllers
         {
             var result = await _flightService.GetFlightsByCompanyAsync(companyId);
             return Ok(result);
+        }
+
+        // ======================================================
+        // POST: ASIGNAR PILOTO Y COPILOTO A UN VUELO
+        // ======================================================
+        [HttpPost("{flightId}/assign")]
+        public async Task<IActionResult> AssignPilots(int flightId, [FromBody] FlightAssignmentCreateDto dto)
+        {
+            await _flightService.AssignPilotsToFlightAsync(flightId, dto);
+            return Ok(new { message = "Pilotos asignados correctamente." });
+        }
+
+
+        // ======================================================
+        // GET: OBTENER VUELOS ASIGNADOS A UN PILOTO
+        // ======================================================
+        [HttpGet("pilot/{pilotId}")]
+        public async Task<IActionResult> GetFlightsByPilot(int pilotId)
+        {
+            var flights = await _flightService.GetFlightsByPilotAsync(pilotId);
+            return Ok(flights);
         }
     }
 }
