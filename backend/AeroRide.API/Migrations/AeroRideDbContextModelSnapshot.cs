@@ -361,6 +361,10 @@ namespace AeroRide.API.Migrations
                         .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("now()");
 
+                    b.Property<string>("CrewRole")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<int>("FlightId")
                         .HasColumnType("integer");
 

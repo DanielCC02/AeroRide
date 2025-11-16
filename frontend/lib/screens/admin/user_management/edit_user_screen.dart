@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../models/user_model.dart';
-import '../../services/user_service.dart';
+import 'package:frontend/models/user_model.dart';
+import 'package:frontend/services/user_service.dart';
 
 /// Pantalla que permite al administrador editar los datos de un usuario existente.
 class EditUserScreen extends StatefulWidget {

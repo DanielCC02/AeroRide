@@ -76,9 +76,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                     children: [
                       Text(
                         'You are not logged in',
-                        style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium!
+                            .copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -120,7 +119,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         onPressed: () {},
                         child: Text(
                           'Privacy Settings',
-                          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                          style: Theme.of(context).textTheme.bodyMedium!
+                              .copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: cs.primary,
                               ),
@@ -128,7 +128,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'By using Aerocaribe’s service, you agree to our Terms & Conditions and applicable Privacy Policy',
+                        'By using Aeroride’s service, you agree to our Terms & Conditions and applicable Privacy Policy',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),

@@ -51,7 +51,7 @@ class _CreateAdminScreenState extends State<CreateAdminScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Crear Administrador')),
+      appBar: AppBar(title: const Text('Create Company Administrator')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -60,39 +60,39 @@ class _CreateAdminScreenState extends State<CreateAdminScreen> {
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Nombre'),
+                decoration: const InputDecoration(labelText: 'Name'),
                 validator: (value) =>
-                    value == null || value.isEmpty ? 'Campo requerido' : null,
+                    value == null || value.isEmpty ? 'Required Field' : null,
               ),
               TextFormField(
                 controller: _lastNameController,
-                decoration: const InputDecoration(labelText: 'Apellido'),
+                decoration: const InputDecoration(labelText: 'Last Name'),
                 validator: (value) =>
-                    value == null || value.isEmpty ? 'Campo requerido' : null,
+                    value == null || value.isEmpty ? 'Required Field' : null,
               ),
               TextFormField(
                 controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Correo'),
+                decoration: const InputDecoration(labelText: 'Email'),
                 validator: (value) =>
-                    value == null || value.isEmpty ? 'Campo requerido' : null,
+                    value == null || value.isEmpty ? 'Required Field' : null,
               ),
               TextFormField(
                 controller: _phoneController,
-                decoration: const InputDecoration(labelText: 'Teléfono'),
+                decoration: const InputDecoration(labelText: 'Phone'),
                 validator: (value) =>
-                    value == null || value.isEmpty ? 'Campo requerido' : null,
+                    value == null || value.isEmpty ? 'Required Field' : null,
               ),
               TextFormField(
                 controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Contraseña'),
+                decoration: const InputDecoration(labelText: 'Password'),
                 obscureText: true,
                 validator: (value) =>
-                    value == null || value.isEmpty ? 'Campo requerido' : null,
+                    value == null || value.isEmpty ? 'Required Field' : null,
               ),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _createUser,
-                child: const Text('Crear usuario'),
+                child: const Text('Create User'),
               ),
             ],
           ),

@@ -5,7 +5,8 @@ class TokenStorage {
   static const _keyAccessToken = 'access_token';
   static const _keyRefreshToken = 'refresh_token';
   static const _keyCompanyId = 'company_id';
-  static const _keyCompanyName = 'company_name'; // Nuevo
+  static const _keyCompanyName = 'company_name'; 
+  static const _keyUserId = 'user_id'; 
 
   // ======================================================
   // 🔐 TOKENS
@@ -80,6 +81,23 @@ class TokenStorage {
     return await _storage.read(key: _keyCompanyName);
   }
 
+   // ======================================================
+  // 👤 USER ID (pilot, admin, etc.)
+  // ======================================================
+
+  static Future<void> saveUserId(int? userId) async {
+    if (userId != null) {
+      await _storage.write(key: _keyUserId, value: userId.toString());
+    } else {
+      await _storage.delete(key: _keyUserId);
+    }
+  }
+
+  static Future<int?> getUserId() async {
+    final value = await _storage.read(key: _keyUserId);
+    return value != null ? int.tryParse(value) : null;
+  }
+
   // ======================================================
   // 🚪 LIMPIEZA
   // ======================================================
@@ -89,6 +107,7 @@ class TokenStorage {
     await _storage.delete(key: _keyAccessToken);
     await _storage.delete(key: _keyRefreshToken);
     await _storage.delete(key: _keyCompanyId);
-    await _storage.delete(key: _keyCompanyName); // Nuevo
+    await _storage.delete(key: _keyCompanyName);
+    await _storage.delete(key: _keyUserId);
   }
 }

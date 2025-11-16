@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+
 import 'package:frontend/providers/company_id_provider.dart';
 import 'package:frontend/models/airport_model.dart';
 import 'package:frontend/services/aircraft_service.dart';
@@ -59,7 +60,7 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
   }
 
   // ======================================================
-  // Crear aeronave
+  // Crear aeronave (y luego subir imagen si hay)
   // ======================================================
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -73,8 +74,10 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final companyId =
-          Provider.of<CompanyIdProvider>(context, listen: false).companyId;
+      final companyId = Provider.of<CompanyIdProvider>(
+        context,
+        listen: false,
+      ).companyId;
 
       if (companyId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -83,12 +86,8 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
         return;
       }
 
-      String? imageUrl;
-      if (_selectedImage != null) {
-        imageUrl = await _aircraftService.uploadAircraftImage(_selectedImage!);
-      }
-
-      await _aircraftService.createAircraft(
+      // 1) Crear aeronave SIN imagen (image: null)
+      final created = await _aircraftService.createAircraft(
         patent: _patent.text.trim(),
         model: _model.text.trim(),
         minuteCost: double.parse(_minuteCost.text.trim()),
@@ -98,11 +97,31 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
         cruisingSpeed: double.parse(_cruisingSpeed.text.trim()),
         canFlyInternational: _canFlyInternational,
         state: _state,
-        image: imageUrl,
+        image: null, // la subimos luego si hay
         baseAirportId: _selectedBaseAirport!.id,
         currentAirportId: _selectedCurrentAirport?.id,
         companyId: companyId,
       );
+
+      // 2) Si seleccionaste imagen, subirla usando el id recién creado
+      if (_selectedImage != null) {
+        try {
+          await _aircraftService.uploadAircraftImage(
+            created.id, // <-- id del avión creado
+            _selectedImage!.path, // <-- ruta del archivo
+          );
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  '⚠️ Aeronave creada, pero falló la subida de imagen: $e',
+                ),
+              ),
+            );
+          }
+        }
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -111,11 +130,12 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
         Navigator.pop(context, true);
       }
     } catch (e) {
+      // ignore: avoid_print
       print('❌ Error al crear aeronave: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('⚠️ Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('⚠️ Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -168,39 +188,53 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
                   _buildTextField(_model, 'Model', 'Enter model'),
                   const SizedBox(height: 12),
                   _buildNumberField(
-                      _minuteCost, 'Minute Cost', 'Enter minute cost'),
+                    _minuteCost,
+                    'Minute Cost',
+                    'Enter minute cost',
+                  ),
                   const SizedBox(height: 12),
                   _buildNumberField(_seats, 'Seats', 'Enter seats'),
                   const SizedBox(height: 12),
                   _buildNumberField(
-                      _emptyWeight, 'Empty Weight (kg)', 'Enter empty weight'),
+                    _emptyWeight,
+                    'Empty Weight (kg)',
+                    'Enter empty weight',
+                  ),
                   const SizedBox(height: 12),
                   _buildNumberField(
-                      _maxWeight, 'Max Weight (kg)', 'Enter max weight'),
+                    _maxWeight,
+                    'Max Weight (kg)',
+                    'Enter max weight',
+                  ),
                   const SizedBox(height: 12),
                   _buildNumberField(
-                      _cruisingSpeed, 'Cruising Speed (km/h)', 'Enter speed'),
+                    _cruisingSpeed,
+                    'Cruising Speed (km/h)',
+                    'Enter speed',
+                  ),
                   const SizedBox(height: 16),
 
                   // 🌍 Puede volar internacionalmente
                   SwitchListTile(
                     title: const Text('Can Fly International'),
                     value: _canFlyInternational,
-                    onChanged: (v) =>
-                        setState(() => _canFlyInternational = v),
+                    onChanged: (v) => setState(() => _canFlyInternational = v),
                   ),
                   const SizedBox(height: 12),
 
                   // 🛫 Aeropuerto Base
                   DropdownButtonFormField<Airport>(
-                    decoration:
-                        const InputDecoration(labelText: 'Base Airport'),
-                    value: _selectedBaseAirport,
+                    decoration: const InputDecoration(
+                      labelText: 'Base Airport',
+                    ),
+                    initialValue: _selectedBaseAirport,
                     items: airports
-                        .map((a) => DropdownMenuItem(
-                              value: a,
-                              child: Text('${a.name} (${a.codeIATA})'),
-                            ))
+                        .map(
+                          (a) => DropdownMenuItem(
+                            value: a,
+                            child: Text('${a.name} (${a.codeIATA})'),
+                          ),
+                        )
                         .toList(),
                     onChanged: (value) {
                       setState(() => _selectedBaseAirport = value);
@@ -212,14 +246,17 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
 
                   // 🛬 Aeropuerto Actual (opcional)
                   DropdownButtonFormField<Airport>(
-                    decoration:
-                        const InputDecoration(labelText: 'Current Airport (optional)'),
-                    value: _selectedCurrentAirport,
+                    decoration: const InputDecoration(
+                      labelText: 'Current Airport (optional)',
+                    ),
+                    initialValue: _selectedCurrentAirport,
                     items: airports
-                        .map((a) => DropdownMenuItem(
-                              value: a,
-                              child: Text('${a.name} (${a.codeIATA})'),
-                            ))
+                        .map(
+                          (a) => DropdownMenuItem(
+                            value: a,
+                            child: Text('${a.name} (${a.codeIATA})'),
+                          ),
+                        )
                         .toList(),
                     onChanged: (value) {
                       setState(() => _selectedCurrentAirport = value);
@@ -230,16 +267,23 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
                   // ⚙️ Estado técnico
                   DropdownButtonFormField<String>(
                     decoration: const InputDecoration(labelText: 'State'),
-                    value: _state,
+                    initialValue: _state,
                     items: const [
                       DropdownMenuItem(
                         value: 'Disponible',
                         child: Text('Disponible'),
                       ),
-                      DropdownMenuItem(value: 'EnMantenimiento', child: Text('En mantenimiento')),
-                      DropdownMenuItem(value: 'FueraDeServicio', child: Text('Fuera de servicio')),
+                      DropdownMenuItem(
+                        value: 'EnMantenimiento',
+                        child: Text('En mantenimiento'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'FueraDeServicio',
+                        child: Text('Fuera de servicio'),
+                      ),
                     ],
-                    onChanged: (v) => setState(() => _state = v ?? 'Disponible'),
+                    onChanged: (v) =>
+                        setState(() => _state = v ?? 'Disponible'),
                   ),
                   const SizedBox(height: 16),
 
@@ -247,8 +291,11 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
                   if (_selectedImage != null)
                     Column(
                       children: [
-                        Image.file(_selectedImage!,
-                            height: 150, fit: BoxFit.cover),
+                        Image.file(
+                          _selectedImage!,
+                          height: 150,
+                          fit: BoxFit.cover,
+                        ),
                         const SizedBox(height: 8),
                       ],
                     ),
@@ -295,7 +342,10 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
   // Widgets reutilizables
   // ======================================================
   Widget _buildTextField(
-      TextEditingController controller, String label, String validatorMsg) {
+    TextEditingController controller,
+    String label,
+    String validatorMsg,
+  ) {
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(labelText: label),
@@ -304,7 +354,10 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
   }
 
   Widget _buildNumberField(
-      TextEditingController controller, String label, String validatorMsg) {
+    TextEditingController controller,
+    String label,
+    String validatorMsg,
+  ) {
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(labelText: label),

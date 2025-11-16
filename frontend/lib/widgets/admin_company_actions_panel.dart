@@ -64,19 +64,18 @@ class AdminCompanyActionsPanel extends StatelessWidget {
                     return;
                   }*/
 
+                  if (label == 'See Calendar') {
+                    Navigator.pushNamed(context, '/admin/flight-schedule');
+                    return;
+                  }
+
                   if (label == 'Fleet Management') {
-                    Navigator.pushNamed(
-                      context,
-                      '/admin/fleet',
-                    );
+                    Navigator.pushNamed(context, '/admin/fleet');
                     return;
                   }
 
                   if (label == 'Pilot Management') {
-                    Navigator.pushNamed(
-                      context,
-                      '/admin/pilots',
-                    );
+                    Navigator.pushNamed(context, '/admin/pilots');
                     return;
                   }
 

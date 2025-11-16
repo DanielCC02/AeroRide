@@ -16,7 +16,7 @@ class AircraftDetailScreen extends StatefulWidget {
 
 class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
   final AircraftService _aircraftService = AircraftService();
-  late Future<AircraftModel> _aircraftFuture;
+  late Future<AircraftModel?> _aircraftFuture;
 
   @override
   void initState() {
@@ -26,30 +26,19 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<AircraftModel>(
+    return FutureBuilder<AircraftModel?>(
       future: _aircraftFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        } else if (snapshot.hasError) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Aircraft Details')),
-            body: Center(
-              child: Text(
-                '⚠️ Error: ${snapshot.error}',
-                style: const TextStyle(color: Colors.red),
-              ),
-            ),
-          );
-        } else if (!snapshot.hasData) {
-          return const Scaffold(
-            body: Center(child: Text('Aircraft not found.')),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
-
-        final aircraft = snapshot.data!;
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+        final aircraft = snapshot.data;
+        if (aircraft == null) {
+          return const Center(child: Text('Aircraft not found'));
+        }
 
         return Scaffold(
           appBar: AppBar(
@@ -68,8 +57,9 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
 
                   if (refresh == true && context.mounted) {
                     setState(() {
-                      _aircraftFuture =
-                          _aircraftService.getAircraftById(widget.aircraftId);
+                      _aircraftFuture = _aircraftService.getAircraftById(
+                        widget.aircraftId,
+                      );
                     });
                   }
                 },
@@ -95,13 +85,17 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
                           loadingBuilder: (context, child, progress) {
                             if (progress == null) return child;
                             return const Center(
-                                child: CircularProgressIndicator());
+                              child: CircularProgressIndicator(),
+                            );
                           },
                           errorBuilder: (_, __, ___) => Container(
                             color: Colors.grey.shade200,
                             alignment: Alignment.center,
-                            child: const Icon(Icons.broken_image,
-                                size: 48, color: Colors.grey),
+                            child: const Icon(
+                              Icons.broken_image,
+                              size: 48,
+                              color: Colors.grey,
+                            ),
                           ),
                         ),
                       ),
@@ -115,28 +109,39 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
                 _buildSectionTitle('General Information'),
                 _buildDetailRow('Patent', aircraft.patent),
                 _buildDetailRow('Model', aircraft.model),
-                _buildDetailRow('Minute Cost',
-                    '₡${aircraft.minuteCost.toStringAsFixed(2)}'),
+                _buildDetailRow(
+                  'Minute Cost',
+                  '₡${aircraft.minuteCost.toStringAsFixed(2)}',
+                ),
                 _buildDetailRow('Seats', '${aircraft.seats}'),
                 _buildDetailRow('Empty Weight', '${aircraft.emptyWeight} kg'),
                 _buildDetailRow('Max Weight', '${aircraft.maxWeight} kg'),
                 _buildDetailRow(
-                    'Cruising Speed', '${aircraft.cruisingSpeed} km/h'),
-                _buildDetailRow('Can Fly International',
-                    aircraft.canFlyInternational ? 'Yes' : 'No'),
+                  'Cruising Speed',
+                  '${aircraft.cruisingSpeed} km/h',
+                ),
+                _buildDetailRow(
+                  'Can Fly International',
+                  aircraft.canFlyInternational ? 'Yes' : 'No',
+                ),
                 const SizedBox(height: 20),
 
                 // 🌍 Ubicación (con nombres)
                 _buildSectionTitle('Base & Current Airport'),
                 _buildDetailRow('Base Airport', aircraft.baseAirportName),
-                _buildDetailRow('Current Airport',
-                    aircraft.currentAirportName ?? '—'),
+                _buildDetailRow(
+                  'Current Airport',
+                  aircraft.currentAirportName ?? '—',
+                ),
                 const SizedBox(height: 20),
 
                 // ⚙️ Estado y compañía
                 _buildSectionTitle('Status & Ownership'),
-                _buildDetailRow('State', aircraft.state,
-                    color: Colors.blueGrey),
+                _buildDetailRow(
+                  'State',
+                  aircraft.state,
+                  color: Colors.blueGrey,
+                ),
                 _buildDetailRow(
                   'Status',
                   aircraft.isActive ? 'Active' : 'Inactive',
@@ -168,19 +173,22 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
                       aircraft.isActive
                           ? 'Deactivate Aircraft'
                           : 'Reactivate Aircraft',
-                      style:
-                          const TextStyle(color: Colors.white, fontSize: 16),
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
                     ),
                     onPressed: () async {
                       final confirm = await showDialog<bool>(
                         context: context,
                         builder: (_) => AlertDialog(
-                          title: Text(aircraft.isActive
-                              ? 'Deactivate Aircraft'
-                              : 'Reactivate Aircraft'),
-                          content: Text(aircraft.isActive
-                              ? 'Are you sure you want to deactivate this aircraft?'
-                              : 'Do you want to reactivate this aircraft?'),
+                          title: Text(
+                            aircraft.isActive
+                                ? 'Deactivate Aircraft'
+                                : 'Reactivate Aircraft',
+                          ),
+                          content: Text(
+                            aircraft.isActive
+                                ? 'Are you sure you want to deactivate this aircraft?'
+                                : 'Do you want to reactivate this aircraft?',
+                          ),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context, false),
@@ -202,16 +210,18 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
                       if (confirm == true) {
                         try {
                           if (aircraft.isActive) {
-                            await _aircraftService
-                                .deactivateAircraft(aircraft.id);
+                            await _aircraftService.deactivateAircraft(
+                              aircraft.id,
+                            );
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('🛑 Aircraft deactivated'),
                               ),
                             );
                           } else {
-                            await _aircraftService
-                                .reactivateAircraft(aircraft.id);
+                            await _aircraftService.reactivateAircraft(
+                              aircraft.id,
+                            );
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('♻️ Aircraft reactivated'),

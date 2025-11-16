@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/admin/airport_management/airport_management_screen.dart';
+import 'package:frontend/screens/admin/company_flights_management/flight_schedule_screen.dart';
 import 'package:provider/provider.dart'; // Importar el provider
 import 'package:http/http.dart' as http;
 import 'package:frontend/screens/admin/company_management/company_management_screen.dart';
@@ -179,6 +180,7 @@ class _MyAppState extends State<MyApp> {
         '/admin/airport_management': (context) => const AirportManagementScreen(),
         //'/admin/users': (_) => const UserManagementScreen(),
         '/admin/fleet': (_) => const FleetManagementScreen(),
+        '/admin/flight-schedule': (_) => const FlightScheduleScreen(),
       },
     );
   }

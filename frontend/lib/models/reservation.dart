@@ -1,6 +1,4 @@
 // lib/models/reservation.dart
-// Ahora usa el modelo de dominio de aeropuertos (conectado a la BD).
-
 import 'plane.dart';
 import 'airport_model.dart' as domain;
 

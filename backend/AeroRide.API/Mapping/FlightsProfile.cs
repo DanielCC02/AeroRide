@@ -45,7 +45,18 @@ namespace AeroRide.API.Mappings
                 .ForMember(dest => dest.AircraftPatent, opt => opt.MapFrom(src => src.Aircraft.Patent))
                 .ForMember(dest => dest.CompanyName, opt => opt.MapFrom(src => src.Company.Name))
                 .ForMember(dest => dest.ReservationCode, opt => opt.MapFrom(src => src.Reservation != null ? src.Reservation.ReservationCode : null))
-                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()));
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
+
+                // ⭐ NUEVO — si tiene al menos un piloto asignado
+                .ForMember(dest => dest.HasAssignedPilots,
+                    opt => opt.MapFrom(src =>
+                        src.Assignments != null && src.Assignments.Any()))
+
+                // ⭐ NUEVO — cantidad de pilotos asignados
+                .ForMember(dest => dest.AssignedPilotCount,
+                    opt => opt.MapFrom(src =>
+                        src.Assignments != null ? src.Assignments.Count : 0));
+
 
             CreateMap<FlightAssignment, FlightPilotDto>()
                 .ForMember(dest => dest.PilotId, opt => opt.MapFrom(src => src.PilotUserId))
