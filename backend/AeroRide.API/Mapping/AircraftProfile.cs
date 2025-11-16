@@ -75,8 +75,11 @@ namespace AeroRide.API.Mappings
             // 🛩️ DOMAIN → DTO (Category)
             // ======================================================
             CreateMap<Aircraft, AircraftCategoryDto>()
-                .ForMember(dest => dest.CompanyName,
-                    opt => opt.MapFrom(src => src.Company != null ? src.Company.Name : "Sin compañía"));
+                .ForMember(d => d.Id, opt => opt.MapFrom(s => s.Id))
+                .ForMember(d => d.CompanyId, opt => opt.MapFrom(s => s.CompanyId))
+                .ForMember(dest => dest.CompanyName, opt => opt.MapFrom(src => src.Company != null ? src.Company.Name : "Sin compañía"))
+                .ForMember(d => d.BaseCountry, opt => opt.MapFrom(s => s.BaseAirport.Country))  // ← NUEVO
+                .ForMember(d => d.BaseAirportName, opt => opt.MapFrom(s => s.BaseAirport.Name)); // ← NUEVO;
         }
     }
 }

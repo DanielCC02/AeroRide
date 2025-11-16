@@ -65,5 +65,34 @@ namespace AeroRide.API.Helpers
                 Console.WriteLine($"⚠️ Error al enviar correo de verificación: {ex.Message}");
             }
         }
+
+        public static async Task SendPilotAssignmentEmailAsync(User user, Flight flight, IConfiguration config)
+        {
+            try
+            {
+                string apiKey = config["SendGrid:ApiKey"]!;
+                string fromEmail = config["SendGrid:FromEmail"]!;
+                string fromName = config["SendGrid:FromName"]!;
+
+                string subject = $"Nueva asignación de vuelo #{flight.Id} ✈️";
+
+                string htmlContent = PilotAssignmentTemplate.Build(
+                    user.Name,
+                    flight.Id.ToString(),
+                    flight.DepartureTime.ToString("f"),
+                    flight.DepartureAirport.Name,
+                    flight.ArrivalAirport.Name
+                );
+
+                await SendEmailAsync(apiKey, fromEmail, fromName, user.Email, subject, htmlContent);
+
+                Console.WriteLine($"📨 Correo enviado al piloto {user.Email} sobre vuelo {flight.Id}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error enviando correo de asignación: {ex.Message}");
+            }
+        }
+
     }
 }

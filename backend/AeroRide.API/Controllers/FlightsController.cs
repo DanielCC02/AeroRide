@@ -51,5 +51,13 @@ namespace AeroRide.API.Controllers
             var flights = await _flightService.GetFlightsByPilotAsync(pilotId);
             return Ok(flights);
         }
+
+        [HttpGet("{flightId}/pilots")]
+        public async Task<IActionResult> GetPilotsByFlight(int flightId)
+        {
+            var pilots = await _flightService.GetPilotsByFlightAsync(flightId);
+            return Ok(pilots);
+        }
+
     }
 }
