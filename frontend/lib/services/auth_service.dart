@@ -17,6 +17,20 @@ import 'package:http/http.dart' as http;
 import 'api_config.dart';
 import 'token_storage.dart';
 
+extension _JsonSafe on http.Response {
+  String? tryMessage() {
+    try {
+      final body = bodyBytes.isEmpty ? '' : utf8.decode(bodyBytes);
+      if (body.isEmpty) return null;
+      final d = jsonDecode(body);
+      if (d is Map) {
+        return (d['message'] ?? d['detail'] ?? d['error'])?.toString();
+      }
+    } catch (_) {}
+    return null;
+  }
+}
+
 /// Excepción tipada para errores de Auth con soporte a ModelState.
 class AuthServiceException implements Exception {
   final String message;
@@ -323,5 +337,39 @@ class AuthService {
       }
     } catch (_) {}
     throw AuthServiceException('Error del servidor (HTTP ${res.statusCode}).');
+  }
+
+  // refresh con /auth/refresh
+  Future<bool> refreshToken() async {
+    final refresh = await TokenStorage.getRefreshToken();
+    if (refresh == null || refresh.isEmpty) return false;
+
+    final uri = Uri.parse('${ApiConfig.baseUrl}$_authBase/refresh');
+    final res = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'refreshToken': refresh}),
+    );
+
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      try {
+        final data = jsonDecode(res.body);
+        final access = (data['accessToken'] ?? data['token'])?.toString();
+        final newRefresh = (data['refreshToken'])?.toString();
+        if (access != null && access.isNotEmpty) {
+          await TokenStorage.saveAccessToken(access);
+        }
+        if (newRefresh != null && newRefresh.isNotEmpty) {
+          await TokenStorage.saveRefreshToken(newRefresh);
+        }
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    // Si falla, limpiar para evitar loops
+    await TokenStorage.clearTokens();
+    return false;
   }
 }

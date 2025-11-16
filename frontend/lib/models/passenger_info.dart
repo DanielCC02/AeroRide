@@ -1,21 +1,45 @@
-/// Datos de un pasajero para la reserva.
-/// - `fullName`, `birthDate`, `passport`
-/// Usado por: [PassengersFormScreen] y [ReservationScreen].
+enum PassengerGender { masculino, femenino }
+
+extension PassengerGenderX on PassengerGender {
+  String get apiValue =>
+      this == PassengerGender.femenino ? 'Femenino' : 'Masculino';
+
+  static PassengerGender fromApi(String s) => s.toLowerCase().startsWith('f')
+      ? PassengerGender.femenino
+      : PassengerGender.masculino;
+}
+
 class PassengerInfo {
-  final String fullName;
-  final DateTime birthDate;
-  final String passport;
+  String? name;
+  String? middleName;
+  String? lastName;
+  String? passport;
+  String? nationality;
+  DateTime? dateOfBirth;
+  PassengerGender gender;
 
   PassengerInfo({
-    required this.fullName,
-    required this.birthDate,
-    required this.passport,
+    this.name,
+    this.middleName,
+    this.lastName,
+    this.passport,
+    this.nationality,
+    this.dateOfBirth,
+    this.gender = PassengerGender.masculino,
   });
 
+  Map<String, dynamic> toApiJson() => {
+    'name': name ?? '',
+    'middleName': middleName ?? '',
+    'lastName': lastName ?? '',
+    'passport': passport ?? '',
+    'nationality': nationality ?? '',
+    'dateOfBirth': (dateOfBirth ?? DateTime(2000, 1, 1))
+        .toUtc()
+        .toIso8601String(),
+    'gender': gender.apiValue,
+  };
+
   @override
-  String toString() {
-    final mm = birthDate.month.toString().padLeft(2, '0');
-    final dd = birthDate.day.toString().padLeft(2, '0');
-    return '$fullName · $passport · ${birthDate.year}-$mm-$dd';
-  }
+  String toString() => '${name ?? ''} ${lastName ?? ''} • ${passport ?? ''}';
 }

@@ -70,7 +70,10 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
       try {
         setState(() => _isLoading = true);
         final file = File(picked.path);
-        final uploadedUrl = await _aircraftService.uploadAircraftImage(file);
+        final uploadedUrl = await _aircraftService.uploadAircraftImage(
+          widget.aircraft.id, // ⬅️ id primero
+          file.path, // ⬅️ path del archivo
+        );
         setState(() => _imageUrl = uploadedUrl);
       } catch (e) {
         ScaffoldMessenger.of(
@@ -99,7 +102,7 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
 
     try {
       await _aircraftService.updateAircraft(
-        id: widget.aircraft.id,
+        widget.aircraft.id, // ⬅️ id posicional obligatorio
         patent: _patent.text.trim(),
         model: _model.text.trim(),
         minuteCost: double.parse(_minuteCost.text.trim()),
@@ -112,7 +115,7 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
         baseAirportId:
             _selectedBaseAirport?.id ?? widget.aircraft.baseAirportId,
         currentAirportId: _selectedCurrentAirport?.id,
-        imageUrl: _imageUrl,
+        image: _imageUrl, // ⬅️ se llama `image`
       );
 
       if (mounted) {
@@ -278,7 +281,7 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
                       decoration: const InputDecoration(
                         labelText: 'Base Airport',
                       ),
-                      value: airports.firstWhere(
+                      initialValue: airports.firstWhere(
                         (a) => a.name == widget.aircraft.baseAirportName,
                         orElse: () => airports.first,
                       ),
@@ -299,7 +302,7 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
                       decoration: const InputDecoration(
                         labelText: 'Current Airport (optional)',
                       ),
-                      value: airports.firstWhere(
+                      initialValue: airports.firstWhere(
                         (a) =>
                             a.name == widget.aircraft.currentAirportName &&
                             widget.aircraft.currentAirportName != null,
@@ -320,7 +323,7 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
 
                     DropdownButtonFormField<String>(
                       decoration: const InputDecoration(labelText: 'State'),
-                      value: _state,
+                      initialValue: _state,
                       items: const [
                         DropdownMenuItem(
                           value: 'Disponible',

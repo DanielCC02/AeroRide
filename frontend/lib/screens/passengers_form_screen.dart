@@ -1,26 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/passenger_info.dart';
 
-/// PassengersFormScreen
-/// ---------------------------------------------------------------------------
-/// Formulario dinámico para capturar la información de los pasajeros.
-/// - La cantidad de formularios depende de `passengersCount`.
-/// - Cada pasajero requiere: Nombre completo, Fecha de nacimiento, Pasaporte.
-/// - Valida todos los campos.
-/// - Devuelve `List<PassengerInfo>` con `Navigator.pop(result)`.
-///
-/// PERSISTENCIA:
-/// - Si se provee `initialPassengers`, el formulario se prellena.
-/// - Al volver a abrir desde Reservation, se conserva lo ya ingresado.
-///
-/// UI:
-/// - Campos con `OutlineInputBorder`.
-/// - Selector de fecha con `showDatePicker`.
-/// - Botón inferior fijo “Done” (rojo).
-///
-/// FUTURO:
-/// - Validar formato de pasaporte según país.
-/// - Internacionalización de labels y formato de fecha.
 class PassengersFormScreen extends StatefulWidget {
   final int passengersCount;
   final List<PassengerInfo>? initialPassengers;
@@ -57,10 +37,11 @@ class _PassengersFormScreenState extends State<PassengersFormScreen> {
     final init = widget.initialPassengers;
     if (init != null && init.isNotEmpty) {
       for (int i = 0; i < n && i < init.length; i++) {
-        _nameCtrls[i].text = init[i].fullName;
-        _passportCtrls[i].text = init[i].passport;
-        _birthDates[i] = init[i].birthDate;
-        _birthTextCtrls[i].text = _fmtDate(init[i].birthDate);
+        _nameCtrls[i].text = _pName(init[i]);
+        _passportCtrls[i].text = _pPassport(init[i]) ?? '';
+        final dob = _pDob(init[i]);
+        _birthDates[i] = dob;
+        _birthTextCtrls[i].text = _fmtDate(dob);
       }
     }
   }
@@ -88,7 +69,7 @@ class _PassengersFormScreenState extends State<PassengersFormScreen> {
 
     final picked = await showDatePicker(
       context: context,
-      initialDate: initial.isBefore(first) || initial.isAfter(last)
+      initialDate: (initial.isBefore(first) || initial.isAfter(last))
           ? last
           : initial,
       firstDate: first,
@@ -120,10 +101,12 @@ class _PassengersFormScreenState extends State<PassengersFormScreen> {
 
     final result = <PassengerInfo>[];
     for (int i = 0; i < widget.passengersCount; i++) {
+      // La mayoría de tus usos esperan: name + dateOfBirth (+ passport?)
+      // Ajusta aquí si tu constructor difiere.
       result.add(
         PassengerInfo(
-          fullName: _nameCtrls[i].text.trim(),
-          birthDate: _birthDates[i]!,
+          name: _nameCtrls[i].text.trim(),
+          dateOfBirth: _birthDates[i]!,
           passport: _passportCtrls[i].text.trim().toUpperCase(),
         ),
       );
@@ -229,6 +212,57 @@ class _PassengersFormScreenState extends State<PassengersFormScreen> {
         ),
       ),
     );
+  }
+
+  // ================= Helpers para leer initialPassengers sin romper tipado
+  String _pName(PassengerInfo p) {
+    try {
+      final s = (p as dynamic).name as String?;
+      if (s != null) return s;
+    } catch (_) {}
+    try {
+      final s = (p as dynamic).fullName as String?;
+      if (s != null) return s;
+    } catch (_) {}
+    try {
+      final m = (p as dynamic).toJson() as Map<String, dynamic>;
+      final s = m['name'] ?? m['fullName'];
+      if (s != null) return s.toString();
+    } catch (_) {}
+    return '';
+  }
+
+  DateTime _pDob(PassengerInfo p) {
+    try {
+      final d = (p as dynamic).dateOfBirth as DateTime?;
+      if (d != null) return d;
+    } catch (_) {}
+    try {
+      final d = (p as dynamic).birthDate as DateTime?;
+      if (d != null) return d;
+    } catch (_) {}
+    try {
+      final m = (p as dynamic).toJson() as Map<String, dynamic>;
+      final v = m['dateOfBirth'] ?? m['birthDate'];
+      if (v is DateTime) return v;
+      if (v is String) {
+        final dt = DateTime.tryParse(v);
+        if (dt != null) return dt;
+      }
+    } catch (_) {}
+    return DateTime(2000, 1, 1);
+  }
+
+  String? _pPassport(PassengerInfo p) {
+    try {
+      return (p as dynamic).passport as String?;
+    } catch (_) {}
+    try {
+      final m = (p as dynamic).toJson() as Map<String, dynamic>;
+      final v = m['passport'];
+      return v?.toString();
+    } catch (_) {}
+    return null;
   }
 
   String _fmtDate(DateTime d) {
