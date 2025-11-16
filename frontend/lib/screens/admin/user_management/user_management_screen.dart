@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/screens/admin/create_user_screen.dart';
-import 'package:frontend/screens/admin/user_detail_screen.dart';
-import '../../models/user_model.dart';
-import '../../services/user_service.dart';
-import '../../services/token_storage.dart';
-import '../welcome_screen.dart';
+import 'package:frontend/screens/admin/user_management/create_user_screen.dart';
+import 'package:frontend/screens/admin/user_management/user_detail_screen.dart';
+import 'package:frontend/models/user_model.dart';
+import 'package:frontend/services/user_service.dart';
+import 'package:frontend/services/token_storage.dart';
+import 'package:frontend/screens/welcome_screen.dart';
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
