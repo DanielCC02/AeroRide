@@ -52,14 +52,12 @@ namespace AeroRide.API.Controllers
             return Ok(flights);
         }
 
-        // ======================================================
-        // GET: OBTENER PILOTOS ASIGNADOS A UN VUELO
-        // ======================================================
         [HttpGet("{flightId}/pilots")]
         public async Task<IActionResult> GetPilotsByFlight(int flightId)
         {
             var pilots = await _flightService.GetPilotsByFlightAsync(flightId);
             return Ok(pilots);
         }
+
     }
 }

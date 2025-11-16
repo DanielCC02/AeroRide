@@ -91,8 +91,7 @@ namespace AeroRide.API.Interfaces
         /// <returns>
         /// Lista agrupada de aeronaves disponibles por modelo y compañía.
         /// </returns>
-        Task<IEnumerable<AircraftCategoryDto>> GetAvailableGroupedBySeatsAsync(int? minSeats, int? maxSeats);
-
+        Task<IEnumerable<AircraftCategoryDto>> GetAvailableForCriteriaAsync(AircraftAvailabilityCriteriaDto criteria);
         Task<IEnumerable<AircraftResponseDto>> GetAllByCompanyAsync(int companyId);
         Task<IEnumerable<AircraftResponseDto>> GetActiveByCompanyAsync(int companyId);
 

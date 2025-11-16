@@ -442,7 +442,7 @@ namespace AeroRide.API.Services.Implementations
 
                 return _mapper.Map<ReservationResponseDto>(created);
 
-                Console.WriteLine($"{dto.Segments[0].DepartureTime:o} - Kind: {dto.Segments[0].DepartureTime.Kind}");
+                //Console.WriteLine($"{dto.Segments[0].DepartureTime:o} - Kind: {dto.Segments[0].DepartureTime.Kind}");
 
 
             }
@@ -661,8 +661,7 @@ namespace AeroRide.API.Services.Implementations
             string model,
             int totalPassengers,
             DateTime requestedStart,
-            DateTime requestedEnd
-            )
+            DateTime requestedEnd)
         {
             const int turnaroundMinutes = 30;       // 🔹 margen estándar entre vuelos
             const int ventanaMinimaLibreHoras = 6;  // 🔹 si el hueco es mayor a 6h, se considera ventana aprovechable
