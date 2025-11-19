@@ -57,5 +57,7 @@ namespace AeroRide.API.Models.Domain
         public FlightCharge? Charge { get; set; }
 
         public ICollection<FlightAssignment> Assignments { get; set; } = new List<FlightAssignment>();
+        public ICollection<FlightLog> Logs { get; set; } = new List<FlightLog>();
+
     }
 }
