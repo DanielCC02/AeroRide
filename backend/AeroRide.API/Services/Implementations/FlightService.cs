@@ -31,6 +31,7 @@ namespace AeroRide.API.Services.Implementations
                 .Include(f => f.Aircraft)
                 .Include(f => f.Company)
                 .Include(f => f.Reservation)
+                .Include(f => f.Assignments) 
                 .Where(f => f.CompanyId == companyId)
                 .OrderByDescending(f => f.DepartureTime)
                 .ToListAsync();
@@ -95,15 +96,15 @@ namespace AeroRide.API.Services.Implementations
             // Crear asignaciones nuevas (CON CrewRole)
             // ===========================
             var newAssignments = new List<FlightAssignment>()
-            {
-                new FlightAssignment
-                {
-                    FlightId = flightId,
-                    PilotUserId = pilot.Id,
-                    CrewRole = CrewRole.Pilot,
-                    Status = FlightAssignmentStatus.Assigned
-                }
-            };
+    {
+        new FlightAssignment
+        {
+            FlightId = flightId,
+            PilotUserId = pilot.Id,
+            CrewRole = CrewRole.Pilot,
+            Status = FlightAssignmentStatus.Assigned
+        }
+    };
 
             if (coPilot != null)
             {
@@ -119,8 +120,6 @@ namespace AeroRide.API.Services.Implementations
             await _db.FlightAssignments.AddRangeAsync(newAssignments);
             await _db.SaveChangesAsync();
         }
-
-
 
 
 
@@ -146,7 +145,6 @@ namespace AeroRide.API.Services.Implementations
 
             return _mapper.Map<IEnumerable<FlightResponseDto>>(flights);
         }
-
         public async Task<IEnumerable<FlightPilotDto>> GetPilotsByFlightAsync(int flightId)
         {
             var assignments = await _db.FlightAssignments

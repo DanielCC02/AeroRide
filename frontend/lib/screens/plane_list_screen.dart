@@ -1,12 +1,14 @@
+// lib/screens/plane_list_screen.dart
 import 'package:flutter/material.dart';
-import '../data/dummy_data.dart';
+
 import '../models/search_criteria.dart';
-import '../models/reservation.dart';
+import '../models/available_aircraft_model.dart';
+import '../services/aircraft_service.dart';
 import 'reservation_screen.dart';
 
-/// PlaneListScreen
-/// ---------------------------------------------------------------------------
-/// Pantalla de “Select Aircraft”.
+/// Cambia a `null` si quieres ver TODOS los modelos (todas las compañías)
+const String? _companyFilter = 'AeroCaribe';
+
 class PlaneListScreen extends StatefulWidget {
   final SearchCriteria criteria;
   const PlaneListScreen({super.key, required this.criteria});
@@ -16,222 +18,314 @@ class PlaneListScreen extends StatefulWidget {
 }
 
 class _PlaneListScreenState extends State<PlaneListScreen> {
-  // Único filtro que permanece aquí (precio). Capacidad viene desde criteria.
-  RangeValues price = const RangeValues(300, 1500);
+  final _svc = AircraftService();
+  late Future<List<AvailableAircraftModel>> _future;
 
   @override
   void initState() {
     super.initState();
-    final c = widget.criteria;
-    // ignore: avoid_print
-    print(
-      '[PlaneListScreen] from=${c.from.codeIATA} to=${c.to.codeIATA} '
-      'pax=${c.passengers} dep=${c.departure}',
-    );
+    _future = _svc.listAvailableModelsFor(widget.criteria);
+  }
+
+  Future<void> _reload() async {
+    setState(() => _future = _svc.listAvailableModelsFor(widget.criteria));
+    await _future;
   }
 
   @override
   Widget build(BuildContext context) {
-    final c = widget.criteria;
-
-    // Filtra por capacidad + rango precio.
-    final filtered = planes.where((p) {
-      final okCap = p.seats >= c.passengers;
-      final okPrice = p.priceUsd >= price.start && p.priceUsd <= price.end;
-      return okCap && okPrice;
-    }).toList();
-
     return SafeArea(
       child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
-          title: const Text('Select Aircraft'),
+          title: const Text('Select Aircraft (by Model)'),
           titleTextStyle: const TextStyle(
             color: Color(0xFFFF0000),
             fontSize: 20,
             fontWeight: FontWeight.w800,
           ),
           iconTheme: const IconThemeData(color: Color(0xFFFF0000)),
-          backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
           elevation: 1,
         ),
-        body: Column(
-          children: [
-            // ---------- Filtro de precio (único filtro en esta pantalla) ----------
-            ExpansionTile(
-              title: const Text('Price filter'),
-              initiallyExpanded: true,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Precio (USD)'),
-                      RangeSlider(
-                        values: price,
-                        min: 300,
-                        max: 2000,
-                        divisions: 17,
-                        labels: RangeLabels(
-                          price.start.round().toString(),
-                          price.end.round().toString(),
-                        ),
-                        onChanged: (v) => setState(() => price = v),
-                      ),
-                      const SizedBox(height: 6),
-                      // Criterio aplicado (lectura)
-                      Text(
-                        'From: ${c.from.codeIATA} • To: ${c.to.codeIATA} • Pax: ${c.passengers} • ${_fmtDateTime(c.departure)}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.black54,
-                        ),
-                      ),
-                    ],
+        body: FutureBuilder<List<AvailableAircraftModel>>(
+          future: _future,
+          builder: (context, snap) {
+            if (snap.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snap.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    'Error: ${snap.error}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.black54),
                   ),
                 ),
-              ],
-            ),
-            const Divider(height: 0),
+              );
+            }
 
-            // ---------- Resultados ----------
-            Expanded(
-              child: filtered.isEmpty
-                  ? const Center(
-                      child: Text('No aircraft match the current filters'),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-                      itemCount: filtered.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (_, i) {
-                        final p = filtered[i];
-                        return Card(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+            var items = (snap.data ?? <AvailableAircraftModel>[]).toList();
+
+            // Filtro opcional por compañía para la prueba
+            if (_companyFilter != null && _companyFilter!.trim().isNotEmpty) {
+              final f = _companyFilter!.trim().toLowerCase();
+              items = items
+                  .where((m) => (m.companyName).trim().toLowerCase() == f)
+                  .toList();
+            }
+
+            if (items.isEmpty) {
+              return _EmptyState(
+                onModify: () => Navigator.of(context).pop(),
+                onRetry: _reload,
+              );
+            }
+
+            // Orden por compañía y luego por modelo (ambos exactos para mostrar)
+            items.sort((a, b) {
+              final c1 = (a.companyName).compareTo(b.companyName);
+              if (c1 != 0) return c1;
+              return a.model.compareTo(b.model);
+            });
+
+            // Agrupar por compañía y deduplicar por (companyId|modelo EXACTO)
+            final grouped = <int, _CompanyGroup>{};
+            for (final m in items) {
+              final companyId = m.companyId;
+              final companyName = (m.companyName.isNotEmpty
+                  ? m.companyName
+                  : (companyId > 0 ? 'Company #$companyId' : 'Company'));
+              grouped.putIfAbsent(
+                companyId,
+                () => _CompanyGroup(companyId, companyName),
+              );
+
+              final key = '$companyId|${m.model.trim()}'; // ← exacto
+              if (!grouped[companyId]!.seenKeys.contains(key)) {
+                grouped[companyId]!.seenKeys.add(key);
+                grouped[companyId]!.models.add(m);
+              }
+            }
+
+            final groups = grouped.values.toList()
+              ..sort((a, b) => a.companyName.compareTo(b.companyName));
+            final foundCount = groups.fold<int>(
+              0,
+              (acc, g) => acc + g.models.length,
+            );
+
+            return RefreshIndicator(
+              onRefresh: _reload,
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+                itemCount: groups.length + 1,
+                separatorBuilder: (_, __) => const SizedBox(height: 14),
+                itemBuilder: (_, gi) {
+                  if (gi == 0) {
+                    final filterLabel = _companyFilter == null
+                        ? 'All companies'
+                        : 'Company: ${_companyFilter!}';
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF3F3),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.red.shade100),
+                      ),
+                      child: Row(
+                        children: [
+                          Text(
+                            'Found $foundCount model(s)',
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
-                          clipBehavior: Clip.antiAlias,
-                          elevation: 1.5,
-                          child: InkWell(
-                            onTap: () {
-                              // Crea la reserva (mock EFT 40m) y navega.
-                              final res = Reservation(
-                                id: 'res-${DateTime.now().millisecondsSinceEpoch}',
-                                plane: p,
-                                from: c.from,
-                                to: c.to,
-                                date: c.departure,
-                                passengers: c.passengers,
-                                estFlightTimeMin: 40.0,
-                                totalWeightKg: 0,
-                                priceUsd: p.priceUsd,
-                                lapInfant: false,
-                                dog: false,
-                              );
+                          const Spacer(),
+                          Text(
+                            filterLabel,
+                            style: const TextStyle(
+                              color: Colors.black54,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
 
+                  final g = groups[gi - 1];
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _CompanyHeader(name: g.companyName),
+                      const SizedBox(height: 8),
+                      ...g.models.map(
+                        (m) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _ModelCard(
+                            model: m,
+                            onTap: () async {
+                              // Resolver companyId por nombre si viene 0
+                              int cid = m.companyId;
+                              final cname = m.companyName;
+                              if (cid == 0 && cname.trim().isNotEmpty) {
+                                try {
+                                  final resolved = await _svc
+                                      .getCompanyIdByName(cname);
+                                  if (resolved != null) cid = resolved;
+                                } catch (_) {}
+                              }
+
+                              final c = widget.criteria;
                               Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (_) =>
-                                      ReservationScreen(reservation: res),
+                                  builder: (_) => ReservationScreen(
+                                    criteria: c,
+                                    companyId: cid, // id final
+                                    companyName: cname, // solo display
+                                    aircraftModel: m.model, // EXACTO
+                                    headerImage: m.image,
+                                    seats: m.seats,
+                                  ),
                                 ),
                               );
                             },
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Imagen con fallback.
-                                AspectRatio(
-                                  aspectRatio: 16 / 9,
-                                  child: Image.asset(
-                                    p.image,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (ctx, err, st) {
-                                      return Container(
-                                        color: Colors.black12,
-                                        alignment: Alignment.center,
-                                        child: const Icon(
-                                          Icons.broken_image,
-                                          size: 48,
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    12,
-                                    10,
-                                    12,
-                                    12,
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        p.model.toUpperCase(),
-                                        style: const TextStyle(
-                                          color: Colors.redAccent,
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Row(
-                                        children: [
-                                          _InfoChip(
-                                            icon: Icons.event_seat,
-                                            label: '${p.seats} SEATS',
-                                          ),
-                                          const SizedBox(width: 10),
-                                          _InfoChip(
-                                            icon: Icons.monitor_weight,
-                                            label:
-                                                'MAX WEIGHT ${_kgToLb(p.maxWeightKg)} LB',
-                                          ),
-                                          const Spacer(),
-                                          Row(
-                                            children: [
-                                              const Icon(
-                                                Icons.attach_money,
-                                                size: 18,
-                                              ),
-                                              Text(
-                                                p.priceUsd.toStringAsFixed(0),
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
                           ),
-                        );
-                      },
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _CompanyGroup {
+  final int companyId;
+  final String companyName;
+  final List<AvailableAircraftModel> models = [];
+  final Set<String> seenKeys = <String>{};
+  _CompanyGroup(this.companyId, this.companyName);
+}
+
+class _CompanyHeader extends StatelessWidget {
+  final String name;
+  const _CompanyHeader({required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Icon(Icons.apartment, color: Colors.red, size: 18),
+        const SizedBox(width: 6),
+        Text(
+          name,
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+            color: Colors.red,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ModelCard extends StatelessWidget {
+  final AvailableAircraftModel model;
+  final VoidCallback onTap;
+  const _ModelCard({required this.model, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final m = model;
+    final companyLabel = m.companyName.isNotEmpty
+        ? m.companyName
+        : (m.companyId > 0 ? 'Company #${m.companyId}' : 'Company');
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      clipBehavior: Clip.antiAlias,
+      elevation: 1.5,
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: (m.image.isNotEmpty)
+                  ? Image.network(
+                      m.image,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: Colors.black12,
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.broken_image, size: 48),
+                      ),
+                    )
+                  : Container(
+                      color: Colors.black12,
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.flight, size: 48),
                     ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 👇 Modelo EXACTO (sin transformar)
+                  Text(
+                    m.model.isNotEmpty ? m.model : 'AIRCRAFT',
+                    style: const TextStyle(
+                      color: Colors.redAccent,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _InfoChip(icon: Icons.apartment, label: companyLabel),
+                      const SizedBox(width: 10),
+                      _InfoChip(
+                        icon: Icons.event_seat,
+                        label: '${m.seats} SEATS',
+                      ),
+                      const Spacer(),
+                      if (m.estimatedPrice != null)
+                        Row(
+                          children: [
+                            const Icon(Icons.attach_money, size: 18),
+                            Text(
+                              m.estimatedPrice!.toStringAsFixed(0),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       ),
     );
   }
-
-  String _fmtDateTime(DateTime dt) {
-    final y = dt.year.toString();
-    final m = dt.month.toString().padLeft(2, '0');
-    final d = dt.day.toString().padLeft(2, '0');
-    final h = dt.hour.toString().padLeft(2, '0');
-    final mi = dt.minute.toString().padLeft(2, '0');
-    return '$y-$m-$d $h:$mi';
-  }
-
-  static String _kgToLb(double kg) => (kg * 2.20462).round().toString();
 }
 
 class _InfoChip extends StatelessWidget {
@@ -256,6 +350,73 @@ class _InfoChip extends StatelessWidget {
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final VoidCallback onModify;
+  final VoidCallback onRetry;
+  const _EmptyState({required this.onModify, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Card(
+        elevation: 0,
+        color: const Color(0xFFFFEFEF),
+        shape: RoundedRectangleBorder(
+          side: BorderSide(color: Colors.red.shade100),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Container(
+          width: 320,
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.airplane_ticket, color: Colors.red, size: 28),
+              const SizedBox(height: 10),
+              const Text(
+                'No aircraft available',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "We couldn't find any available aircraft for your selection.\n\nTry adjusting date/time or passenger count.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.black54, height: 1.25),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  OutlinedButton(
+                    onPressed: onModify,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: BorderSide(color: Colors.red.shade200),
+                    ),
+                    child: const Text('Modify search'),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: onRetry,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -15,7 +15,7 @@ class Airport {
   final bool isActive;
   final String? openingTime; // "08:00:00"
   final String? closingTime; // "18:00:00"
-  final String timeZone;     // Ejemplo: "America/Costa_Rica"
+  final String timeZone; // Ejemplo: "America/Costa_Rica"
   final int? maxAllowedWeight; // Peso máximo permitido (kg)
 
   const Airport({
@@ -36,11 +36,7 @@ class Airport {
     this.maxAllowedWeight,
   });
 
-  // =============================================================
-  // 🧭 FACTORY: From JSON
-  // =============================================================
   factory Airport.fromJson(Map<String, dynamic> json) {
-    // Helpers reutilizables
     T pick<T>(List<String> keys, {T? def}) {
       for (final k in keys) {
         if (json.containsKey(k) && json[k] != null) return json[k] as T;
@@ -83,8 +79,6 @@ class Airport {
       tax: pickNum(['tax', 'Tax']),
       image: pick<String>(['image', 'Image'], def: ''),
       isActive: pick<bool>(['isActive', 'IsActive'], def: true),
-
-      // 🕒 Nuevos campos
       openingTime: pick<String>(['openingTime', 'OpeningTime'], def: ''),
       closingTime: pick<String>(['closingTime', 'ClosingTime'], def: ''),
       timeZone: pick<String>(['timeZone', 'TimeZone'], def: 'UTC'),
@@ -92,27 +86,23 @@ class Airport {
     );
   }
 
-  // =============================================================
-  // 🚀 TO JSON
-  // =============================================================
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'codeIATA': codeIATA,
-        'codeOACI': codeOACI,
-        'city': city,
-        'country': country,
-        'latitude': latitude,
-        'longitude': longitude,
-        'tax': tax,
-        'image': image,
-        'isActive': isActive,
-        'openingTime': openingTime,
-        'closingTime': closingTime,
-        'timeZone': timeZone,
-        'maxAllowedWeight': maxAllowedWeight,
-      };
+    'id': id,
+    'name': name,
+    'codeIATA': codeIATA,
+    'codeOACI': codeOACI,
+    'city': city,
+    'country': country,
+    'latitude': latitude,
+    'longitude': longitude,
+    'tax': tax,
+    'image': image,
+    'isActive': isActive,
+    'openingTime': openingTime,
+    'closingTime': closingTime,
+    'timeZone': timeZone,
+    'maxAllowedWeight': maxAllowedWeight,
+  };
 
-  /// 🧾 Texto corto: “Aeropuerto … - SJO”
   String get oneLine => '$name - $codeIATA';
 }

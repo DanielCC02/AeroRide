@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../services/user_service.dart';
+import 'package:frontend/services/user_service.dart';
 
 /// Pantalla que permite al administrador crear un nuevo usuario.
 class CreateUserScreen extends StatefulWidget {
