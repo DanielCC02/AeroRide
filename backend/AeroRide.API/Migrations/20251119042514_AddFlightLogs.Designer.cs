@@ -3,6 +3,7 @@ using System;
 using AeroRide.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AeroRide.API.Migrations
 {
     [DbContext(typeof(AeroRideDbContext))]
-    partial class AeroRideDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251119042514_AddFlightLogs")]
+    partial class AddFlightLogs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -435,23 +438,46 @@ namespace AeroRide.API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("BlockOff")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("BlockOn")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("FlightId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("PdfUrl")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                    b.Property<int?>("FlightId1")
+                        .HasColumnType("integer");
+
+                    b.Property<TimeSpan>("FlightTime")
+                        .HasColumnType("interval");
+
+                    b.Property<string>("FuelUsed")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Observations")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PilotSignatureUrl")
+                        .HasColumnType("text");
 
                     b.Property<int>("PilotUserId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Route")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("FlightId");
+
+                    b.HasIndex("FlightId1");
 
                     b.HasIndex("PilotUserId");
 
@@ -876,10 +902,14 @@ namespace AeroRide.API.Migrations
             modelBuilder.Entity("AeroRide.API.Models.Domain.FlightLog", b =>
                 {
                     b.HasOne("AeroRide.API.Models.Domain.Flight", "Flight")
-                        .WithMany("Logs")
+                        .WithMany()
                         .HasForeignKey("FlightId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("AeroRide.API.Models.Domain.Flight", null)
+                        .WithMany("Logs")
+                        .HasForeignKey("FlightId1");
 
                     b.HasOne("AeroRide.API.Models.Domain.User", "PilotUser")
                         .WithMany("FlightLogs")

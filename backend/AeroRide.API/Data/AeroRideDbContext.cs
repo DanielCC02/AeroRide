@@ -258,6 +258,12 @@ namespace AeroRide.API.Data
                  .WithOne(fa => fa.Flight)
                  .HasForeignKey(fa => fa.FlightId)
                  .OnDelete(DeleteBehavior.Cascade);
+
+                // 👇 AQUI MISMO, al final del bloque:
+                e.HasMany(f => f.Logs)
+                 .WithOne(fl => fl.Flight)
+                 .HasForeignKey(fl => fl.FlightId)
+                 .OnDelete(DeleteBehavior.Cascade);
             });
 
             // ======================================================
@@ -303,31 +309,34 @@ namespace AeroRide.API.Data
 
 
             // ======================================================
-            // 📘 FLIGHT LOGS
+            // 📘 FLIGHT LOGS (CORRECTO Y SIMPLE)
             // ======================================================
             modelBuilder.Entity<FlightLog>(e =>
             {
                 e.ToTable("FlightLogs");
 
-                e.HasOne(fl => fl.User)
-                 .WithMany(u => u.FlightLogs)
-                 .HasForeignKey(fl => fl.UserId)
-                 .OnDelete(DeleteBehavior.Restrict);
+                // 🔗 Relación con el piloto
+                e.HasOne(fl => fl.PilotUser)
+                    .WithMany(u => u.FlightLogs)
+                    .HasForeignKey(fl => fl.PilotUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
+                // 🔗 Relación con el vuelo
                 e.HasOne(fl => fl.Flight)
-                 .WithMany()
-                 .HasForeignKey(fl => fl.FlightId)
-                 .OnDelete(DeleteBehavior.Restrict);
+                    .WithMany(f => f.Logs)
+                    .HasForeignKey(fl => fl.FlightId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
-                e.HasOne(fl => fl.Reservation)
-                 .WithMany()
-                 .HasForeignKey(fl => fl.ReservationId)
-                 .IsRequired(false)
-                 .OnDelete(DeleteBehavior.SetNull);
+                e.Property(fl => fl.PdfUrl)
+                    .HasMaxLength(500)
+                    .IsRequired();
 
                 e.HasIndex(fl => fl.FlightId);
-                e.HasIndex(fl => fl.UserId);
+                e.HasIndex(fl => fl.PilotUserId);
             });
+
+
+
 
             // ======================================================
             // ⚙️ ENUMS → STRING CONVERSION GLOBAL
