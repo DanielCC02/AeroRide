@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:device_preview/device_preview.dart';
 import 'package:frontend/screens/admin/airport_management/airport_management_screen.dart';
 import 'package:frontend/screens/admin/company_flights_management/flight_schedule_screen.dart';
 import 'package:provider/provider.dart'; // Importar el provider
@@ -19,9 +20,12 @@ import 'package:frontend/providers/company_id_provider.dart'; // Importar el pro
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => CompanyIdProvider(),
-      child: const MyApp(),
+    DevicePreview(
+      enabled: true, // ponlo en false para producción
+      builder: (context) => ChangeNotifierProvider(
+        create: (_) => CompanyIdProvider(),
+        child: const MyApp(),
+      ),
     ),
   );
 }
@@ -35,7 +39,8 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   Widget _defaultScreen = const Center(child: CircularProgressIndicator());
-  int? _companyId; // Guardamos el companyId localmente (para la navegación inicial)
+  int?
+  _companyId; // Guardamos el companyId localmente (para la navegación inicial)
   String? _companyName; // Guardamos el nombre de la empresa localmente
 
   @override
@@ -83,13 +88,18 @@ class _MyAppState extends State<MyApp> {
       // Guardamos el companyId y companyName en el provider
       if (profile['companyId'] != null) {
         _companyId = profile['companyId'];
-        await TokenStorage.saveCompanyId(_companyId); // Guardamos en TokenStorage
-        Provider.of<CompanyIdProvider>(context, listen: false).companyId = _companyId;
+        await TokenStorage.saveCompanyId(
+          _companyId,
+        ); // Guardamos en TokenStorage
+        Provider.of<CompanyIdProvider>(context, listen: false).companyId =
+            _companyId;
       }
 
       if (profile['companyName'] != null) {
         _companyName = profile['companyName'];
-        await TokenStorage.saveCompanyName(_companyName); // Guardamos en TokenStorage
+        await TokenStorage.saveCompanyName(
+          _companyName,
+        ); // Guardamos en TokenStorage
       }
 
       if (mounted) {
@@ -169,16 +179,21 @@ class _MyAppState extends State<MyApp> {
           showUnselectedLabels: true,
         ),
       ),
-      home: _defaultScreen, // La pantalla que se muestra por defecto
+
+      // 👇 IMPORTANTE PARA DevicePreview 👇
+      useInheritedMediaQuery: true,
+      locale: DevicePreview.locale(context),
+      builder: DevicePreview.appBuilder,
+
+      home: _defaultScreen,
       routes: {
         '/user': (_) => const HomePageScreen(),
         '/pilot': (_) => const HomePagePilot(),
         '/admin': (_) => const HomePageAdmin(),
-        '/admin/company': (_) => const HomePageAdminCompany(), // No pasamos companyId como parámetro
-        '/admin/pilots': (_) => const CompanyPilotsScreen(), // No pasamos companyId como parámetro
+        '/admin/company': (_) => const HomePageAdminCompany(),
+        '/admin/pilots': (_) => const CompanyPilotsScreen(),
         '/admin/company_management': (_) => const CompanyManagementScreen(),
-        '/admin/airport_management': (context) => const AirportManagementScreen(),
-        //'/admin/users': (_) => const UserManagementScreen(),
+        '/admin/airport_management': (_) => const AirportManagementScreen(),
         '/admin/fleet': (_) => const FleetManagementScreen(),
         '/admin/flight-schedule': (_) => const FlightScheduleScreen(),
       },

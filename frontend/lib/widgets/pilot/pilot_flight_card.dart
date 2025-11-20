@@ -41,10 +41,7 @@ class PilotFlightCard extends StatelessWidget {
               // Codigos OACI
               Text(
                 '${flight.departureAirportOACI ?? ''} → ${flight.arrivalAirportOACI ?? ''}',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.grey[600], fontSize: 14),
               ),
 
               const SizedBox(height: 10),
@@ -52,10 +49,7 @@ class PilotFlightCard extends StatelessWidget {
               // Horario
               Text(
                 '${df.format(flight.departureLocal)}  —  ${df.format(flight.arrivalLocal)}',
-                style: TextStyle(
-                  color: Colors.grey[700],
-                  fontSize: 15,
-                ),
+                style: TextStyle(color: Colors.grey[700], fontSize: 15),
               ),
 
               const SizedBox(height: 8),
@@ -87,6 +81,29 @@ class PilotFlightCard extends StatelessWidget {
                   color: flight.status == "Programado"
                       ? Colors.green
                       : Colors.orange,
+                ),
+              ),
+
+              const SizedBox(height: 14),
+
+              // ===== BOTÓN PARA LLENAR BITÁCORA
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton.icon(
+                  onPressed: onDetails,
+                  icon: const Icon(Icons.assignment),
+                  label: const Text("Fill flight log"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                 ),
               ),
             ],
