@@ -1,20 +1,21 @@
 // lib/models/search_criteria.dart
-// Criterios de búsqueda usando el modelo de dominio (airport_model.dart).
-
 import 'airport_model.dart' as domain;
 
-/// Criterios seleccionados para buscar aeronaves (provienen del Home).
 class SearchCriteria {
   final domain.Airport from;
   final domain.Airport to;
   final int passengers;
-  final DateTime departure; // fecha+hora elegidas en el Home
+  final DateTime departure;
+  final bool isRoundTrip;
+  final DateTime? returnDateTime;
 
   const SearchCriteria({
     required this.from,
     required this.to,
     required this.passengers,
     required this.departure,
+    this.isRoundTrip = false,
+    this.returnDateTime,
   });
 
   SearchCriteria copyWith({
@@ -22,12 +23,18 @@ class SearchCriteria {
     domain.Airport? to,
     int? passengers,
     DateTime? departure,
+    bool? isRoundTrip,
+    DateTime? returnDateTime,
   }) {
     return SearchCriteria(
       from: from ?? this.from,
       to: to ?? this.to,
       passengers: passengers ?? this.passengers,
       departure: departure ?? this.departure,
+      isRoundTrip: isRoundTrip ?? this.isRoundTrip,
+      returnDateTime: (isRoundTrip ?? this.isRoundTrip)
+          ? (returnDateTime ?? this.returnDateTime)
+          : null,
     );
   }
 }

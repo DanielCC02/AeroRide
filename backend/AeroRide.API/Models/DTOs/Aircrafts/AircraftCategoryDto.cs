@@ -5,8 +5,10 @@
     /// </summary>
     public class AircraftCategoryDto
     {
+        public int Id { get; set; }                 // <-- ADD THIS
         public string Model { get; set; } = null!;
         public int Seats { get; set; }
+        public int CompanyId { get; set; }          // <-- ADD THIS
         public string CompanyName { get; set; } = null!;
         public string State { get; set; } = null!;
 
@@ -19,5 +21,8 @@
         /// Imagen representativa del modelo.
         /// </summary>
         public string Image { get; set; } = null!;
+
+        public string BaseCountry { get; set; } = null!;   // ← NUEVO
+        public string BaseAirportName { get; set; } = null!; // ← opcional pero recomendable
     }
 }

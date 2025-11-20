@@ -435,26 +435,25 @@ namespace AeroRide.API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<int>("FlightId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Image")
+                    b.Property<string>("PdfUrl")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
-                    b.Property<int?>("ReservationId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("UserId")
+                    b.Property<int>("PilotUserId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
                     b.HasIndex("FlightId");
 
-                    b.HasIndex("ReservationId");
-
-                    b.HasIndex("UserId");
+                    b.HasIndex("PilotUserId");
 
                     b.ToTable("FlightLogs", (string)null);
                 });
@@ -877,27 +876,20 @@ namespace AeroRide.API.Migrations
             modelBuilder.Entity("AeroRide.API.Models.Domain.FlightLog", b =>
                 {
                     b.HasOne("AeroRide.API.Models.Domain.Flight", "Flight")
-                        .WithMany()
+                        .WithMany("Logs")
                         .HasForeignKey("FlightId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("AeroRide.API.Models.Domain.Reservation", "Reservation")
-                        .WithMany()
-                        .HasForeignKey("ReservationId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("AeroRide.API.Models.Domain.User", "User")
+                    b.HasOne("AeroRide.API.Models.Domain.User", "PilotUser")
                         .WithMany("FlightLogs")
-                        .HasForeignKey("UserId")
+                        .HasForeignKey("PilotUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Flight");
 
-                    b.Navigation("Reservation");
-
-                    b.Navigation("User");
+                    b.Navigation("PilotUser");
                 });
 
             modelBuilder.Entity("AeroRide.API.Models.Domain.PassengerDetail", b =>
@@ -1001,6 +993,8 @@ namespace AeroRide.API.Migrations
                     b.Navigation("Assignments");
 
                     b.Navigation("Charge");
+
+                    b.Navigation("Logs");
                 });
 
             modelBuilder.Entity("AeroRide.API.Models.Domain.Reservation", b =>

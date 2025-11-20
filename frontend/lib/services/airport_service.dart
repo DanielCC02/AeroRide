@@ -7,7 +7,14 @@ import 'api_config.dart';
 import 'token_storage.dart';
 import '../models/airport_model.dart';
 
+import 'cache/simple_cache.dart';
+
 class AirportService {
+  static final SimpleCache<String, List<Airport>> _searchCache = SimpleCache(
+    ttl: const Duration(minutes: 5),
+    maxEntries: 300,
+  );
+
   // --------------------
   // Infra
   // --------------------
@@ -44,6 +51,59 @@ class AirportService {
   }
 
   // --------------------
+  // 🔎 Helpers PRIVADOS añadidos (no rompen nada existente)
+  // --------------------
+
+  // ¿A este aeropuerto le "faltan" horarios o zona horaria?
+  static bool _needsHydration(Airport a) {
+    final missingTimes =
+        (a.openingTime == null || a.openingTime!.isEmpty) ||
+        (a.closingTime == null || a.closingTime!.isEmpty);
+    final missingTz = a.timeZone.isEmpty || a.timeZone.toUpperCase() == 'UTC';
+    return missingTimes || missingTz;
+  }
+
+  // GET /api/airports/{id} estático (evita tocar tu método público existente)
+  static Future<Airport?> _fetchAirportByIdStatic(int id) async {
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/airports/$id');
+    final headers = await _headers();
+    try {
+      final resp = await http.get(url, headers: headers);
+      if (resp.statusCode >= 200 &&
+          resp.statusCode < 300 &&
+          resp.body.isNotEmpty) {
+        final Map<String, dynamic> data = jsonDecode(resp.body);
+        return Airport.fromJson(data);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  // Hidrata (completa) horarios/TimeZone de los primeros N si faltan.
+  static Future<void> _hydrateTopIfNeeded(
+    List<Airport> list, {
+    int max = 8,
+  }) async {
+    int done = 0;
+    final futures = <Future<void>>[];
+    for (var i = 0; i < list.length && done < max; i++) {
+      final a = list[i];
+      if (_needsHydration(a)) {
+        done++;
+        futures.add(() async {
+          final full = await _fetchAirportByIdStatic(a.id);
+          if (full != null) {
+            list[i] = full; // reemplaza con el completo
+          }
+        }());
+      }
+    }
+    if (futures.isNotEmpty) {
+      await Future.wait(futures);
+    }
+  }
+
+  // --------------------
   // Search mejorado (accent-insensitive + por nombre/ciudad)
   // --------------------
   /// Busca aeropuertos. Si el backend no filtra por nombre/ciudad,
@@ -59,8 +119,18 @@ class AirportService {
     int limit = 2,
   }) async {
     final q = query.trim();
-    // Pedimos más resultados al backend para poder filtrar bien en cliente
-    const fetchSize = 100;
+
+    const int fetchSize =
+        100; // cantidad a pedir al backend para filtrar en cliente
+
+    if (q.isEmpty) return <Airport>[];
+
+    // ⬇️ Intentar caché
+    final ck = 'q=$q|limit=$limit';
+    final cached = _searchCache.get(ck);
+    if (cached != null) {
+      return cached.take(limit).toList();
+    }
 
     final tries = <Uri>[];
     if (q.isNotEmpty) {
@@ -97,13 +167,21 @@ class AirportService {
         .map((e) => Airport.fromJson(e as Map<String, dynamic>))
         .toList();
 
+    // 🔸 NUEVO: reforzar datos de los primeros N si faltan horarios/tz.
+    // Lo hacemos ANTES del ranking para que, al seleccionar, ya vengan completos.
+    await _hydrateTopIfNeeded(all, max: limit * 2);
+
     if (q.isEmpty) {
       return all.take(limit).toList();
     }
 
-    // Filtro y ranking local (accent-insensitive)
     final ranked = _rankAndFilter(all, q);
-    return ranked.take(limit).toList();
+    final out = ranked.take(limit).toList();
+
+    // ⬇️ Guardar en caché una versión extendida (hasta 20) para que sucesivas
+    // búsquedas con el mismo prefijo sean más rápidas.
+    _searchCache.set(ck, ranked.take(20).toList());
+    return out;
   }
 
   // --------------------

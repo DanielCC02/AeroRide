@@ -1,324 +1,585 @@
+// lib/services/aircraft_service.dart
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+
+import 'api_config.dart';
+import 'token_storage.dart';
+
 import '../models/aircraft_model.dart';
-import '../services/token_storage.dart';
-import '../services/api_config.dart';
+import '../models/available_aircraft_model.dart';
+import '../models/search_criteria.dart';
 
-/// Servicio encargado de manejar todas las operaciones
-/// relacionadas con aeronaves (Fleet Management).
 class AircraftService {
-
-  /// Obtiene todas las aeronaves (activas e inactivas) de una compañía específica.
-  Future<List<AircraftModel>> getAircraftsByCompany(int companyId) async {
+  Future<Map<String, String>> _headers({bool jsonBody = true}) async {
     final token = await TokenStorage.getAccessToken();
-    if (token == null) throw Exception('Token no disponible');
-
-    final url = Uri.parse('${ApiConfig.baseUrl}/api/Aircrafts/company/$companyId/all');
-
-    print('📡 GET $url'); // <-- debug
-    final response = await http.get(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    print('📥 Status: ${response.statusCode}');
-    print('📥 Body: ${response.body}');
-
-    if (response.statusCode == 200) {
-      try {
-        final List<dynamic> data = jsonDecode(response.body);
-        return data.map((a) => AircraftModel.fromJson(a)).toList();
-      } catch (e) {
-        print('Error al parsear aeronaves: $e');
-        throw Exception('Error al procesar los datos del servidor');
-      }
-    } else if (response.statusCode == 204) {
-      // Sin contenido (NoContent)
-      print('No hay aeronaves registradas para esta compañía.');
-      return [];
-    } else {
-      print('⚠️ Error al obtener aeronaves: ${response.body}');
-      throw Exception('Error al obtener las aeronaves de la compañía');
+    final hdrs = <String, String>{
+      if (jsonBody) 'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    if (token != null && token.isNotEmpty) {
+      hdrs['Authorization'] = 'Bearer $token';
     }
+    return hdrs;
   }
 
-// ===========================================================
-// POST: Crear una nueva aeronave (asociada a una compañía)
-// ===========================================================
-Future<void> createAircraft({
-  // 🔑 Identificación
-  required String patent,
-  required String model,
-
-  // 💰 Características técnicas
-  required double minuteCost,
-  required int seats,
-  required int emptyWeight,
-  required int maxWeight,
-  required double cruisingSpeed,
-  required bool canFlyInternational,
-
-  // ⚙️ Estado técnico
-  required String state,
-  String? image, // opcional
-
-  // 🌎 Ubicación y relaciones
-  required int baseAirportId,
-  int? currentAirportId, // opcional
-  required int companyId, // siempre requerido por backend
-}) async {
-  final token = await TokenStorage.getAccessToken();
-  if (token == null) throw Exception('Token no disponible');
-
-  final url = Uri.parse('${ApiConfig.baseUrl}/api/aircrafts');
-
-  final body = {
-    'patent': patent,
-    'model': model,
-    'minuteCost': minuteCost,
-    'seats': seats,
-    'emptyWeight': emptyWeight,
-    'maxWeight': maxWeight,
-    'cruisingSpeed': cruisingSpeed,
-    'canFlyInternational': canFlyInternational,
-    'state': state,
-    'image': image ?? '', // puede ser vacío
-    'baseAirportId': baseAirportId,
-    'companyId': companyId,
-    if (currentAirportId != null) 'currentAirportId': currentAirportId,
-  };
-
-  print('🚀 POST $url');
-  print('📤 Body enviado: $body');
-
-  final response = await http.post(
-    url,
-    headers: {
-      'Authorization': 'Bearer $token',
-      'Content-Type': 'application/json',
-    },
-    body: jsonEncode(body),
-  );
-
-  print('📥 Status: ${response.statusCode}');
-  print('📥 Response: ${response.body}');
-
-  if (response.statusCode == 201) {
-    print('✅ Aeronave creada correctamente');
-  } else {
-    print('❌ Error al crear aeronave: ${response.body}');
-    throw Exception('Error al crear aeronave');
+  Uri _uri(String path, [Map<String, String>? q]) {
+    return Uri.parse('${ApiConfig.baseUrl}$path').replace(queryParameters: q);
   }
-}
 
- // ===========================================================
-//  POST: Subir imagen de aeronave (opcional)
-// ===========================================================
-Future<String> uploadAircraftImage(File imageFile) async {
-  final token = await TokenStorage.getAccessToken();
-  if (token == null) throw Exception('Token no disponible');
+  String _fold(String s) => s
+      .toLowerCase()
+      .replaceAll(RegExp(r'[áàäâãå]'), 'a')
+      .replaceAll(RegExp(r'[éèëê]'), 'e')
+      .replaceAll(RegExp(r'[íìïî]'), 'i')
+      .replaceAll(RegExp(r'[óòöôõ]'), 'o')
+      .replaceAll(RegExp(r'[úùüû]'), 'u')
+      .replaceAll(RegExp(r'[^a-z0-9 ]'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
 
-  // 👇 Ruta correcta según tu backend
-  final url = Uri.parse('${ApiConfig.baseUrl}/api/aircrafts/upload-image');
-
-  final request = http.MultipartRequest('POST', url)
-    ..headers['Authorization'] = 'Bearer $token'
-    ..files.add(await http.MultipartFile.fromPath('file', imageFile.path));
-
-  print('📤 Subiendo imagen a: $url');
-  print('🖼️ Archivo: ${imageFile.path}');
-
-  final streamedResponse = await request.send();
-  final response = await http.Response.fromStream(streamedResponse);
-
-  print('📥 Status: ${response.statusCode}');
-  print('📥 Body: ${response.body}');
-
-  if (response.statusCode == 200) {
-    final data = jsonDecode(response.body);
-    return data['imageUrl'];
-  } else {
-    final body = response.body.isNotEmpty ? response.body : 'Respuesta vacía';
-    throw Exception(
-        'Error al subir imagen (status: ${response.statusCode}) → $body');
+  T _as<T>(dynamic v, T fallback) {
+    if (v == null) return fallback;
+    if (T == int) {
+      return (v is num ? v.toInt() : int.tryParse('$v') ?? (fallback as int))
+          as T;
+    }
+    if (T == double) {
+      return (v is num
+              ? v.toDouble()
+              : double.tryParse('$v') ?? (fallback as double))
+          as T;
+    }
+    if (T == String) return '$v' as T;
+    if (T == bool) {
+      if (v is bool) return v as T;
+      final s = '$v'.toLowerCase();
+      return (s == 'true' || s == '1' || s == 'yes') as T;
+    }
+    return fallback;
   }
-}
 
+  // =========================
+  // Modelos disponibles
+  // =========================
+  Future<List<AvailableAircraftModel>> listAvailableModelsFor(
+    SearchCriteria criteria,
+  ) async {
+    final hdrs = await _headers();
 
-  // ===========================================================
-  // GET: Obtener todas las aeronaves (activas e inactivas)
-  // ===========================================================
-  Future<List<AircraftModel>> getAllAircrafts() async {
-    final token = await TokenStorage.getAccessToken();
-    if (token == null) throw Exception('Token no disponible');
+    // 1) Si existe un endpoint dedicado, úsalo
+    try {
+      final url = _uri('/api/aircrafts/available-models', {
+        'fromAirportId': '${criteria.from.id}',
+        'toAirportId': '${criteria.to.id}',
+        'departureTimeUtc': criteria.departure.toUtc().toIso8601String(),
+        'passengers': '${criteria.passengers}',
+      });
+      final r = await http.get(url, headers: hdrs);
+      if (r.statusCode >= 200 && r.statusCode < 300) {
+        final data = json.decode(r.body);
+        if (data is List) {
+          return data
+              .cast<Map<String, dynamic>>()
+              .map((m) => AvailableAircraftModel.fromJson(m))
+              .toList();
+        }
+      }
+    } catch (_) {}
 
-    final url = Uri.parse('${ApiConfig.baseUrl}/api/aircrafts/all');
+    // 2) Fallback: GET /api/aircrafts + filtro FE
+    try {
+      final r = await http.get(_uri('/api/aircrafts'), headers: hdrs);
+      if (r.statusCode >= 200 && r.statusCode < 300) {
+        final rawList = (json.decode(r.body) as List)
+            .cast<Map<String, dynamic>>();
 
-    final response = await http.get(
-      url,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
+        final nameIdCache = <String, int>{};
+        final filtered = <Map<String, dynamic>>[];
+
+        for (final raw in rawList) {
+          final seats = _as<int>(raw['seats'] ?? raw['Seats'], 0);
+          final isActive = _as<bool>(raw['isActive'] ?? raw['IsActive'], true);
+          if (!isActive) continue;
+          if (seats < criteria.passengers) continue;
+
+          var companyId = _as<int>(raw['companyId'] ?? raw['CompanyId'], 0);
+          final companyName = _as<String>(
+            raw['companyName'] ?? raw['CompanyName'],
+            '',
+          );
+          if (companyId == 0 && companyName.isNotEmpty) {
+            final key = companyName.toLowerCase().trim();
+            if (nameIdCache.containsKey(key)) {
+              companyId = nameIdCache[key]!;
+            } else {
+              final resolved = await getCompanyIdByName(companyName) ?? 0;
+              nameIdCache[key] = resolved;
+              companyId = resolved;
+            }
+          }
+
+          final model = _as<String>(raw['model'] ?? raw['Model'], '');
+          final image = _as<String>(raw['image'] ?? raw['Image'], '');
+
+          filtered.add({
+            'companyId': companyId,
+            'companyName': companyName,
+            'model': model, // ← exacto como viene
+            'seats': seats,
+            'image': image,
+          });
+        }
+
+        // Dedupe por (companyId | modelo EXACTO sin transformar)
+        final map = <String, AvailableAircraftModel>{};
+        for (final a in filtered) {
+          final key =
+              '${a['companyId']}|${(a['model'] ?? '').toString().trim()}';
+          map.putIfAbsent(
+            key,
+            () => AvailableAircraftModel(
+              companyId: _as<int>(a['companyId'], 0),
+              companyName: _as<String>(a['companyName'], ''),
+              model: _as<String>(a['model'], ''),
+              image: _as<String>(a['image'], ''),
+              seats: _as<int>(a['seats'], 0),
+              estimatedPrice: null,
+            ),
+          );
+        }
+        return map.values.toList();
+      }
+    } catch (_) {}
+
+    return <AvailableAircraftModel>[];
+  }
+
+  // =========================
+  // LOOKUP de compañías
+  // =========================
+  Future<int?> getCompanyIdByName(String name) async {
+    final q = name.trim();
+    if (q.isEmpty) return null;
+
+    final hdrs = await _headers();
+    final candidates = <Map<String, dynamic>>[];
+    final urls = <Uri>[
+      _uri('/api/companies', {'search': q}),
+      _uri('/api/companies'),
+      _uri('/api/companies/all'),
+      _uri('/api/company'),
+      _uri('/api/company/all'),
+      _uri('/api/companies/active'),
+      _uri('/api/companies/list'),
+    ];
+
+    for (final url in urls) {
+      try {
+        final r = await http.get(url, headers: hdrs);
+        if (r.statusCode >= 200 && r.statusCode < 300) {
+          final data = json.decode(r.body);
+          if (data is List) {
+            candidates.addAll(data.cast<Map<String, dynamic>>());
+            if (candidates.isNotEmpty) break;
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (candidates.isEmpty) return null;
+
+    String norm(String s) => _fold(s);
+    final fq = norm(q);
+
+    candidates.sort((a, b) {
+      final an = norm((a['name'] ?? a['Name'] ?? '').toString());
+      final bn = norm((b['name'] ?? b['Name'] ?? '').toString());
+      int score(String n) {
+        int s = 0;
+        if (n == fq) s += 1000;
+        if (n.startsWith(fq)) s += 600;
+        if (n.contains(fq)) s += 300;
+        return s;
+      }
+
+      return score(bn).compareTo(score(an));
+    });
+
+    final best = candidates.first;
+    final id = (best['id'] is num)
+        ? (best['id'] as num).toInt()
+        : (best['Id'] is num)
+        ? (best['Id'] as num).toInt()
+        : null;
+    return id;
+  }
+
+  // =========================
+  // LOOKUPs de aeronaves (sin cambios funcionales)
+  // =========================
+  Future<AircraftModel?> findFirstAircraftByCompanyAndModel({
+    required int companyId,
+    required String model,
+  }) async {
+    final hdrs = await _headers();
+    final cand = model.trim().toLowerCase();
+    for (final url in <Uri>[
+      _uri('/api/aircrafts', {'companyId': '$companyId'}),
+      _uri('/api/aircrafts'),
+    ]) {
+      try {
+        final r = await http.get(url, headers: hdrs);
+        if (r.statusCode >= 200 && r.statusCode < 300) {
+          final all = (json.decode(r.body) as List)
+              .cast<Map<String, dynamic>>()
+              .map((m) => AircraftModel.fromJson(m))
+              .toList();
+
+          var list = all
+              .where((a) => a.isActive && (a.companyId ?? 0) == companyId)
+              .toList();
+          if (list.isEmpty) list = all.where((a) => a.isActive).toList();
+
+          final exact = list.where((a) => a.model == model);
+          if (exact.isNotEmpty) return exact.first;
+
+          final exactCi = list.where((a) => a.model.toLowerCase() == cand);
+          if (exactCi.isNotEmpty) return exactCi.first;
+
+          final starts = list.where(
+            (a) => a.model.toLowerCase().startsWith(cand),
+          );
+          if (starts.isNotEmpty) return starts.first;
+
+          final contains = list.where(
+            (a) => a.model.toLowerCase().contains(cand),
+          );
+          if (contains.isNotEmpty) return contains.first;
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  Future<String?> findCanonicalModelForCompany({
+    required int companyId,
+    required String candidateModel,
+  }) async {
+    final hdrs = await _headers();
+    final cand = _fold(candidateModel);
+    for (final url in <Uri>[
+      _uri('/api/aircrafts', {'companyId': '$companyId'}),
+      _uri('/api/aircrafts'),
+    ]) {
+      try {
+        final r = await http.get(url, headers: hdrs);
+        if (r.statusCode >= 200 && r.statusCode < 300) {
+          final all = (json.decode(r.body) as List)
+              .cast<Map<String, dynamic>>()
+              .map((m) => AircraftModel.fromJson(m))
+              .toList();
+
+          var list = all
+              .where((a) => a.isActive && (a.companyId ?? 0) == companyId)
+              .toList();
+          if (list.isEmpty) list = all.where((a) => a.isActive).toList();
+          if (list.isEmpty) return null;
+
+          final models = list.map((a) => a.model).toSet().toList();
+          String? best;
+          int bestScore = -1;
+          for (final m in models) {
+            final f = _fold(m);
+            int s = 0;
+            if (f == cand) s += 1000;
+            if (f.startsWith(cand)) s += 600;
+            if (f.contains(cand)) s += 300;
+            if (cand.contains(f)) s += 100;
+            if (s > bestScore) {
+              bestScore = s;
+              best = m;
+            }
+          }
+          if (bestScore > 0) return best;
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  // =========================
+  // Métodos compat (sin cambios)
+  // =========================
+  Future<AircraftModel?> getAircraftById(int id) async {
+    final hdrs = await _headers();
+    try {
+      final r = await http.get(_uri('/api/aircrafts/$id'), headers: hdrs);
+      if (r.statusCode >= 200 && r.statusCode < 300) {
+        return AircraftModel.fromJson(
+          json.decode(r.body) as Map<String, dynamic>,
+        );
+      }
+    } catch (_) {}
+    try {
+      final r = await http.get(_uri('/api/aircrafts'), headers: hdrs);
+      if (r.statusCode >= 200 && r.statusCode < 300) {
+        final list = (json.decode(r.body) as List)
+            .cast<Map<String, dynamic>>()
+            .map((m) => AircraftModel.fromJson(m))
+            .toList();
+        final match = list.where((a) => a.id == id);
+        return match.isNotEmpty ? match.first : null;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<List<AircraftModel>> getAircraftsByCompany(int companyId) async {
+    final hdrs = await _headers();
+    try {
+      final r = await http.get(
+        _uri('/api/aircrafts', {'companyId': '$companyId'}),
+        headers: hdrs,
+      );
+      if (r.statusCode >= 200 && r.statusCode < 300) {
+        return (json.decode(r.body) as List)
+            .cast<Map<String, dynamic>>()
+            .map((m) => AircraftModel.fromJson(m))
+            .toList();
+      }
+    } catch (_) {}
+    try {
+      final r = await http.get(_uri('/api/aircrafts'), headers: hdrs);
+      if (r.statusCode >= 200 && r.statusCode < 300) {
+        final all = (json.decode(r.body) as List)
+            .cast<Map<String, dynamic>>()
+            .map((m) => AircraftModel.fromJson(m))
+            .toList();
+        var list = all.where((a) => (a.companyId ?? 0) == companyId).toList();
+        if (list.isEmpty) list = all;
+        return list;
+      }
+    } catch (_) {}
+    return <AircraftModel>[];
+  }
+
+  Future<AircraftModel> createAircraft({
+    required int companyId,
+    required int baseAirportId,
+    String? patent,
+    required String model,
+    required double minuteCost,
+    required int seats,
+    required int emptyWeight,
+    required int maxWeight,
+    required double cruisingSpeed,
+    required bool canFlyInternational,
+    String state = 'Disponible',
+    bool isActive = true,
+    int? currentAirportId,
+    String? image,
+  }) async {
+    final hdrs = await _headers();
+    final body = json.encode({
+      'companyId': companyId,
+      'baseAirportId': baseAirportId,
+      if (currentAirportId != null) 'currentAirportId': currentAirportId,
+      'patent': patent ?? '',
+      'model': model,
+      'minuteCost': minuteCost,
+      'seats': seats,
+      'emptyWeight': emptyWeight,
+      'maxWeight': maxWeight,
+      'cruisingSpeed': cruisingSpeed,
+      'canFlyInternational': canFlyInternational,
+      'state': state,
+      'image': image ?? '',
+      'isActive': isActive,
+    });
+
+    final r = await http.post(
+      _uri('/api/aircrafts'),
+      headers: hdrs,
+      body: body,
     );
-
-    if (response.statusCode == 200) {
-      final List<dynamic> jsonList = jsonDecode(response.body);
-      return jsonList.map((e) => AircraftModel.fromJson(e)).toList();
-    } else if (response.statusCode == 204) {
-      // No hay aeronaves registradas
-      return [];
-    } else {
-      print('❌ Error al obtener aeronaves: ${response.body}');
-      throw Exception(
-        'Error al obtener aeronaves (status ${response.statusCode})',
+    if (r.statusCode >= 200 && r.statusCode < 300) {
+      return AircraftModel.fromJson(
+        json.decode(r.body) as Map<String, dynamic>,
       );
     }
-  }
-
-  // ===========================================================
-  // GET: Obtener aeronave por ID
-  // ===========================================================
-  Future<AircraftModel> getAircraftById(int id) async {
-    final token = await TokenStorage.getAccessToken();
-    if (token == null) throw Exception('Token no disponible');
-
-    final url = Uri.parse('${ApiConfig.baseUrl}/api/aircrafts/$id');
-
-    final response = await http.get(
-      url,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
+    throw HttpException(
+      'Failed to create aircraft (${r.statusCode}): ${r.body}',
     );
+  }
 
-    if (response.statusCode == 200) {
-      final json = jsonDecode(response.body);
-      return AircraftModel.fromJson(json);
-    } else if (response.statusCode == 404) {
-      throw Exception('Aeronave no encontrada');
-    } else {
-      print('❌ Error al obtener aeronave: ${response.body}');
-      throw Exception('Error al obtener aeronave');
+  Future<AircraftModel> updateAircraft(
+    int id, {
+    int? companyId,
+    int? baseAirportId,
+    int? currentAirportId,
+    String? patent,
+    String? model,
+    double? minuteCost,
+    int? seats,
+    int? emptyWeight,
+    int? maxWeight,
+    double? cruisingSpeed,
+    bool? canFlyInternational,
+    String? state,
+    String? image,
+    bool? isActive,
+  }) async {
+    final hdrs = await _headers();
+    final payload = <String, dynamic>{
+      if (companyId != null) 'companyId': companyId,
+      if (baseAirportId != null) 'baseAirportId': baseAirportId,
+      if (currentAirportId != null) 'currentAirportId': currentAirportId,
+      if (patent != null) 'patent': patent,
+      if (model != null) 'model': model,
+      if (minuteCost != null) 'minuteCost': minuteCost,
+      if (seats != null) 'seats': seats,
+      if (emptyWeight != null) 'emptyWeight': emptyWeight,
+      if (maxWeight != null) 'maxWeight': maxWeight,
+      if (cruisingSpeed != null) 'cruisingSpeed': cruisingSpeed,
+      if (canFlyInternational != null)
+        'canFlyInternational': canFlyInternational,
+      if (state != null) 'state': state,
+      if (image != null) 'image': image,
+      if (isActive != null) 'isActive': isActive,
+    };
+    final body = json.encode(payload);
+
+    var r = await http.patch(
+      _uri('/api/aircrafts/$id'),
+      headers: hdrs,
+      body: body,
+    );
+    if (r.statusCode == 404) {
+      r = await http.put(_uri('/api/aircrafts/$id'), headers: hdrs, body: body);
     }
+    if (r.statusCode >= 200 && r.statusCode < 300) {
+      return AircraftModel.fromJson(
+        json.decode(r.body) as Map<String, dynamic>,
+      );
+    }
+    throw HttpException(
+      'Failed to update aircraft (${r.statusCode}): ${r.body}',
+    );
   }
 
-  // ===========================================================
-// PUT: Actualizar aeronave (excepto compañía)
-// ===========================================================
-Future<void> updateAircraft({
-  required int id,
-  required String patent,
-  required String model,
-  required double minuteCost,
-  required int seats,
-  required int emptyWeight,
-  required int maxWeight,
-  required double cruisingSpeed,
-  required bool canFlyInternational,
-  required String state,
-  required int baseAirportId,
-  int? currentAirportId,
-  String? imageUrl,
-}) async {
-  final token = await TokenStorage.getAccessToken();
-  if (token == null) throw Exception('Token no disponible');
-
-  final url = Uri.parse('${ApiConfig.baseUrl}/api/aircrafts/$id');
-
-  final body = {
-    'patent': patent,
-    'model': model,
-    'minuteCost': minuteCost,
-    'seats': seats,
-    'emptyWeight': emptyWeight,
-    'maxWeight': maxWeight,
-    'cruisingSpeed': cruisingSpeed,
-    'canFlyInternational': canFlyInternational,
-    'state': state,
-    'baseAirportId': baseAirportId,
-    if (currentAirportId != null) 'currentAirportId': currentAirportId,
-    if (imageUrl != null && imageUrl.isNotEmpty) 'image': imageUrl,
-  };
-
-  print('🛠️ PUT $url');
-  print('📦 Body: $body');
-
-  final response = await http.put(
-    url,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    },
-    body: jsonEncode(body),
-  );
-
-  print('📥 Status: ${response.statusCode}');
-  print('📥 Response: ${response.body}');
-
-  if (response.statusCode == 200) {
-    print('✅ Aeronave actualizada correctamente');
-  } else if (response.statusCode == 404) {
-    throw Exception('Aeronave no encontrada');
-  } else if (response.statusCode == 400) {
-    throw Exception('Datos inválidos: ${response.body}');
-  } else {
-    throw Exception('Error al actualizar aeronave (${response.statusCode})');
-  }
-}
-
-  // ======================================================
-  // 🔻 Desactivar aeronave
-  // ======================================================
   Future<void> deactivateAircraft(int id) async {
-    final token = await TokenStorage.getAccessToken();
-    if (token == null) throw Exception('Token no disponible');
-
-    final url = Uri.parse('${ApiConfig.baseUrl}/api/aircrafts/$id');
-
-    final response = await http.delete(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      print('✅ Aeronave desactivada correctamente');
-    } else {
-      print('❌ Error al desactivar aeronave: ${response.body}');
-      throw Exception('Error al desactivar aeronave');
+    final hdrs = await _headers();
+    final endpoints = <Future<http.Response>>[
+      http.patch(_uri('/api/aircrafts/$id/deactivate'), headers: hdrs),
+      http.patch(
+        _uri('/api/aircrafts/$id'),
+        headers: hdrs,
+        body: json.encode({'isActive': false}),
+      ),
+      http.put(_uri('/api/aircrafts/$id/deactivate'), headers: hdrs),
+      http.post(_uri('/api/aircrafts/$id/deactivate'), headers: hdrs),
+    ];
+    for (final call in endpoints) {
+      try {
+        final r = await call;
+        if (r.statusCode >= 200 && r.statusCode < 300) return;
+      } catch (_) {}
     }
+    throw HttpException(
+      'Failed to deactivate aircraft $id (no route matched).',
+    );
   }
 
-  // ======================================================
-  // 🔄 Reactivar aeronave
-  // ======================================================
   Future<void> reactivateAircraft(int id) async {
-    final token = await TokenStorage.getAccessToken();
-    if (token == null) throw Exception('Token no disponible');
-
-    final url = Uri.parse('${ApiConfig.baseUrl}/api/aircrafts/reactivate/$id');
-
-    final response = await http.put(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      print('✅ Aeronave reactivada correctamente');
-    } else {
-      print('❌ Error al reactivar aeronave: ${response.body}');
-      throw Exception('Error al reactivar aeronave');
+    final hdrs = await _headers();
+    final endpoints = <Future<http.Response>>[
+      http.patch(_uri('/api/aircrafts/$id/reactivate'), headers: hdrs),
+      http.patch(
+        _uri('/api/aircrafts/$id'),
+        headers: hdrs,
+        body: json.encode({'isActive': true}),
+      ),
+      http.put(_uri('/api/aircrafts/$id/reactivate'), headers: hdrs),
+      http.post(_uri('/api/aircrafts/$id/reactivate'), headers: hdrs),
+    ];
+    for (final call in endpoints) {
+      try {
+        final r = await call;
+        if (r.statusCode >= 200 && r.statusCode < 300) return;
+      } catch (_) {}
     }
+    throw HttpException(
+      'Failed to reactivate aircraft $id (no route matched).',
+    );
+  }
+
+  Future<String> uploadAircraftImage(int id, String filePath) async {
+    final token = await TokenStorage.getAccessToken();
+    final Map<String, String> authHeader = {};
+    if (token != null && token.isNotEmpty) {
+      authHeader['Authorization'] = 'Bearer $token';
+    }
+
+    try {
+      final url = _uri('/api/aircrafts/$id/image');
+      final req = http.MultipartRequest('POST', url);
+      req.headers.addAll(authHeader);
+      req.files.add(await http.MultipartFile.fromPath('file', filePath));
+      final resp = await http.Response.fromStream(await req.send());
+      if (resp.statusCode >= 200 && resp.statusCode < 300) {
+        final jsonMap = json.decode(resp.body);
+        if (jsonMap is Map && jsonMap['url'] != null) {
+          return jsonMap['url'].toString();
+        }
+        if (jsonMap is Map && jsonMap['image'] != null) {
+          return jsonMap['image'].toString();
+        }
+      }
+    } catch (_) {}
+
+    try {
+      final url = _uri('/api/files/aircrafts');
+      final req = http.MultipartRequest('POST', url);
+      req.headers.addAll(authHeader);
+      req.fields['aircraftId'] = '$id';
+      req.files.add(await http.MultipartFile.fromPath('file', filePath));
+      final resp = await http.Response.fromStream(await req.send());
+      if (resp.statusCode >= 200 && resp.statusCode < 300) {
+        final jsonMap = json.decode(resp.body);
+        if (jsonMap is Map && jsonMap['url'] != null) {
+          return jsonMap['url'].toString();
+        }
+        if (jsonMap is Map && jsonMap['image'] != null) {
+          return jsonMap['image'].toString();
+        }
+      }
+    } catch (_) {}
+
+    throw HttpException('Failed to upload image for aircraft $id.');
+  }
+
+  Future<String> uploadImageFile(File file) async {
+    final token = await TokenStorage.getAccessToken();
+    final Map<String, String> authHeader = {};
+    if (token != null && token.isNotEmpty) {
+      authHeader['Authorization'] = 'Bearer $token';
+    }
+
+    final url = _uri('/api/files/aircrafts');
+    final req = http.MultipartRequest('POST', url);
+    req.headers.addAll(authHeader);
+    req.files.add(await http.MultipartFile.fromPath('file', file.path));
+    final resp = await http.Response.fromStream(await req.send());
+    if (resp.statusCode >= 200 && resp.statusCode < 300) {
+      final jsonMap = json.decode(resp.body);
+      if (jsonMap is Map && jsonMap['url'] != null) {
+        return jsonMap['url'].toString();
+      }
+      if (jsonMap is Map && jsonMap['image'] != null) {
+        return jsonMap['image'].toString();
+      }
+    }
+    throw HttpException('Failed to upload image (pre-ID).');
   }
 }

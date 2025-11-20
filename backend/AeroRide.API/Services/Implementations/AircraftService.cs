@@ -1,4 +1,5 @@
 ﻿using AeroRide.API.Data;
+using AeroRide.API.Helpers;
 using AeroRide.API.Interfaces;
 using AeroRide.API.Models.Domain;
 using AeroRide.API.Models.DTOs.Aircrafts;
@@ -217,33 +218,178 @@ namespace AeroRide.API.Services
             return aircraft == null ? null : _mapper.Map<AircraftResponseDto>(aircraft);
         }
 
-
         // ======================================================
-        // 🧾 GROUPED BY MODEL + COMPANY
+        // 🧾 GROUPED BY MODEL + COMPANY + RANGO HORARIO
         // ======================================================
-        public async Task<IEnumerable<AircraftCategoryDto>> GetAvailableGroupedBySeatsAsync(int? minSeats, int? maxSeats)
+        public async Task<IEnumerable<AircraftCategoryDto>> GetAvailableForCriteriaAsync(
+    AircraftAvailabilityCriteriaDto criteria)
         {
-            var query = _db.Aircrafts
+            // 1️⃣ Fetch departure & arrival airports
+            var depAirport = await _db.Airports.FirstAsync(a => a.Id == criteria.DepartureAirportId);
+            var arrAirport = await _db.Airports.FirstAsync(a => a.Id == criteria.ArrivalAirportId);
+
+            bool isInternationalFlight = !string.Equals(
+                depAirport.Country.Trim(),
+                arrAirport.Country.Trim(),
+                StringComparison.OrdinalIgnoreCase
+            );
+
+            // 2️⃣ Convert departureTime (local) → UTC using departure airport timezone
+            var requestedStartUtc = TimeHelper.ToUtc(criteria.DepartureTime, depAirport.TimeZone);
+
+            // ======================================================
+            // 3️⃣ PRE-FILTER AIRCRAFT
+            // ======================================================
+            var aircrafts = await _db.Aircrafts
                 .Include(a => a.Company)
-                .Where(a => a.IsActive && a.State == AircraftState.Disponible);
-
-            if (minSeats.HasValue)
-                query = query.Where(a => a.Seats >= minSeats.Value);
-
-            if (maxSeats.HasValue)
-                query = query.Where(a => a.Seats <= maxSeats.Value);
-
-            var projected = await query
-                .ProjectTo<AircraftCategoryDto>(_mapper.ConfigurationProvider)
+                .Include(a => a.BaseAirport)
+                .Where(a =>
+                    a.IsActive &&
+                    a.State == AircraftState.Disponible &&
+                    a.Seats >= criteria.MinSeats
+                )
+                .AsNoTracking()
                 .ToListAsync();
 
-            return projected
-                .GroupBy(a => new { a.Model, a.Seats, a.CompanyName, a.State })
+            // ======================================================
+            // 4️⃣ NATIONAL FLIGHTS: only aircraft based in the same *country*
+            // ======================================================
+            if (!isInternationalFlight)
+            {
+                aircrafts = aircrafts
+                    .Where(a =>
+                        string.Equals(
+                            a.BaseAirport.Country.Trim(),
+                            depAirport.Country.Trim(),
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
+                    .ToList();
+            }
+
+            // ======================================================
+            // 5️⃣ PER-AIRCRAFT VALIDATIONS
+            // ======================================================
+            var validAircraft = new List<Aircraft>();
+
+            foreach (var aircraft in aircrafts)
+            {
+                // 🟥 A. Weight limit validation (MTOW = empty + max)
+                double mtow = aircraft.EmptyWeight + aircraft.MaxWeight;
+
+                if (mtow > depAirport.MaxAllowedWeight)
+                    continue;
+
+                if (mtow > arrAirport.MaxAllowedWeight)
+                    continue;
+
+                // 🌍 B. International capability
+                if (isInternationalFlight && !aircraft.CanFlyInternational)
+                    continue;
+
+                // 🕒 C. Flight duration
+                double durationMinutes = FlightMathHelper.CalcularDuracionVuelo(depAirport, arrAirport, aircraft);
+                if (durationMinutes < 10)
+                    durationMinutes = 10;
+
+                var requestedEndUtc = requestedStartUtc.AddMinutes(durationMinutes);
+
+                // 🕓 D. Operating hours (UTC)
+                if (!AirportTimeHelper.IsWithinOperatingHours(requestedStartUtc, depAirport))
+                    continue;
+
+                if (!AirportTimeHelper.IsWithinOperatingHours(requestedEndUtc, arrAirport))
+                    continue;
+
+                // 🟦 E. Availability
+                bool isFree = await IsAircraftAvailableInRangeAsync(
+                    aircraft.Id,
+                    requestedStartUtc,
+                    requestedEndUtc
+                );
+
+                if (isFree)
+                    validAircraft.Add(aircraft);
+            }
+
+            // ======================================================
+            // 6️⃣ ORDERING (international priority by COUNTRIES)
+            // ======================================================
+            List<Aircraft> orderedAircraft;
+
+            if (isInternationalFlight)
+            {
+                var originCountry = depAirport.Country.Trim();
+                var destinationCountry = arrAirport.Country.Trim();
+
+                var basedInOrigin = validAircraft
+                    .Where(a => a.BaseAirport.Country.Trim().Equals(originCountry, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                var basedInDestination = validAircraft
+                    .Where(a =>
+                        a.BaseAirport.Country.Trim().Equals(destinationCountry, StringComparison.OrdinalIgnoreCase) &&
+                        !a.BaseAirport.Country.Trim().Equals(originCountry, StringComparison.OrdinalIgnoreCase)
+                    )
+                    .ToList();
+
+                var foreign = validAircraft
+                    .Where(a =>
+                        !a.BaseAirport.Country.Trim().Equals(originCountry, StringComparison.OrdinalIgnoreCase) &&
+                        !a.BaseAirport.Country.Trim().Equals(destinationCountry, StringComparison.OrdinalIgnoreCase)
+                    )
+                    .ToList();
+
+                orderedAircraft = basedInOrigin
+                    .Concat(basedInDestination)
+                    .Concat(foreign)
+                    .ToList();
+            }
+            else
+            {
+                // 🇨🇷 NATIONAL: no special ordering
+                orderedAircraft = validAircraft.ToList();
+            }
+
+            // ======================================================
+            // 7️⃣ MAPPING + GROUPING (preserving international order)
+            // ======================================================
+            var mapped = orderedAircraft
+                .Select(a => _mapper.Map<AircraftCategoryDto>(a))
+                .GroupBy(a => new { a.Model, a.Seats, a.CompanyName })
                 .Select(g => g.First())
-                .OrderBy(x => x.CompanyName)
-                .ThenBy(x => x.Model)
                 .ToList();
+
+            // ======================================================
+            // 8️⃣ FINAL ORDER (international preserves country priority)
+            // ======================================================
+            if (isInternationalFlight)
+            {
+                var originCountry = depAirport.Country.Trim();
+                var destinationCountry = arrAirport.Country.Trim();
+
+                mapped = mapped
+                    .OrderBy(a =>
+                        a.BaseCountry == originCountry ? 0 :
+                        a.BaseCountry == destinationCountry ? 1 :
+                        2
+                    )
+                    .ThenBy(a => a.CompanyName)
+                    .ThenBy(a => a.Model)
+                    .ToList();
+            }
+            else
+            {
+                mapped = mapped
+                    .OrderBy(a => a.CompanyName)
+                    .ThenBy(a => a.Model)
+                    .ToList();
+            }
+
+            return mapped;
         }
+
+
 
         // ======================================================
         // 🔹 AERONAVES POR EMPRESA
@@ -288,6 +434,49 @@ namespace AeroRide.API.Services
                 return (false, $"El estado '{state}' no es válido. Use: Disponible, EnMantenimiento o FueraDeServicio.");
 
             return (true, string.Empty);
+        }
+
+        private async Task<bool> IsAircraftAvailableInRangeAsync(
+        int aircraftId,
+        DateTime requestedStart,
+        DateTime requestedEnd)
+        {
+            const int turnaroundMinutes = 30;
+
+            var occupancies = await _db.AircraftAvailabilities
+                .Where(av => av.AircraftId == aircraftId && av.Status == "Confirmado")
+                .OrderBy(av => av.StartTime)
+                .ToListAsync();
+
+            // No reservations → it's free
+            if (!occupancies.Any())
+                return true;
+
+            // 1️⃣ Direct schedule conflict
+            bool conflict = occupancies.Any(av =>
+                requestedStart < av.EndTime.AddMinutes(turnaroundMinutes) &&
+                requestedEnd > av.StartTime.AddMinutes(-turnaroundMinutes));
+
+            if (!conflict)
+                return true;
+
+            // 2️⃣ Try to fit inside gaps between existing reservations
+            for (int i = 0; i < occupancies.Count - 1; i++)
+            {
+                var current = occupancies[i];
+                var next = occupancies[i + 1];
+
+                var gapStart = current.EndTime.AddMinutes(turnaroundMinutes);
+                var gapEnd = next.StartTime.AddMinutes(-turnaroundMinutes);
+
+                if (requestedStart >= gapStart &&
+                    requestedEnd <= gapEnd)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

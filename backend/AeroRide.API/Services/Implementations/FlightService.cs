@@ -39,9 +39,6 @@ namespace AeroRide.API.Services.Implementations
             return _mapper.Map<IEnumerable<FlightResponseDto>>(flights);
         }
 
-        // ======================================================
-        // 2) ASIGNAR PILOTO + COPILOTO A UN VUELO
-        // ======================================================
         public async Task AssignPilotsToFlightAsync(int flightId, FlightAssignmentCreateDto dto)
         {
             var flight = await _db.Flights

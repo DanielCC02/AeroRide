@@ -66,6 +66,8 @@ namespace AeroRide.API.Mappings
                 .ForMember(dest => dest.PhoneNumber, opt => opt.MapFrom(src => src.PilotUser.PhoneNumber))
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
                 .ForMember(dest => dest.CrewRole, opt => opt.MapFrom(src => src.CrewRole.ToString()));
+
+
         }
     }
 }

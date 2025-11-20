@@ -166,14 +166,11 @@ namespace AeroRide.API.Controllers
         [Authorize(Roles = "Admin,CompanyAdmin,Pilot,User")]
         [ProducesResponseType(typeof(IEnumerable<AircraftCategoryDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public async Task<IActionResult> GetAvailableGroupedBySeats([FromQuery] int? minSeats, [FromQuery] int? maxSeats)
+        public async Task<ActionResult<IEnumerable<AircraftCategoryDto>>> GetAvailableForCriteria(
+            [FromBody] AircraftAvailabilityCriteriaDto criteria)
         {
-            var grouped = await _aircraftService.GetAvailableGroupedBySeatsAsync(minSeats, maxSeats);
-
-            if (!grouped.Any())
-                return NoContent();
-
-            return Ok(grouped);
+            var result = await _aircraftService.GetAvailableForCriteriaAsync(criteria);
+            return Ok(result);
         }
 
         // ============================================================
