@@ -1,5 +1,4 @@
-﻿using System;
-using AeroRide.API.Models.Enums;
+﻿using AeroRide.API.Models.Enums;
 
 namespace AeroRide.API.Models.DTOs.Flights
 {

@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AeroRide.API.Migrations
 {
     [DbContext(typeof(AeroRideDbContext))]
-    [Migration("20251105180052_AddAircarft")]
-    partial class AddAircarft
+    [Migration("20251120200025_UpdateFlightStatusEnum")]
+    partial class UpdateFlightStatusEnum
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -82,7 +82,7 @@ namespace AeroRide.API.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("StatusLastUpdated")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -107,13 +107,13 @@ namespace AeroRide.API.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("EndTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int?>("ReservationId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("StartTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -220,7 +220,7 @@ namespace AeroRide.API.Migrations
                         .HasColumnType("double precision");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<double>("DomesticOvernightCost")
                         .HasColumnType("double precision");
@@ -299,19 +299,19 @@ namespace AeroRide.API.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("ArrivalTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("CompanyId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("DepartureAirportId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("DepartureTime")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<double>("DurationMinutes")
                         .HasColumnType("double precision");
@@ -330,7 +330,7 @@ namespace AeroRide.API.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -361,8 +361,12 @@ namespace AeroRide.API.Migrations
 
                     b.Property<DateTime>("AssignedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasDefaultValueSql("now()");
+
+                    b.Property<string>("CrewRole")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<int>("FlightId")
                         .HasColumnType("integer");
@@ -399,7 +403,7 @@ namespace AeroRide.API.Migrations
                         .HasColumnType("double precision");
 
                     b.Property<DateTime>("CalculatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("CompanyId")
                         .HasColumnType("integer");
@@ -434,26 +438,25 @@ namespace AeroRide.API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<int>("FlightId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Image")
+                    b.Property<string>("PdfUrl")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
-                    b.Property<int?>("ReservationId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("UserId")
+                    b.Property<int>("PilotUserId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
                     b.HasIndex("FlightId");
 
-                    b.HasIndex("ReservationId");
-
-                    b.HasIndex("UserId");
+                    b.HasIndex("PilotUserId");
 
                     b.ToTable("FlightLogs", (string)null);
                 });
@@ -467,7 +470,7 @@ namespace AeroRide.API.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("DateOfBirth")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Gender")
                         .IsRequired()
@@ -512,7 +515,7 @@ namespace AeroRide.API.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("Expiration")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<bool>("IsRevoked")
                         .HasColumnType("boolean");
@@ -549,7 +552,7 @@ namespace AeroRide.API.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<bool>("IsRoundTrip")
                         .HasColumnType("boolean");
@@ -575,7 +578,7 @@ namespace AeroRide.API.Migrations
                         .HasColumnType("double precision");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
@@ -598,7 +601,7 @@ namespace AeroRide.API.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("RevokedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Token")
                         .IsRequired()
@@ -700,7 +703,7 @@ namespace AeroRide.API.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("PasswordResetTokenExpires")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
@@ -710,7 +713,7 @@ namespace AeroRide.API.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime>("RegistrationDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int?>("RoleId")
                         .HasColumnType("integer");
@@ -844,7 +847,7 @@ namespace AeroRide.API.Migrations
                         .IsRequired();
 
                     b.HasOne("AeroRide.API.Models.Domain.User", "PilotUser")
-                        .WithMany()
+                        .WithMany("FlightAssignments")
                         .HasForeignKey("PilotUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -876,27 +879,20 @@ namespace AeroRide.API.Migrations
             modelBuilder.Entity("AeroRide.API.Models.Domain.FlightLog", b =>
                 {
                     b.HasOne("AeroRide.API.Models.Domain.Flight", "Flight")
-                        .WithMany()
+                        .WithMany("Logs")
                         .HasForeignKey("FlightId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("AeroRide.API.Models.Domain.Reservation", "Reservation")
-                        .WithMany()
-                        .HasForeignKey("ReservationId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("AeroRide.API.Models.Domain.User", "User")
+                    b.HasOne("AeroRide.API.Models.Domain.User", "PilotUser")
                         .WithMany("FlightLogs")
-                        .HasForeignKey("UserId")
+                        .HasForeignKey("PilotUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Flight");
 
-                    b.Navigation("Reservation");
-
-                    b.Navigation("User");
+                    b.Navigation("PilotUser");
                 });
 
             modelBuilder.Entity("AeroRide.API.Models.Domain.PassengerDetail", b =>
@@ -1000,6 +996,8 @@ namespace AeroRide.API.Migrations
                     b.Navigation("Assignments");
 
                     b.Navigation("Charge");
+
+                    b.Navigation("Logs");
                 });
 
             modelBuilder.Entity("AeroRide.API.Models.Domain.Reservation", b =>
@@ -1016,6 +1014,8 @@ namespace AeroRide.API.Migrations
 
             modelBuilder.Entity("AeroRide.API.Models.Domain.User", b =>
                 {
+                    b.Navigation("FlightAssignments");
+
                     b.Navigation("FlightLogs");
 
                     b.Navigation("RefreshTokens");

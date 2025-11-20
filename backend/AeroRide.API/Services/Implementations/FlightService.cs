@@ -1,5 +1,6 @@
 ﻿using AeroRide.API.Data;
 using AeroRide.API.Models.Domain;
+using AeroRide.API.Models.DTOs.EmptyLegs;
 using AeroRide.API.Models.DTOs.FlightAssignments;
 using AeroRide.API.Models.DTOs.Flights;
 using AeroRide.API.Models.Enums;
@@ -155,5 +156,89 @@ namespace AeroRide.API.Services.Implementations
 
             return _mapper.Map<IEnumerable<FlightPilotDto>>(assignments);
         }
+
+        public async Task<IEnumerable<EmptyLegListDto>> GetEmptyLegsAsync()
+        {
+            var now = DateTime.UtcNow;
+
+            var flights = await _db.Flights
+                .Include(f => f.DepartureAirport)
+                .Include(f => f.ArrivalAirport)
+                .Include(f => f.Aircraft)
+                .Include(f => f.Company)
+                .Where(f => f.IsEmptyLeg && f.DepartureTime >= now)   // SOLO presentes y futuras
+                .OrderBy(f => f.DepartureTime)                       // Orden por más próxima
+                .ToListAsync();
+
+            var dtos = _mapper.Map<List<EmptyLegListDto>>(flights);
+
+            // Precio final con descuento
+            for (int i = 0; i < flights.Count; i++)
+            {
+                var f = flights[i];
+
+                double baseCost = f.DurationMinutes * f.Aircraft.MinuteCost;
+                double discount = f.Company.EmptyLegDiscount / 100.0;
+
+                dtos[i].FinalPrice = Math.Round(baseCost * discount, 2);
+            }
+
+            return dtos;
+        }
+
+        public async Task<EmptyLegDetailDto?> GetEmptyLegDetailAsync(int id)
+        {
+            var flight = await _db.Flights
+                .Include(f => f.DepartureAirport)
+                .Include(f => f.ArrivalAirport)
+                .Include(f => f.Aircraft)
+                .Include(f => f.Company)
+                .FirstOrDefaultAsync(f => f.Id == id && f.IsEmptyLeg);
+
+            if (flight == null)
+                return null;
+
+            // Mapear base
+            var dto = _mapper.Map<EmptyLegDetailDto>(flight);
+
+            // ===============================
+            // 🔹 Calcular precio final con descuento
+            // ===============================
+            double baseCost = flight.DurationMinutes * flight.Aircraft.MinuteCost;
+            double discountMultiplier = flight.Company.EmptyLegDiscount / 100.0;
+
+            dto.FinalPrice = Math.Round(baseCost * discountMultiplier, 2);
+
+            // ===============================
+            // 🔹 Calcular EFT (Estimated Flight Time)
+            // ===============================
+            var hours = (int)(flight.DurationMinutes / 60);
+            var minutes = (int)(flight.DurationMinutes % 60);
+
+            dto.EFT = $"{hours}h {minutes}m";
+
+            return dto;
+        }
+
+
+
+        public async Task<bool> UpdateFlightStatusAsync(int flightId, FlightStatus status)
+        {
+            var flight = await _db.Flights.FirstOrDefaultAsync(f => f.Id == flightId);
+
+            if (flight == null)
+                throw new Exception("Flight not found.");
+
+            // ❗ Reglas opcionales: evitar retroceder estados
+            if ((int)status < (int)flight.Status && status != FlightStatus.PreFlight)
+                throw new Exception("Cannot revert flight status.");
+
+            flight.Status = status;
+            flight.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+            return true;
+        }
+
     }
 }
