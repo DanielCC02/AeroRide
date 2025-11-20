@@ -24,11 +24,11 @@ class ReservationEstimateResponse {
   /// Parser más tolerante a variaciones de nombres de propiedades
   /// (por si el backend cambia mínimamente algunos keys).
   factory ReservationEstimateResponse.fromJson(Map<String, dynamic> j) {
-    double _d(v) => v is num ? v.toDouble() : (double.tryParse('$v') ?? 0);
-    int _i(v) => v is num ? v.toInt() : (int.tryParse('$v') ?? 0);
-    bool _b(v) => v is bool ? v : ('$v'.toLowerCase() == 'true');
+    double d(v) => v is num ? v.toDouble() : (double.tryParse('$v') ?? 0);
+    int i(v) => v is num ? v.toInt() : (int.tryParse('$v') ?? 0);
+    bool b(v) => v is bool ? v : ('$v'.toLowerCase() == 'true');
 
-    T _pick<T>(List<String> keys, T Function(dynamic) conv, T fallback) {
+    T pick<T>(List<String> keys, T Function(dynamic) conv, T fallback) {
       for (final k in keys) {
         if (j.containsKey(k) && j[k] != null) return conv(j[k]);
       }
@@ -36,14 +36,14 @@ class ReservationEstimateResponse {
     }
 
     return ReservationEstimateResponse(
-      totalMinutes: _pick(['totalMinutes', 'minutes'], _i, 0),
-      minuteCost: _pick(['minuteCost'], _d, 0),
-      baseCost: _pick(['baseCost', 'base'], _d, 0),
-      taxes: _pick(['taxes', 'tax'], _d, 0),
-      waitCost: _pick(['waitCost', 'waitingCost'], _d, 0),
-      overnightCost: _pick(['overnightCost'], _d, 0),
-      totalPrice: _pick(['totalPrice', 'total'], _d, 0),
-      isInternational: _pick(['isInternational', 'international'], _b, false),
+      totalMinutes: pick(['totalMinutes', 'minutes'], i, 0),
+      minuteCost: pick(['minuteCost'], d, 0),
+      baseCost: pick(['baseCost', 'base'], d, 0),
+      taxes: pick(['taxes', 'tax'], d, 0),
+      waitCost: pick(['waitCost', 'waitingCost'], d, 0),
+      overnightCost: pick(['overnightCost'], d, 0),
+      totalPrice: pick(['totalPrice', 'total'], d, 0),
+      isInternational: pick(['isInternational', 'international'], b, false),
     );
   }
 

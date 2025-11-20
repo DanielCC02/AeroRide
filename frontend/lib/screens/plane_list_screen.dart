@@ -6,8 +6,7 @@ import '../models/available_aircraft_model.dart';
 import '../services/aircraft_service.dart';
 import 'reservation_screen.dart';
 
-/// Cambia a `null` si quieres ver TODOS los modelos (todas las compañías)
-const String? _companyFilter = 'AeroCaribe';
+enum PlaneSortOption { companyThenModel, modelAZ, seatsAsc, seatsDesc }
 
 class PlaneListScreen extends StatefulWidget {
   final SearchCriteria criteria;
@@ -21,6 +20,11 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
   final _svc = AircraftService();
   late Future<List<AvailableAircraftModel>> _future;
 
+  // Filtros dinámicos
+  String? _selectedCompany; // null = todas
+  String? _selectedModel; // null = todos
+  PlaneSortOption _sortOption = PlaneSortOption.companyThenModel;
+
   @override
   void initState() {
     super.initState();
@@ -28,8 +32,11 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
   }
 
   Future<void> _reload() async {
-    setState(() => _future = _svc.listAvailableModelsFor(widget.criteria));
-    await _future;
+    final fut = _svc.listAvailableModelsFor(widget.criteria);
+    setState(() {
+      _future = fut;
+    });
+    await fut;
   }
 
   @override
@@ -37,7 +44,8 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Select Aircraft (by Model)'),
+          // 👇 Solo "Select Aircraft"
+          title: const Text('Select Aircraft'),
           titleTextStyle: const TextStyle(
             color: Color(0xFFFF0000),
             fontSize: 20,
@@ -65,43 +73,122 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
               );
             }
 
-            var items = (snap.data ?? <AvailableAircraftModel>[]).toList();
+            final allItems = (snap.data ?? <AvailableAircraftModel>[]).toList();
 
-            // Filtro opcional por compañía para la prueba
-            if (_companyFilter != null && _companyFilter!.trim().isNotEmpty) {
-              final f = _companyFilter!.trim().toLowerCase();
-              items = items
-                  .where((m) => (m.companyName).trim().toLowerCase() == f)
-                  .toList();
-            }
-
-            if (items.isEmpty) {
+            if (allItems.isEmpty) {
               return _EmptyState(
                 onModify: () => Navigator.of(context).pop(),
                 onRetry: _reload,
               );
             }
 
-            // Orden por compañía y luego por modelo (ambos exactos para mostrar)
-            items.sort((a, b) {
-              final c1 = (a.companyName).compareTo(b.companyName);
-              if (c1 != 0) return c1;
-              return a.model.compareTo(b.model);
+            // ==== Construir listas dinámicas de compañías y modelos ====
+            final companySet = <String>{};
+            final modelSet = <String>{};
+
+            for (final m in allItems) {
+              if (m.companyName.trim().isNotEmpty) {
+                companySet.add(m.companyName.trim());
+              }
+              if (m.model.trim().isNotEmpty) {
+                modelSet.add(m.model.trim());
+              }
+            }
+
+            final companies = companySet.toList()..sort();
+            final models = modelSet.toList()..sort();
+
+            // ==== Aplicar filtros ====
+            var filtered = allItems;
+
+            if (_selectedCompany != null && _selectedCompany!.isNotEmpty) {
+              filtered = filtered
+                  .where(
+                    (m) =>
+                        m.companyName.trim().toLowerCase() ==
+                        _selectedCompany!.trim().toLowerCase(),
+                  )
+                  .toList();
+            }
+
+            if (_selectedModel != null && _selectedModel!.isNotEmpty) {
+              filtered = filtered
+                  .where(
+                    (m) =>
+                        m.model.trim().toLowerCase() ==
+                        _selectedModel!.trim().toLowerCase(),
+                  )
+                  .toList();
+            }
+
+            if (filtered.isEmpty) {
+              return Column(
+                children: [
+                  // Aún mostramos los filtros para que pueda cambiar
+                  _FilterBar(
+                    totalFound: 0,
+                    companies: companies,
+                    models: models,
+                    selectedCompany: _selectedCompany,
+                    selectedModel: _selectedModel,
+                    sortOption: _sortOption,
+                    onCompanyChanged: (value) {
+                      setState(() => _selectedCompany = value);
+                    },
+                    onModelChanged: (value) {
+                      setState(() => _selectedModel = value);
+                    },
+                    onSortChanged: (value) {
+                      setState(() => _sortOption = value);
+                    },
+                  ),
+                  Expanded(
+                    child: _EmptyState(
+                      onModify: () => Navigator.of(context).pop(),
+                      onRetry: _reload,
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            // ==== Orden base por compañía/modelo ====
+            filtered.sort((a, b) {
+              switch (_sortOption) {
+                case PlaneSortOption.modelAZ:
+                  final cmpModel = a.model.compareTo(b.model);
+                  if (cmpModel != 0) return cmpModel;
+                  return a.companyName.compareTo(b.companyName);
+                case PlaneSortOption.seatsAsc:
+                  final cmpSeats = (a.seats).compareTo(b.seats);
+                  if (cmpSeats != 0) return cmpSeats;
+                  return a.model.compareTo(b.model);
+                case PlaneSortOption.seatsDesc:
+                  final cmpSeats = (b.seats).compareTo(a.seats);
+                  if (cmpSeats != 0) return cmpSeats;
+                  return a.model.compareTo(b.model);
+                case PlaneSortOption.companyThenModel:
+                default:
+                  final c1 = a.companyName.compareTo(b.companyName);
+                  if (c1 != 0) return c1;
+                  return a.model.compareTo(b.model);
+              }
             });
 
-            // Agrupar por compañía y deduplicar por (companyId|modelo EXACTO)
+            // ==== Agrupar por compañía y deduplicar (companyId + modelo) ====
             final grouped = <int, _CompanyGroup>{};
-            for (final m in items) {
+            for (final m in filtered) {
               final companyId = m.companyId;
               final companyName = (m.companyName.isNotEmpty
                   ? m.companyName
                   : (companyId > 0 ? 'Company #$companyId' : 'Company'));
+
               grouped.putIfAbsent(
                 companyId,
                 () => _CompanyGroup(companyId, companyName),
               );
 
-              final key = '$companyId|${m.model.trim()}'; // ← exacto
+              final key = '$companyId|${m.model.trim()}';
               if (!grouped[companyId]!.seenKeys.contains(key)) {
                 grouped[companyId]!.seenKeys.add(key);
                 grouped[companyId]!.models.add(m);
@@ -110,6 +197,28 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
 
             final groups = grouped.values.toList()
               ..sort((a, b) => a.companyName.compareTo(b.companyName));
+
+            // Dentro de cada grupo, ordenar según sortOption
+            for (final g in groups) {
+              g.models.sort((a, b) {
+                switch (_sortOption) {
+                  case PlaneSortOption.modelAZ:
+                    return a.model.compareTo(b.model);
+                  case PlaneSortOption.seatsAsc:
+                    final cmpSeats = a.seats.compareTo(b.seats);
+                    if (cmpSeats != 0) return cmpSeats;
+                    return a.model.compareTo(b.model);
+                  case PlaneSortOption.seatsDesc:
+                    final cmpSeats = b.seats.compareTo(a.seats);
+                    if (cmpSeats != 0) return cmpSeats;
+                    return a.model.compareTo(b.model);
+                  case PlaneSortOption.companyThenModel:
+                  default:
+                    return a.model.compareTo(b.model);
+                }
+              });
+            }
+
             final foundCount = groups.fold<int>(
               0,
               (acc, g) => acc + g.models.length,
@@ -123,39 +232,23 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
                 separatorBuilder: (_, __) => const SizedBox(height: 14),
                 itemBuilder: (_, gi) {
                   if (gi == 0) {
-                    final filterLabel = _companyFilter == null
-                        ? 'All companies'
-                        : 'Company: ${_companyFilter!}';
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 4),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF3F3),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.red.shade100),
-                      ),
-                      child: Row(
-                        children: [
-                          Text(
-                            'Found $foundCount model(s)',
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const Spacer(),
-                          Text(
-                            filterLabel,
-                            style: const TextStyle(
-                              color: Colors.black54,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
+                    // 👇 Nueva barra de filtros
+                    return _FilterBar(
+                      totalFound: foundCount,
+                      companies: companies,
+                      models: models,
+                      selectedCompany: _selectedCompany,
+                      selectedModel: _selectedModel,
+                      sortOption: _sortOption,
+                      onCompanyChanged: (value) {
+                        setState(() => _selectedCompany = value);
+                      },
+                      onModelChanged: (value) {
+                        setState(() => _selectedModel = value);
+                      },
+                      onSortChanged: (value) {
+                        setState(() => _sortOption = value);
+                      },
                     );
                   }
 
@@ -171,7 +264,7 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
                           child: _ModelCard(
                             model: m,
                             onTap: () async {
-                              // Resolver companyId por nombre si viene 0
+                              // Resolver companyId por nombre si viene 0 (fallback)
                               int cid = m.companyId;
                               final cname = m.companyName;
                               if (cid == 0 && cname.trim().isNotEmpty) {
@@ -187,9 +280,9 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
                                 MaterialPageRoute(
                                   builder: (_) => ReservationScreen(
                                     criteria: c,
-                                    companyId: cid, // id final
-                                    companyName: cname, // solo display
-                                    aircraftModel: m.model, // EXACTO
+                                    companyId: cid,
+                                    companyName: cname,
+                                    aircraftModel: m.model,
                                     headerImage: m.image,
                                     seats: m.seats,
                                   ),
@@ -206,6 +299,140 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _FilterBar extends StatelessWidget {
+  final int totalFound;
+  final List<String> companies;
+  final List<String> models;
+  final String? selectedCompany;
+  final String? selectedModel;
+  final PlaneSortOption sortOption;
+  final ValueChanged<String?> onCompanyChanged;
+  final ValueChanged<String?> onModelChanged;
+  final ValueChanged<PlaneSortOption> onSortChanged;
+
+  const _FilterBar({
+    required this.totalFound,
+    required this.companies,
+    required this.models,
+    required this.selectedCompany,
+    required this.selectedModel,
+    required this.sortOption,
+    required this.onCompanyChanged,
+    required this.onModelChanged,
+    required this.onSortChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const red = Color(0xFFFF0000);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3F3),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.redAccent.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Found $totalFound model(s)',
+            style: const TextStyle(color: red, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              // Filter by company
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: selectedCompany,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Company',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('All companies'),
+                    ),
+                    ...companies.map(
+                      (c) => DropdownMenuItem<String>(value: c, child: Text(c)),
+                    ),
+                  ],
+                  onChanged: onCompanyChanged,
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // Filter by model
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: selectedModel,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Model',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('All models'),
+                    ),
+                    ...models.map(
+                      (m) => DropdownMenuItem<String>(value: m, child: Text(m)),
+                    ),
+                  ],
+                  onChanged: onModelChanged,
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // Sort by
+              Expanded(
+                child: DropdownButtonFormField<PlaneSortOption>(
+                  initialValue: sortOption,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Sort by',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: PlaneSortOption.companyThenModel,
+                      child: Text('Company / Model'),
+                    ),
+                    DropdownMenuItem(
+                      value: PlaneSortOption.modelAZ,
+                      child: Text('Model A–Z'),
+                    ),
+                    DropdownMenuItem(
+                      value: PlaneSortOption.seatsAsc,
+                      child: Text('Seats ↑'),
+                    ),
+                    DropdownMenuItem(
+                      value: PlaneSortOption.seatsDesc,
+                      child: Text('Seats ↓'),
+                    ),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) onSortChanged(v);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -286,7 +513,6 @@ class _ModelCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 👇 Modelo EXACTO (sin transformar)
                   Text(
                     m.model.isNotEmpty ? m.model : 'AIRCRAFT',
                     style: const TextStyle(
@@ -303,6 +529,9 @@ class _ModelCard extends StatelessWidget {
                         icon: Icons.event_seat,
                         label: '${m.seats} SEATS',
                       ),
+                      const SizedBox(width: 10),
+                      if (m.baseCountry.isNotEmpty)
+                        _InfoChip(icon: Icons.public, label: m.baseCountry),
                       const Spacer(),
                       if (m.estimatedPrice != null)
                         Row(

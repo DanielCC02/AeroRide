@@ -73,51 +73,50 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
 
   /// Asignar pilotos al vuelo usando el backend real
   Future<void> _assignFlight() async {
-  if (_selectedPilot == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Please select a pilot."),
-        backgroundColor: Colors.redAccent,
-      ),
-    );
-    return;
+    if (_selectedPilot == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please select a pilot."),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isAssigning = true);
+
+    try {
+      await _flightService.assignPilotsToFlight(
+        flightId: widget.flight.id,
+        pilotId: _selectedPilot!.id,
+        coPilotId: _selectedCopilot?.id,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("✅ Flight assigned successfully."),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // AVISAR AL CALLER QUE HUBO CAMBIOS
+      Navigator.pop(context, true);
+      return;
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("❌ Error assigning flight:\n$e"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isAssigning = false);
+    }
   }
-
-  setState(() => _isAssigning = true);
-
-  try {
-    await _flightService.assignPilotsToFlight(
-      flightId: widget.flight.id,
-      pilotId: _selectedPilot!.id,
-      coPilotId: _selectedCopilot?.id,
-    );
-
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("✅ Flight assigned successfully."),
-        backgroundColor: Colors.green,
-      ),
-    );
-
-    // AVISAR AL CALLER QUE HUBO CAMBIOS
-    Navigator.pop(context, true);
-    return;
-
-  } catch (e) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("❌ Error assigning flight:\n$e"),
-        backgroundColor: Colors.redAccent,
-      ),
-    );
-  } finally {
-    if (mounted) setState(() => _isAssigning = false);
-  }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -222,7 +221,7 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
                     labelText: "Pilot",
                     border: OutlineInputBorder(),
                   ),
-                  value: _selectedPilot,
+                  initialValue: _selectedPilot,
                   items: pilotOptions
                       .map(
                         (p) => DropdownMenuItem(
@@ -249,7 +248,7 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
                     labelText: "Copilot (optional)",
                     border: OutlineInputBorder(),
                   ),
-                  value: _selectedCopilot,
+                  initialValue: _selectedCopilot,
                   items: [
                     // 👉 Opción vacía (para remover copiloto)
                     const DropdownMenuItem<UserModel>(

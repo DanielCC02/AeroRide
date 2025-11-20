@@ -12,35 +12,33 @@ class ApiException implements Exception {
 }
 
 class UnauthorizedException extends ApiException {
-  UnauthorizedException(String msg, {int? code}) : super(msg, statusCode: code);
+  UnauthorizedException(super.msg, {int? code}) : super(statusCode: code);
 }
 
 class NotFoundException extends ApiException {
-  NotFoundException(String msg, {int? code}) : super(msg, statusCode: code);
+  NotFoundException(super.msg, {int? code}) : super(statusCode: code);
 }
 
 class ConflictException extends ApiException {
-  ConflictException(String msg, {int? code}) : super(msg, statusCode: code);
+  ConflictException(super.msg, {int? code}) : super(statusCode: code);
 }
 
 class ValidationException extends ApiException {
-  ValidationException(String msg, Map<String, List<String>> fields, {int? code})
-    : super(msg, statusCode: code, fieldErrors: fields);
+  ValidationException(super.msg, Map<String, List<String>> fields, {int? code})
+    : super(statusCode: code, fieldErrors: fields);
 }
 
 class NoAircraftAvailableException extends ApiException {
-  NoAircraftAvailableException(String msg, {int? code})
-    : super(msg, statusCode: code);
+  NoAircraftAvailableException(super.msg, {int? code})
+    : super(statusCode: code);
 }
 
 class SegmentTimeInvalidException extends ApiException {
-  SegmentTimeInvalidException(String msg, {int? code})
-    : super(msg, statusCode: code);
+  SegmentTimeInvalidException(super.msg, {int? code}) : super(statusCode: code);
 }
 
 class WeightExceededException extends ApiException {
-  WeightExceededException(String msg, {int? code})
-    : super(msg, statusCode: code);
+  WeightExceededException(super.msg, {int? code}) : super(statusCode: code);
 }
 
 class ApiErrors {
