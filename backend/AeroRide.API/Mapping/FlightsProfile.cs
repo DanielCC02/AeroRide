@@ -25,7 +25,7 @@ namespace AeroRide.API.Mappings
                 .ForMember(dest => dest.DurationMinutes, opt => opt.MapFrom(src => (src.ArrivalTime - src.DepartureTime).TotalMinutes))
                 .ForMember(dest => dest.IsEmptyLeg, opt => opt.MapFrom(_ => false))
                 .ForMember(dest => dest.IsInternational, opt => opt.Ignore())
-                .ForMember(dest => dest.Status, opt => opt.MapFrom(_ => FlightStatus.Programado))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(_ => FlightStatus.PreFlight))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.Company, opt => opt.Ignore())

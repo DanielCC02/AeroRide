@@ -8,7 +8,7 @@
 ///    Si pruebas en un teléfono físico, usa la IP LAN de tu PC, ej. http://192.168.x.x:<puerto>.
 /// =============================================================
 class ApiConfig {
-static const String baseUrl = 'http://192.168.0.20:5192';
+static const String baseUrl = 'http://192.168.0.19:5192';
 }
 
 // Tomas

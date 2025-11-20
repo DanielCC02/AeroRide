@@ -1,4 +1,5 @@
 ﻿using AeroRide.API.Models.DTOs.FlightAssignments;
+using AeroRide.API.Models.DTOs.Flights;
 using AeroRide.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -59,5 +60,22 @@ namespace AeroRide.API.Controllers
             return Ok(pilots);
         }
 
+        [HttpPut("{id}/status")]
+        [Authorize(Roles = "Admin,CompanyAdmin, Pilot")]
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateFlightStatusDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                await _flightService.UpdateFlightStatusAsync(id, dto.Status);
+                return Ok(new { message = "Flight status updated successfully." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
     }
 }

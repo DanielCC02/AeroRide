@@ -155,5 +155,23 @@ namespace AeroRide.API.Services.Implementations
 
             return _mapper.Map<IEnumerable<FlightPilotDto>>(assignments);
         }
+        public async Task<bool> UpdateFlightStatusAsync(int flightId, FlightStatus status)
+        {
+            var flight = await _db.Flights.FirstOrDefaultAsync(f => f.Id == flightId);
+
+            if (flight == null)
+                throw new Exception("Flight not found.");
+
+            // ❗ Reglas opcionales: evitar retroceder estados
+            if ((int)status < (int)flight.Status && status != FlightStatus.PreFlight)
+                throw new Exception("Cannot revert flight status.");
+
+            flight.Status = status;
+            flight.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+            return true;
+        }
+
     }
 }

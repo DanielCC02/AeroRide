@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/models/company_flight_model.dart';
-import 'package:frontend/screens/pilot/flight_log_form_screen.dart';
 import 'package:frontend/screens/pilot/view_flight_log_screen.dart';
 import 'package:frontend/screens/welcome_screen.dart';
 import 'package:frontend/services/pilot_flight_service.dart';
@@ -25,7 +24,7 @@ class _HomePagePilotState extends State<HomePagePilot>
   List<CompanyFlightModel> _upcoming = [];
   List<CompanyFlightModel> _past = [];
 
-  /// Mapa que indica si un vuelo tiene bitácora subida
+  /// Mapa para saber si un vuelo tiene bitácora
   Map<int, bool> _logsMap = {};
 
   bool _loading = true;
@@ -38,7 +37,9 @@ class _HomePagePilotState extends State<HomePagePilot>
     _loadFlights();
   }
 
-  /// 🛫 Carga todos los vuelos + bitácoras
+  /// ==========================================================
+  /// Cargar vuelos y bitácoras
+  /// ==========================================================
   Future<void> _loadFlights() async {
     setState(() {
       _loading = true;
@@ -52,12 +53,20 @@ class _HomePagePilotState extends State<HomePagePilot>
       final flights = await _service.getFlightsByPilot(pilotId);
       final now = DateTime.now();
 
-      _upcoming = flights.where((f) => f.departureTime.isAfter(now)).toList();
-      _past = flights.where((f) => f.departureTime.isBefore(now)).toList();
+      // 🔥 REGLA FINAL
+      _past = flights
+          .where(
+            (f) => f.status == "Completed" || f.departureTime.isBefore(now),
+          )
+          .toList();
 
-      // Consultar si cada upcoming tiene bitácora
+      _upcoming = flights
+          .where((f) => f.status != "Completed" && f.departureTime.isAfter(now))
+          .toList();
+
+      // Ver si tienen bitácora
       _logsMap = {};
-      for (final f in _upcoming) {
+      for (final f in flights) {
         final hasLog = await _service.flightHasLog(f.id);
         _logsMap[f.id] = hasLog;
       }
@@ -71,6 +80,9 @@ class _HomePagePilotState extends State<HomePagePilot>
     }
   }
 
+  /// ==========================================================
+  /// MAIN UI
+  /// ==========================================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -88,15 +100,12 @@ class _HomePagePilotState extends State<HomePagePilot>
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: "Reload flights",
-            onPressed: _loadFlights,
-          ),
+          // 🔄 Recarga
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadFlights),
 
+          // 🔐 Logout
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.red),
-            tooltip: "Logout",
             onPressed: () async {
               await TokenStorage.clearTokens();
               if (context.mounted) {
@@ -137,8 +146,8 @@ class _HomePagePilotState extends State<HomePagePilot>
                           final flight = _upcoming[index];
                           final hasLog = _logsMap[flight.id] ?? false;
 
-                          // Si ya tiene log → mostrar versión "past"
-                          if (hasLog) {
+                          //  Si el vuelo ya está COMPLETED, mostrar versión past
+                          if (flight.status == "Completed") {
                             return PilotFlightCardPast(
                               flight: flight,
                               onViewLog: () {
@@ -153,22 +162,11 @@ class _HomePagePilotState extends State<HomePagePilot>
                             );
                           }
 
-                          // Si NO tiene log → mostrar card normal
+                          // Si NO está completed → PilotFlightCard
                           return PilotFlightCard(
                             flight: flight,
-                            onDetails: () async {
-                              final refreshed = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      FlightLogFormScreen(flight: flight),
-                                ),
-                              );
-
-                              if (refreshed == true) {
-                                await _loadFlights();
-                              }
-                            },
+                            hasLog: hasLog,
+                            onReload: _loadFlights,
                           );
                         },
                       ),

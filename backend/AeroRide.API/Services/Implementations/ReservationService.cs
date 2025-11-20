@@ -148,7 +148,7 @@ namespace AeroRide.API.Services.Implementations
                         DurationMinutes = duracionMin,
                         IsEmptyLeg = true,
                         IsInternational = baseAirport.Country != origin.Country,
-                        Status = FlightStatus.Programado,
+                        Status = FlightStatus.PreFlight,
                         CreatedAt = DateTime.UtcNow
                     });
                 }
@@ -197,7 +197,7 @@ namespace AeroRide.API.Services.Implementations
                         DurationMinutes = duracionMin,
                         IsEmptyLeg = false,
                         IsInternational = isInternational,
-                        Status = FlightStatus.Programado,
+                        Status = FlightStatus.PreFlight,
                         CreatedAt = DateTime.UtcNow
                     });
 
@@ -241,7 +241,7 @@ namespace AeroRide.API.Services.Implementations
                             DurationMinutes = duracionMin,
                             IsEmptyLeg = true,
                             IsInternational = destinationAirport.Country != baseAirport.Country,
-                            Status = FlightStatus.Programado,
+                            Status = FlightStatus.PreFlight,
                             CreatedAt = DateTime.UtcNow
                         });
                     }
@@ -283,7 +283,7 @@ namespace AeroRide.API.Services.Implementations
                         DurationMinutes = duracionMin,
                         IsEmptyLeg = true,
                         IsInternational = destinoFinal.Country != baseAirport.Country,
-                        Status = FlightStatus.Programado,
+                        Status = FlightStatus.PreFlight,
                         CreatedAt = DateTime.UtcNow
                     });
                 }
@@ -324,7 +324,7 @@ namespace AeroRide.API.Services.Implementations
                             ArrivalTime = arrivalBackUtc,
                             DurationMinutes = durRegreso,
                             IsEmptyLeg = true,
-                            Status = FlightStatus.Programado
+                            Status = FlightStatus.PreFlight
                         });
 
                         // 🔹 Calcular empty leg de salida para recoger vuelta
@@ -348,7 +348,7 @@ namespace AeroRide.API.Services.Implementations
                             ArrivalTime = arrivalOutUtc,
                             DurationMinutes = durSalida,
                             IsEmptyLeg = true,
-                            Status = FlightStatus.Programado
+                            Status = FlightStatus.PreFlight
                         });
                     }
                 }
@@ -624,8 +624,8 @@ namespace AeroRide.API.Services.Implementations
             reservation.Status = ReservationStatus.Cancelada;
 
             // Cancelar vuelos comerciales (no empty legs)
-            foreach (var flight in reservation.Flights.Where(f => !f.IsEmptyLeg))
-                flight.Status = FlightStatus.Cancelado;
+            //foreach (var flight in reservation.Flights.Where(f => !f.IsEmptyLeg))
+            //    flight.Status = FlightStatus.Cancelado;
 
             // Liberar ocupación
             var ocupaciones = await _db.AircraftAvailabilities

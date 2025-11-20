@@ -29,7 +29,7 @@ namespace AeroRide.API.Models.Domain
 
         public bool IsInternational { get; set; }
 
-        public FlightStatus Status { get; set; } = FlightStatus.Programado;
+        public FlightStatus Status { get; set; } = FlightStatus.PreFlight;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
