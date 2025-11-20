@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/models/company_flight_model.dart';
 import 'package:frontend/screens/pilot/flight_log_form_screen.dart';
+import 'package:frontend/screens/pilot/view_flight_log_screen.dart';
 import 'package:frontend/screens/welcome_screen.dart';
 import 'package:frontend/services/pilot_flight_service.dart';
 import 'package:frontend/services/token_storage.dart';
 import 'package:frontend/widgets/pilot/pilot_flight_card.dart';
+import 'package:frontend/widgets/pilot/pilot_flight_card_past.dart';
 import 'package:frontend/widgets/pilot/upcoming_flights_empty.dart';
 import 'package:frontend/widgets/pilot/past_flights_empty.dart';
 
@@ -23,6 +25,9 @@ class _HomePagePilotState extends State<HomePagePilot>
   List<CompanyFlightModel> _upcoming = [];
   List<CompanyFlightModel> _past = [];
 
+  /// Mapa que indica si un vuelo tiene bitácora subida
+  Map<int, bool> _logsMap = {};
+
   bool _loading = true;
   String? _error;
 
@@ -33,6 +38,7 @@ class _HomePagePilotState extends State<HomePagePilot>
     _loadFlights();
   }
 
+  /// 🛫 Carga todos los vuelos + bitácoras
   Future<void> _loadFlights() async {
     setState(() {
       _loading = true;
@@ -44,14 +50,17 @@ class _HomePagePilotState extends State<HomePagePilot>
       if (pilotId == null) throw Exception("User ID not found");
 
       final flights = await _service.getFlightsByPilot(pilotId);
-
       final now = DateTime.now();
 
-      // UPCOMING = vuelos futuros
       _upcoming = flights.where((f) => f.departureTime.isAfter(now)).toList();
-
-      // PAST = vuelos que ya pasaron
       _past = flights.where((f) => f.departureTime.isBefore(now)).toList();
+
+      // Consultar si cada upcoming tiene bitácora
+      _logsMap = {};
+      for (final f in _upcoming) {
+        final hasLog = await _service.flightHasLog(f.id);
+        _logsMap[f.id] = hasLog;
+      }
 
       setState(() => _loading = false);
     } catch (e) {
@@ -85,13 +94,11 @@ class _HomePagePilotState extends State<HomePagePilot>
             onPressed: _loadFlights,
           ),
 
-          // LOGOUT BUTTON (igual que en las otras pantallas)
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.red),
             tooltip: "Logout",
             onPressed: () async {
               await TokenStorage.clearTokens();
-
               if (context.mounted) {
                 Navigator.pushAndRemoveUntil(
                   context,
@@ -117,7 +124,9 @@ class _HomePagePilotState extends State<HomePagePilot>
           : TabBarView(
               controller: _tabController,
               children: [
+                // ====================================================
                 // UPCOMING TAB
+                // ====================================================
                 _upcoming.isEmpty
                     ? const PilotUpcomingEmpty()
                     : ListView.separated(
@@ -125,28 +134,48 @@ class _HomePagePilotState extends State<HomePagePilot>
                         itemCount: _upcoming.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 16),
                         itemBuilder: (context, index) {
+                          final flight = _upcoming[index];
+                          final hasLog = _logsMap[flight.id] ?? false;
+
+                          // Si ya tiene log → mostrar versión "past"
+                          if (hasLog) {
+                            return PilotFlightCardPast(
+                              flight: flight,
+                              onViewLog: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        ViewFlightLogScreen(flight: flight),
+                                  ),
+                                );
+                              },
+                            );
+                          }
+
+                          // Si NO tiene log → mostrar card normal
                           return PilotFlightCard(
-                            flight: _upcoming[index],
+                            flight: flight,
                             onDetails: () async {
                               final refreshed = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => FlightLogFormScreen(
-                                    flight: _upcoming[index],
-                                  ),
+                                  builder: (_) =>
+                                      FlightLogFormScreen(flight: flight),
                                 ),
                               );
 
-                              // Si se guardó la bitácora → recargar vuelos
                               if (refreshed == true) {
-                                _loadFlights();
+                                await _loadFlights();
                               }
                             },
                           );
                         },
                       ),
 
-                // ⏳ PAST TAB
+                // ====================================================
+                // PAST TAB
+                // ====================================================
                 _past.isEmpty
                     ? const PilotPastEmpty()
                     : ListView.separated(
@@ -154,10 +183,17 @@ class _HomePagePilotState extends State<HomePagePilot>
                         itemCount: _past.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 16),
                         itemBuilder: (context, index) {
-                          return PilotFlightCard(
-                            flight: _past[index],
-                            onDetails: () {
-                              // TODO: open past flight detail
+                          final flight = _past[index];
+                          return PilotFlightCardPast(
+                            flight: flight,
+                            onViewLog: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      ViewFlightLogScreen(flight: flight),
+                                ),
+                              );
                             },
                           );
                         },
