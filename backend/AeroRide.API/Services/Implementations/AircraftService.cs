@@ -222,9 +222,9 @@ namespace AeroRide.API.Services
         // 🧾 GROUPED BY MODEL + COMPANY + RANGO HORARIO
         // ======================================================
         public async Task<IEnumerable<AircraftCategoryDto>> GetAvailableForCriteriaAsync(
-    AircraftAvailabilityCriteriaDto criteria)
+     AircraftAvailabilityCriteriaDto criteria)
         {
-            // 1️⃣ Fetch departure & arrival airports
+            // 1️⃣ Fetch airports
             var depAirport = await _db.Airports.FirstAsync(a => a.Id == criteria.DepartureAirportId);
             var arrAirport = await _db.Airports.FirstAsync(a => a.Id == criteria.ArrivalAirportId);
 
@@ -234,12 +234,10 @@ namespace AeroRide.API.Services
                 StringComparison.OrdinalIgnoreCase
             );
 
-            // 2️⃣ Convert departureTime (local) → UTC using departure airport timezone
+            // 2️⃣ Convert requested departure to UTC
             var requestedStartUtc = TimeHelper.ToUtc(criteria.DepartureTime, depAirport.TimeZone);
 
-            // ======================================================
-            // 3️⃣ PRE-FILTER AIRCRAFT
-            // ======================================================
+            // 3️⃣ PRE-FILTER BY BASIC CONDITIONS
             var aircrafts = await _db.Aircrafts
                 .Include(a => a.Company)
                 .Include(a => a.BaseAirport)
@@ -251,9 +249,7 @@ namespace AeroRide.API.Services
                 .AsNoTracking()
                 .ToListAsync();
 
-            // ======================================================
-            // 4️⃣ NATIONAL FLIGHTS: only aircraft based in the same *country*
-            // ======================================================
+            // 4️⃣ NATIONAL: only aircraft based in same *country*
             if (!isInternationalFlight)
             {
                 aircrafts = aircrafts
@@ -267,14 +263,12 @@ namespace AeroRide.API.Services
                     .ToList();
             }
 
-            // ======================================================
-            // 5️⃣ PER-AIRCRAFT VALIDATIONS
-            // ======================================================
+            // 5️⃣ FULL VALIDATION PER AIRCRAFT
             var validAircraft = new List<Aircraft>();
 
             foreach (var aircraft in aircrafts)
             {
-                // 🟥 A. Weight limit validation (MTOW = empty + max)
+                // A. Weight limits
                 double mtow = aircraft.EmptyWeight + aircraft.MaxWeight;
 
                 if (mtow > depAirport.MaxAllowedWeight)
@@ -283,25 +277,25 @@ namespace AeroRide.API.Services
                 if (mtow > arrAirport.MaxAllowedWeight)
                     continue;
 
-                // 🌍 B. International capability
+                // B. International capability
                 if (isInternationalFlight && !aircraft.CanFlyInternational)
                     continue;
 
-                // 🕒 C. Flight duration
+                // C. Calculate estimated duration
                 double durationMinutes = FlightMathHelper.CalcularDuracionVuelo(depAirport, arrAirport, aircraft);
                 if (durationMinutes < 10)
                     durationMinutes = 10;
 
                 var requestedEndUtc = requestedStartUtc.AddMinutes(durationMinutes);
 
-                // 🕓 D. Operating hours (UTC)
+                // D. Operating hours
                 if (!AirportTimeHelper.IsWithinOperatingHours(requestedStartUtc, depAirport))
                     continue;
 
                 if (!AirportTimeHelper.IsWithinOperatingHours(requestedEndUtc, arrAirport))
                     continue;
 
-                // 🟦 E. Availability
+                // E. Check availability
                 bool isFree = await IsAircraftAvailableInRangeAsync(
                     aircraft.Id,
                     requestedStartUtc,
@@ -312,9 +306,7 @@ namespace AeroRide.API.Services
                     validAircraft.Add(aircraft);
             }
 
-            // ======================================================
-            // 6️⃣ ORDERING (international priority by COUNTRIES)
-            // ======================================================
+            // 6️⃣ ORDERING (international)
             List<Aircraft> orderedAircraft;
 
             if (isInternationalFlight)
@@ -340,35 +332,46 @@ namespace AeroRide.API.Services
                     )
                     .ToList();
 
-                orderedAircraft = basedInOrigin
-                    .Concat(basedInDestination)
-                    .Concat(foreign)
-                    .ToList();
+                orderedAircraft = basedInOrigin.Concat(basedInDestination).Concat(foreign).ToList();
             }
             else
             {
-                // 🇨🇷 NATIONAL: no special ordering
                 orderedAircraft = validAircraft.ToList();
             }
 
             // ======================================================
-            // 7️⃣ MAPPING + GROUPING (preserving international order)
+            // 7️⃣ GROUP BY COMPANY + MODEL  (🔥 Correct for your UI)
             // ======================================================
-            var mapped = orderedAircraft
-                .Select(a => _mapper.Map<AircraftCategoryDto>(a))
-                .GroupBy(a => new { a.Model, a.Seats, a.CompanyName })
-                .Select(g => g.First())
+            var grouped = orderedAircraft
+                .GroupBy(a => new { a.CompanyId, a.Model })
+                .Select(g =>
+                {
+                    var first = g.First();
+
+                    return new AircraftCategoryDto
+                    {
+                        Model = first.Model,
+                        Seats = first.Seats,
+                        CompanyId = first.CompanyId,
+                        CompanyName = first.Company.Name,
+                        Image = first.Image, // image per company+model
+                        CanFlyInternational = g.Any(a => a.CanFlyInternational),
+                        BaseCountry = first.BaseAirport.Country,
+                        BaseAirportName = first.BaseAirport.Name,
+
+                        // 🔥 ALL REAL AIRCRAFTS OF THIS CATEGORY
+                        AircraftIds = g.Select(a => a.Id).ToList()
+                    };
+                })
                 .ToList();
 
-            // ======================================================
-            // 8️⃣ FINAL ORDER (international preserves country priority)
-            // ======================================================
+            // 8️⃣ Sort
             if (isInternationalFlight)
             {
                 var originCountry = depAirport.Country.Trim();
                 var destinationCountry = arrAirport.Country.Trim();
 
-                mapped = mapped
+                grouped = grouped
                     .OrderBy(a =>
                         a.BaseCountry == originCountry ? 0 :
                         a.BaseCountry == destinationCountry ? 1 :
@@ -380,16 +383,14 @@ namespace AeroRide.API.Services
             }
             else
             {
-                mapped = mapped
+                grouped = grouped
                     .OrderBy(a => a.CompanyName)
                     .ThenBy(a => a.Model)
                     .ToList();
             }
 
-            return mapped;
+            return grouped;
         }
-
-
 
         // ======================================================
         // 🔹 AERONAVES POR EMPRESA
@@ -437,9 +438,9 @@ namespace AeroRide.API.Services
         }
 
         private async Task<bool> IsAircraftAvailableInRangeAsync(
-        int aircraftId,
-        DateTime requestedStart,
-        DateTime requestedEnd)
+    int aircraftId,
+    DateTime requestedStart,
+    DateTime requestedEnd)
         {
             const int turnaroundMinutes = 30;
 
@@ -448,19 +449,25 @@ namespace AeroRide.API.Services
                 .OrderBy(av => av.StartTime)
                 .ToListAsync();
 
-            // No reservations → it's free
+            // No reservations → free
             if (!occupancies.Any())
                 return true;
 
-            // 1️⃣ Direct schedule conflict
+            // 1️⃣ Direct conflict with any flight
             bool conflict = occupancies.Any(av =>
                 requestedStart < av.EndTime.AddMinutes(turnaroundMinutes) &&
-                requestedEnd > av.StartTime.AddMinutes(-turnaroundMinutes));
+                requestedEnd > av.StartTime.AddMinutes(-turnaroundMinutes)
+            );
 
             if (!conflict)
                 return true;
 
-            // 2️⃣ Try to fit inside gaps between existing reservations
+            // 2️⃣ Check gap BEFORE first flight
+            var first = occupancies.First();
+            if (requestedEnd <= first.StartTime.AddMinutes(-turnaroundMinutes))
+                return true;
+
+            // 3️⃣ Check gaps BETWEEN flights
             for (int i = 0; i < occupancies.Count - 1; i++)
             {
                 var current = occupancies[i];
@@ -469,12 +476,14 @@ namespace AeroRide.API.Services
                 var gapStart = current.EndTime.AddMinutes(turnaroundMinutes);
                 var gapEnd = next.StartTime.AddMinutes(-turnaroundMinutes);
 
-                if (requestedStart >= gapStart &&
-                    requestedEnd <= gapEnd)
-                {
+                if (requestedStart >= gapStart && requestedEnd <= gapEnd)
                     return true;
-                }
             }
+
+            // 4️⃣ Check gap AFTER last flight
+            var last = occupancies.Last();
+            if (requestedStart >= last.EndTime.AddMinutes(turnaroundMinutes))
+                return true;
 
             return false;
         }

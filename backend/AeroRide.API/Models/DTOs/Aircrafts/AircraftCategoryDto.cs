@@ -5,24 +5,17 @@
     /// </summary>
     public class AircraftCategoryDto
     {
-        public int Id { get; set; }                 // <-- ADD THIS
         public string Model { get; set; } = null!;
         public int Seats { get; set; }
-        public int CompanyId { get; set; }          // <-- ADD THIS
+        public int CompanyId { get; set; }
         public string CompanyName { get; set; } = null!;
-        public string State { get; set; } = null!;
-
-        /// <summary>
-        /// Indica si las aeronaves de este modelo pueden operar vuelos internacionales.
-        /// </summary>
+        public string Image { get; set; } = null!;
+        public string BaseCountry { get; set; } = null!;
+        public string BaseAirportName { get; set; } = null!;
         public bool CanFlyInternational { get; set; }
 
-        /// <summary>
-        /// Imagen representativa del modelo.
-        /// </summary>
-        public string Image { get; set; } = null!;
-
-        public string BaseCountry { get; set; } = null!;   // ← NUEVO
-        public string BaseAirportName { get; set; } = null!; // ← opcional pero recomendable
+        // 🔥 NECESARIO PARA SABER QUÉ AERONAVE REAL ESCOLLER
+        public List<int> AircraftIds { get; set; } = new();
     }
+
 }
