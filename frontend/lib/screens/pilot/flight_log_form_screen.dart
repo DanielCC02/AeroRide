@@ -1,7 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:signature/signature.dart';
+
+// NUEVOS
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/widgets.dart' as pw;
+
 import 'package:frontend/models/company_flight_model.dart';
+import 'package:frontend/services/pilot_flight_service.dart';
+import 'package:frontend/services/token_storage.dart';
+
 
 class FlightLogFormScreen extends StatefulWidget {
   final CompanyFlightModel flight;
@@ -61,31 +71,83 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
       return;
     }
 
-    // Convert signature to PNG
+    // ============== 1) Convert signature to bytes ==============
     final signatureBytes = await _signatureController.toPngBytes();
 
-    final jsonData = {
-      "flightId": widget.flight.id,
-      "hobbsStart": _hobbsStart.text,
-      "hobbsEnd": _hobbsEnd.text,
-      "blockOff": _blockOff.text,
-      "blockOn": _blockOn.text,
-      "fuelStart": _fuelStart.text,
-      "fuelEnd": _fuelEnd.text,
-      "metar": _metar.text,
-      "taf": _taf.text,
-      "remarks": _remarks.text,
-      "signatureBase64": signatureBytes != null ? signatureBytes.toString() : '',
-    };
+    // ============== 2) Generate PDF ============================
+    final pdf = pw.Document();
 
-    print("🔵 FLIGHT LOG JSON:");
-    print(jsonData);
+    final signatureImage = signatureBytes != null
+        ? pw.MemoryImage(signatureBytes)
+        : null;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Flight log saved (local mock).")),
+    pdf.addPage(
+      pw.Page(
+        build: (pw.Context context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text("Flight Log", style: pw.TextStyle(fontSize: 24)),
+            pw.SizedBox(height: 20),
+
+            pw.Text("Flight ID: ${widget.flight.id}"),
+            pw.Text(
+              "Route: ${widget.flight.departureAirportName} → ${widget.flight.arrivalAirportName}",
+            ),
+            pw.Text("Aircraft: ${widget.flight.aircraftModel}"),
+            pw.SizedBox(height: 10),
+
+            pw.Text("Hobbs Start: ${_hobbsStart.text}"),
+            pw.Text("Hobbs End: ${_hobbsEnd.text}"),
+            pw.Text("Block Off: ${_blockOff.text}"),
+            pw.Text("Block On: ${_blockOn.text}"),
+            pw.SizedBox(height: 10),
+
+            pw.Text("Fuel Start: ${_fuelStart.text}"),
+            pw.Text("Fuel End: ${_fuelEnd.text}"),
+            pw.SizedBox(height: 10),
+
+            pw.Text("METAR: ${_metar.text}"),
+            pw.Text("TAF: ${_taf.text}"),
+            pw.Text("Remarks: ${_remarks.text}"),
+            pw.SizedBox(height: 20),
+
+            pw.Text("Signature:"),
+            if (signatureImage != null) pw.Image(signatureImage, width: 200),
+          ],
+        ),
+      ),
     );
 
-    Navigator.pop(context, true);
+    // ============== 3) Save PDF in temp folder =================
+    final dir = await getTemporaryDirectory();
+    final file = File("${dir.path}/flight_log_${widget.flight.id}.pdf");
+    await file.writeAsBytes(await pdf.save());
+
+    // ============== 4) Upload to backend ========================
+    final pilotId = await TokenStorage.getUserId();
+
+    final service = PilotFlightService();
+
+    try {
+      await service.saveFlightLog(
+        flightId: widget.flight.id,
+        pilotUserId: pilotId!,
+        pdfFile: file,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Flight log uploaded successfully")),
+      );
+
+      Navigator.pop(context, true);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error uploading log: $e"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 
   Widget _buildSectionTitle(String text) {
@@ -102,8 +164,11 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
     );
   }
 
-  Widget _input(String label, TextEditingController controller,
-      {TextInputType type = TextInputType.text}) {
+  Widget _input(
+    String label,
+    TextEditingController controller, {
+    TextInputType type = TextInputType.text,
+  }) {
     return TextFormField(
       controller: controller,
       keyboardType: type,
@@ -120,10 +185,7 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
     final df = DateFormat('MMM d, yyyy – hh:mm a');
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Flight Log"),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text("Flight Log"), centerTitle: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(18),
         child: Form(
@@ -137,7 +199,8 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
               Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(14),
                   child: Column(
@@ -146,7 +209,9 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
                       Text(
                         "${widget.flight.departureAirportName} → ${widget.flight.arrivalAirportName}",
                         style: const TextStyle(
-                            fontSize: 17, fontWeight: FontWeight.bold),
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Text(df.format(widget.flight.departureLocal)),
@@ -164,12 +229,10 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
               // HOBBS & BLOCK TIME ------------------------------
               _buildSectionTitle("Times"),
 
-              _input("Hobbs Start", _hobbsStart,
-                  type: TextInputType.number),
+              _input("Hobbs Start", _hobbsStart, type: TextInputType.number),
               const SizedBox(height: 12),
 
-              _input("Hobbs End", _hobbsEnd,
-                  type: TextInputType.number),
+              _input("Hobbs End", _hobbsEnd, type: TextInputType.number),
               const SizedBox(height: 12),
 
               _input("Block Off (HH:MM)", _blockOff),
@@ -182,12 +245,18 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
               // FUEL ----------------------------------------------------
               _buildSectionTitle("Fuel"),
 
-              _input("Fuel Start (lbs/gal)", _fuelStart,
-                  type: TextInputType.number),
+              _input(
+                "Fuel Start (lbs/gal)",
+                _fuelStart,
+                type: TextInputType.number,
+              ),
               const SizedBox(height: 12),
 
-              _input("Fuel End (lbs/gal)", _fuelEnd,
-                  type: TextInputType.number),
+              _input(
+                "Fuel End (lbs/gal)",
+                _fuelEnd,
+                type: TextInputType.number,
+              ),
 
               const SizedBox(height: 20),
 

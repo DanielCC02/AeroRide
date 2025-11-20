@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/admin/company_flights_management/admin_view_flight_log_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:frontend/models/company_flight_model.dart';
 import 'package:frontend/models/user_model.dart';
@@ -73,56 +74,56 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
 
   /// Asignar pilotos al vuelo usando el backend real
   Future<void> _assignFlight() async {
-  if (_selectedPilot == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Please select a pilot."),
-        backgroundColor: Colors.redAccent,
-      ),
-    );
-    return;
+    if (_selectedPilot == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please select a pilot."),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isAssigning = true);
+
+    try {
+      await _flightService.assignPilotsToFlight(
+        flightId: widget.flight.id,
+        pilotId: _selectedPilot!.id,
+        coPilotId: _selectedCopilot?.id,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("✅ Flight assigned successfully."),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // AVISAR AL CALLER QUE HUBO CAMBIOS
+      Navigator.pop(context, true);
+      return;
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("❌ Error assigning flight:\n$e"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isAssigning = false);
+    }
   }
-
-  setState(() => _isAssigning = true);
-
-  try {
-    await _flightService.assignPilotsToFlight(
-      flightId: widget.flight.id,
-      pilotId: _selectedPilot!.id,
-      coPilotId: _selectedCopilot?.id,
-    );
-
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("✅ Flight assigned successfully."),
-        backgroundColor: Colors.green,
-      ),
-    );
-
-    // AVISAR AL CALLER QUE HUBO CAMBIOS
-    Navigator.pop(context, true);
-    return;
-
-  } catch (e) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("❌ Error assigning flight:\n$e"),
-        backgroundColor: Colors.redAccent,
-      ),
-    );
-  } finally {
-    if (mounted) setState(() => _isAssigning = false);
-  }
-}
 
   @override
   Widget build(BuildContext context) {
     final df = DateFormat('MMM d, yyyy • hh:mm a');
     final flight = widget.flight;
+    final bool isCompleted = flight.status == 'Completado';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Flight Details'), centerTitle: true),
@@ -214,7 +215,10 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
                 const SizedBox(height: 30),
 
                 // ASIGNACIÓN DE PILOTOS
-                _buildSectionTitle(context, 'Assign Pilots'),
+                _buildSectionTitle(
+                  context,
+                  isCompleted ? 'Assigned Crew' : 'Assign Pilots',
+                ),
 
                 // PILOTO PRINCIPAL
                 DropdownButtonFormField<UserModel>(
@@ -231,14 +235,17 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
                         ),
                       )
                       .toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      if (_selectedCopilot?.id == value?.id) {
-                        _selectedCopilot = null; // limpiar copiloto si coincide
-                      }
-                      _selectedPilot = value;
-                    });
-                  },
+                  onChanged: isCompleted
+                      ? null // 🚫 No editable si el vuelo está completado
+                      : (value) {
+                          setState(() {
+                            if (_selectedCopilot?.id == value?.id) {
+                              _selectedCopilot =
+                                  null; // limpiar copiloto si coincide
+                            }
+                            _selectedPilot = value;
+                          });
+                        },
                 ),
 
                 const SizedBox(height: 16),
@@ -251,13 +258,10 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
                   ),
                   value: _selectedCopilot,
                   items: [
-                    // 👉 Opción vacía (para remover copiloto)
                     const DropdownMenuItem<UserModel>(
                       value: null,
                       child: Text("— None —"),
                     ),
-
-                    // 👉 Opciones filtradas de copilotos disponibles
                     ...copilotOptions.map(
                       (p) => DropdownMenuItem<UserModel>(
                         value: p,
@@ -265,45 +269,60 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
                       ),
                     ),
                   ],
-                  onChanged: (value) {
-                    setState(() {
-                      // Si eligen "None", value == null
-                      if (value == null) {
-                        _selectedCopilot = null;
-                        return;
-                      }
+                  onChanged: isCompleted
+                      ? null // 🚫 No editable si el vuelo está completado
+                      : (value) {
+                          setState(() {
+                            if (value == null) {
+                              _selectedCopilot = null;
+                              return;
+                            }
 
-                      // Evitar duplicado piloto/copiloto
-                      if (_selectedPilot?.id == value.id) {
-                        _selectedPilot = null;
-                      }
+                            // Evitar duplicado piloto/copiloto
+                            if (_selectedPilot?.id == value.id) {
+                              _selectedPilot = null;
+                            }
 
-                      _selectedCopilot = value;
-                    });
-                  },
+                            _selectedCopilot = value;
+                          });
+                        },
                 ),
 
                 const SizedBox(height: 24),
 
-                // BOTÓN DE ASIGNACIÓN
+                // BOTÓN DE ASIGNACIÓN / VER BITÁCORA
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton.icon(
-                    icon: _isAssigning
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.assignment),
-                    label: Text(
-                      _isAssigning ? "Assigning..." : "Assign Flight",
-                    ),
-                    onPressed: _isAssigning ? null : _assignFlight,
-                  ),
+                  child: isCompleted
+                      ? ElevatedButton.icon(
+                          icon: const Icon(Icons.picture_as_pdf),
+                          label: const Text("View flight log"),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    AdminViewFlightLogScreen(flight: flight),
+                              ),
+                            );
+                          },
+                        )
+                      : ElevatedButton.icon(
+                          icon: _isAssigning
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.assignment),
+                          label: Text(
+                            _isAssigning ? "Assigning..." : "Assign Flight",
+                          ),
+                          onPressed: _isAssigning ? null : _assignFlight,
+                        ),
                 ),
               ],
             ),
