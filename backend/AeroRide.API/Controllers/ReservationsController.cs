@@ -1,4 +1,5 @@
-﻿using AeroRide.API.Models.DTOs.Reservations;
+﻿using AeroRide.API.Models.DTOs.EmptyLegs;
+using AeroRide.API.Models.DTOs.Reservations;
 using AeroRide.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -113,6 +114,18 @@ namespace AeroRide.API.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+        }
+
+        // ===================================================
+        // POST: api/reservations/emptyleg
+        // Crear una reserva basada en una empty leg
+        // ===================================================
+        [HttpPost("emptyleg")]
+        [Authorize(Roles = "User,Admin,CompanyAdmin")]
+        public async Task<IActionResult> ReserveEmptyLeg([FromBody] EmptyLegReservationCreateDto dto)
+        {
+            var result = await _reservationService.ReserveEmptyLegAsync(dto);
+            return Ok(result);
         }
 
     }

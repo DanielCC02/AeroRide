@@ -1,4 +1,5 @@
-﻿using AeroRide.API.Models.DTOs.Reservations;
+﻿using AeroRide.API.Models.DTOs.EmptyLegs;
+using AeroRide.API.Models.DTOs.Reservations;
 
 namespace AeroRide.API.Services.Interfaces
 {
@@ -43,5 +44,8 @@ namespace AeroRide.API.Services.Interfaces
         /// <param name="dto">Datos del itinerario, aeronave y pasajeros.</param>
         /// <returns>Resultado con el costo total, impuestos y duración estimada.</returns>
         Task<ReservationEstimateResponseDto> EstimatePriceAsync(ReservationEstimateDto dto);
+
+        Task<ReservationResponseDto> ReserveEmptyLegAsync(EmptyLegReservationCreateDto dto);
+
     }
 }

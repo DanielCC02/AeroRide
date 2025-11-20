@@ -1,6 +1,5 @@
 ﻿using AeroRide.API.Models.Enums;
-using System;
-using System.Collections.Generic;
+
 
 namespace AeroRide.API.Models.Domain
 {
@@ -29,7 +28,7 @@ namespace AeroRide.API.Models.Domain
 
         public bool IsInternational { get; set; }
 
-        public FlightStatus Status { get; set; } = FlightStatus.Programado;
+        public FlightStatus Status { get; set; } = FlightStatus.PreFlight;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

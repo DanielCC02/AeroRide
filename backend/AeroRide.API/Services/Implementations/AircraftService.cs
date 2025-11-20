@@ -218,11 +218,8 @@ namespace AeroRide.API.Services
             return aircraft == null ? null : _mapper.Map<AircraftResponseDto>(aircraft);
         }
 
-        // ======================================================
-        // 🧾 GROUPED BY MODEL + COMPANY + RANGO HORARIO
-        // ======================================================
         public async Task<IEnumerable<AircraftCategoryDto>> GetAvailableForCriteriaAsync(
-     AircraftAvailabilityCriteriaDto criteria)
+            AircraftAvailabilityCriteriaDto criteria)
         {
             // 1️⃣ Fetch airports
             var depAirport = await _db.Airports.FirstAsync(a => a.Id == criteria.DepartureAirportId);
@@ -392,6 +389,9 @@ namespace AeroRide.API.Services
             return grouped;
         }
 
+
+
+
         // ======================================================
         // 🔹 AERONAVES POR EMPRESA
         // ======================================================
@@ -438,9 +438,9 @@ namespace AeroRide.API.Services
         }
 
         private async Task<bool> IsAircraftAvailableInRangeAsync(
-    int aircraftId,
-    DateTime requestedStart,
-    DateTime requestedEnd)
+            int aircraftId,
+            DateTime requestedStart,
+            DateTime requestedEnd)
         {
             const int turnaroundMinutes = 30;
 
@@ -487,5 +487,6 @@ namespace AeroRide.API.Services
 
             return false;
         }
+
     }
 }

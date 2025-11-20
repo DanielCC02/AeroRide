@@ -22,6 +22,11 @@ namespace AeroRide.API.Mappings
             // 🔹 DTO → Domain (actualizar pasajero existente)
             CreateMap<PassengerUpdateDto, PassengerDetail>()
                 .ForMember(dest => dest.Reservation, opt => opt.Ignore());
+
+            CreateMap<PassengerCreateDto, PassengerDetail>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.Reservation, opt => opt.Ignore());
+
         }
     }
 }
