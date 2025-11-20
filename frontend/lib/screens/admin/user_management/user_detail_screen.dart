@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../models/user_model.dart';
-import '../../services/user_service.dart';
+import '../../../models/user_model.dart';
+import '../../../services/user_service.dart';
 import 'edit_user_screen.dart';
 
 /// Pantalla que muestra la información detallada de un usuario.

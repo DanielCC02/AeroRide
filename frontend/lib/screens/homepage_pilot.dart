@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/models/company_flight_model.dart';
+import 'package:frontend/screens/pilot/flight_log_form_screen.dart';
 import 'package:frontend/screens/welcome_screen.dart';
 import 'package:frontend/services/pilot_flight_service.dart';
 import 'package:frontend/services/token_storage.dart';
@@ -116,7 +117,7 @@ class _HomePagePilotState extends State<HomePagePilot>
           : TabBarView(
               controller: _tabController,
               children: [
-                // 🎯 UPCOMING TAB
+                // UPCOMING TAB
                 _upcoming.isEmpty
                     ? const PilotUpcomingEmpty()
                     : ListView.separated(
@@ -126,8 +127,20 @@ class _HomePagePilotState extends State<HomePagePilot>
                         itemBuilder: (context, index) {
                           return PilotFlightCard(
                             flight: _upcoming[index],
-                            onDetails: () {
-                              // TODO: open detail screen for pilot
+                            onDetails: () async {
+                              final refreshed = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => FlightLogFormScreen(
+                                    flight: _upcoming[index],
+                                  ),
+                                ),
+                              );
+
+                              // Si se guardó la bitácora → recargar vuelos
+                              if (refreshed == true) {
+                                _loadFlights();
+                              }
                             },
                           );
                         },
