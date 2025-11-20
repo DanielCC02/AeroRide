@@ -105,7 +105,7 @@ class _FlightScheduleScreenState extends State<FlightScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final companyId = context.watch<CompanyIdProvider>().companyId;
+    //final companyId = context.watch<CompanyIdProvider>().companyId;
 
     return Scaffold(
       appBar: AppBar(
@@ -134,9 +134,9 @@ class _FlightScheduleScreenState extends State<FlightScheduleScreen> {
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (companyId != null)
-                        Text('Company ID: $companyId',
-                            style: Theme.of(context).textTheme.labelLarge),
+                      //if (companyId != null)
+                        //Text('Company ID: $companyId',
+                            //style: Theme.of(context).textTheme.labelLarge),
                       const SizedBox(height: 12),
                       Card(
                         elevation: 2,

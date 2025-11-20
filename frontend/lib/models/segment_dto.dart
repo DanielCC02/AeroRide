@@ -36,7 +36,7 @@ class SegmentDto {
 
   /// fromJson tolerante: acepta string/DateTime para los tiempos.
   factory SegmentDto.fromJson(Map<String, dynamic> j) {
-    DateTime _asDtUtc(dynamic v) {
+    DateTime asDtUtc(dynamic v) {
       if (v is DateTime) return v.toUtc();
       final parsed = DateTime.tryParse('$v');
       if (parsed != null) return parsed.toUtc();
@@ -44,14 +44,14 @@ class SegmentDto {
       return DateTime.now().toUtc();
     }
 
-    int _asInt(dynamic v) => v is num ? v.toInt() : (int.tryParse('$v') ?? 0);
+    int asInt(dynamic v) => v is num ? v.toInt() : (int.tryParse('$v') ?? 0);
 
     return SegmentDto(
-      departureAirportId: _asInt(j['departureAirportId']),
-      arrivalAirportId: _asInt(j['arrivalAirportId']),
-      departureTime: _asDtUtc(j['departureTime']),
+      departureAirportId: asInt(j['departureAirportId']),
+      arrivalAirportId: asInt(j['arrivalAirportId']),
+      departureTime: asDtUtc(j['departureTime']),
       arrivalTime: j.containsKey('arrivalTime') && j['arrivalTime'] != null
-          ? _asDtUtc(j['arrivalTime'])
+          ? asDtUtc(j['arrivalTime'])
           : null,
     );
   }

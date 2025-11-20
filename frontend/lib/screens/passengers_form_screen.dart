@@ -1,4 +1,7 @@
+// lib/screens/passengers_form_screen.dart
 import 'package:flutter/material.dart';
+import 'package:country_picker/country_picker.dart';
+
 import '../models/passenger_info.dart';
 
 class PassengersFormScreen extends StatefulWidget {
@@ -18,40 +21,70 @@ class PassengersFormScreen extends StatefulWidget {
 class _PassengersFormScreenState extends State<PassengersFormScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  late final List<TextEditingController> _nameCtrls;
+  late final List<TextEditingController> _firstNameCtrls;
+  late final List<TextEditingController> _middleNameCtrls;
+  late final List<TextEditingController> _lastNameCtrls;
   late final List<TextEditingController> _passportCtrls;
+  late final List<TextEditingController> _nationalityCtrls;
+
   late final List<TextEditingController> _birthTextCtrls; // visible en UI
   late final List<DateTime?> _birthDates; // valor real
+
+  late final List<PassengerGender?> _genderValues;
 
   @override
   void initState() {
     super.initState();
     final n = widget.passengersCount;
 
-    _nameCtrls = List.generate(n, (_) => TextEditingController());
+    _firstNameCtrls = List.generate(n, (_) => TextEditingController());
+    _middleNameCtrls = List.generate(n, (_) => TextEditingController());
+    _lastNameCtrls = List.generate(n, (_) => TextEditingController());
     _passportCtrls = List.generate(n, (_) => TextEditingController());
+    _nationalityCtrls = List.generate(n, (_) => TextEditingController());
+
     _birthTextCtrls = List.generate(n, (_) => TextEditingController());
     _birthDates = List<DateTime?>.filled(n, null);
+
+    _genderValues = List<PassengerGender?>.filled(n, null);
 
     // Prefill si llega información previa
     final init = widget.initialPassengers;
     if (init != null && init.isNotEmpty) {
       for (int i = 0; i < n && i < init.length; i++) {
-        _nameCtrls[i].text = _pName(init[i]);
-        _passportCtrls[i].text = _pPassport(init[i]) ?? '';
-        final dob = _pDob(init[i]);
-        _birthDates[i] = dob;
-        _birthTextCtrls[i].text = _fmtDate(dob);
+        final p = init[i];
+        _firstNameCtrls[i].text = p.name ?? '';
+        _middleNameCtrls[i].text = p.middleName ?? '';
+        _lastNameCtrls[i].text = p.lastName ?? '';
+        _passportCtrls[i].text = p.passport ?? '';
+        _nationalityCtrls[i].text = p.nationality ?? '';
+
+        final dob = p.dateOfBirth;
+        if (dob != null) {
+          _birthDates[i] = dob;
+          _birthTextCtrls[i].text = _fmtDate(dob);
+        }
+
+        _genderValues[i] = p.gender;
       }
     }
   }
 
   @override
   void dispose() {
-    for (final c in _nameCtrls) {
+    for (final c in _firstNameCtrls) {
+      c.dispose();
+    }
+    for (final c in _middleNameCtrls) {
+      c.dispose();
+    }
+    for (final c in _lastNameCtrls) {
       c.dispose();
     }
     for (final c in _passportCtrls) {
+      c.dispose();
+    }
+    for (final c in _nationalityCtrls) {
       c.dispose();
     }
     for (final c in _birthTextCtrls) {
@@ -84,11 +117,25 @@ class _PassengersFormScreenState extends State<PassengersFormScreen> {
     }
   }
 
+  void _openCountryPicker(int index) {
+    showCountryPicker(
+      context: context,
+      showPhoneCode: false,
+      favorite: const ['CR', 'PA', 'NI', 'HN', 'GT', 'MX', 'US'],
+      onSelect: (Country country) {
+        setState(() {
+          // Usamos el nombre del país como Nationality
+          _nationalityCtrls[index].text = country.name;
+        });
+      },
+    );
+  }
+
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
 
-    // Valida fechas
-    for (int i = 0; i < _birthDates.length; i++) {
+    // Valida fechas y género por cada pasajero
+    for (int i = 0; i < widget.passengersCount; i++) {
       if (_birthDates[i] == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -97,20 +144,36 @@ class _PassengersFormScreenState extends State<PassengersFormScreen> {
         );
         return;
       }
+      if (_genderValues[i] == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Please select gender for passenger ${i + 1}'),
+          ),
+        );
+        return;
+      }
     }
 
     final result = <PassengerInfo>[];
     for (int i = 0; i < widget.passengersCount; i++) {
-      // La mayoría de tus usos esperan: name + dateOfBirth (+ passport?)
-      // Ajusta aquí si tu constructor difiere.
+      final middle = _middleNameCtrls[i].text.trim();
       result.add(
         PassengerInfo(
-          name: _nameCtrls[i].text.trim(),
-          dateOfBirth: _birthDates[i]!,
+          name: _firstNameCtrls[i].text.trim(),
+          middleName: middle.isEmpty ? null : middle,
+          lastName: _lastNameCtrls[i].text.trim(),
           passport: _passportCtrls[i].text.trim().toUpperCase(),
+          nationality: _nationalityCtrls[i].text.trim(),
+          dateOfBirth: DateTime(
+            _birthDates[i]!.year,
+            _birthDates[i]!.month,
+            _birthDates[i]!.day,
+          ),
+          gender: _genderValues[i]!,
         ),
       );
     }
+
     Navigator.of(context).pop(result);
   }
 
@@ -148,17 +211,86 @@ class _PassengersFormScreenState extends State<PassengersFormScreen> {
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 8),
+
+                  // First name
                   TextFormField(
-                    controller: _nameCtrls[i],
+                    controller: _firstNameCtrls[i],
                     textCapitalization: TextCapitalization.words,
                     decoration: const InputDecoration(
-                      labelText: 'Full name',
+                      labelText: 'First name',
                       border: OutlineInputBorder(),
                     ),
                     validator: (v) =>
                         (v == null || v.trim().isEmpty) ? 'Required' : null,
                   ),
                   const SizedBox(height: 10),
+
+                  // Middle name (optional)
+                  TextFormField(
+                    controller: _middleNameCtrls[i],
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Middle name (optional)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Last name
+                  TextFormField(
+                    controller: _lastNameCtrls[i],
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Last name',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Nationality (con country picker)
+                  TextFormField(
+                    controller: _nationalityCtrls[i],
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Nationality',
+                      border: OutlineInputBorder(),
+                      suffixIcon: Icon(Icons.arrow_drop_down),
+                    ),
+                    onTap: () => _openCountryPicker(i),
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Gender
+                  DropdownButtonFormField<PassengerGender>(
+                    initialValue: _genderValues[i],
+                    decoration: const InputDecoration(
+                      labelText: 'Gender',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: PassengerGender.masculino,
+                        child: Text('Male'),
+                      ),
+                      DropdownMenuItem(
+                        value: PassengerGender.femenino,
+                        child: Text('Female'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _genderValues[i] = value;
+                      });
+                    },
+                    validator: (v) => v == null ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Birth date
                   TextFormField(
                     readOnly: true,
                     controller: _birthTextCtrls[i],
@@ -172,6 +304,8 @@ class _PassengersFormScreenState extends State<PassengersFormScreen> {
                         (v == null || v.trim().isEmpty) ? 'Required' : null,
                   ),
                   const SizedBox(height: 10),
+
+                  // Passport
                   TextFormField(
                     controller: _passportCtrls[i],
                     textCapitalization: TextCapitalization.characters,
@@ -212,57 +346,6 @@ class _PassengersFormScreenState extends State<PassengersFormScreen> {
         ),
       ),
     );
-  }
-
-  // ================= Helpers para leer initialPassengers sin romper tipado
-  String _pName(PassengerInfo p) {
-    try {
-      final s = (p as dynamic).name as String?;
-      if (s != null) return s;
-    } catch (_) {}
-    try {
-      final s = (p as dynamic).fullName as String?;
-      if (s != null) return s;
-    } catch (_) {}
-    try {
-      final m = (p as dynamic).toJson() as Map<String, dynamic>;
-      final s = m['name'] ?? m['fullName'];
-      if (s != null) return s.toString();
-    } catch (_) {}
-    return '';
-  }
-
-  DateTime _pDob(PassengerInfo p) {
-    try {
-      final d = (p as dynamic).dateOfBirth as DateTime?;
-      if (d != null) return d;
-    } catch (_) {}
-    try {
-      final d = (p as dynamic).birthDate as DateTime?;
-      if (d != null) return d;
-    } catch (_) {}
-    try {
-      final m = (p as dynamic).toJson() as Map<String, dynamic>;
-      final v = m['dateOfBirth'] ?? m['birthDate'];
-      if (v is DateTime) return v;
-      if (v is String) {
-        final dt = DateTime.tryParse(v);
-        if (dt != null) return dt;
-      }
-    } catch (_) {}
-    return DateTime(2000, 1, 1);
-  }
-
-  String? _pPassport(PassengerInfo p) {
-    try {
-      return (p as dynamic).passport as String?;
-    } catch (_) {}
-    try {
-      final m = (p as dynamic).toJson() as Map<String, dynamic>;
-      final v = m['passport'];
-      return v?.toString();
-    } catch (_) {}
-    return null;
   }
 
   String _fmtDate(DateTime d) {
