@@ -1,13 +1,26 @@
 // lib/models/available_aircraft_model.dart
 class AvailableAircraftModel {
+  // Nuevos (opcionales) para soportar /api/Aircrafts/grouped
+  final int? id;
+  final String? state;
+  final bool? canFlyInternational;
+  final String baseCountry; // pedido para mostrar en UI
+  final String? baseAirportName;
+
+  // Existentes
   final int companyId;
   final String companyName;
-  final String model;
+  final String model; // mostrar EXACTO
   final String image;
   final int seats;
   final double? estimatedPrice;
 
   const AvailableAircraftModel({
+    this.id,
+    this.state,
+    this.canFlyInternational,
+    this.baseCountry = '',
+    this.baseAirportName,
     required this.companyId,
     required this.companyName,
     required this.model,
@@ -40,6 +53,20 @@ class AvailableAircraftModel {
       return null;
     }
 
+    bool? pickBool(List<String> keys) {
+      for (final k in keys) {
+        final v = json[k];
+        if (v == null) continue;
+        if (v is bool) return v;
+        if (v is String) {
+          final s = v.toLowerCase();
+          if (s == 'true' || s == '1') return true;
+          if (s == 'false' || s == '0') return false;
+        }
+      }
+      return null;
+    }
+
     String pickStr(List<String> keys, {String def = ''}) {
       for (final k in keys) {
         final v = json[k];
@@ -67,6 +94,14 @@ class AvailableAircraftModel {
     }
 
     return AvailableAircraftModel(
+      id: pickInt(['id', 'Id'], def: 0),
+      state: pickStr(['state', 'State']),
+      canFlyInternational: pickBool([
+        'canFlyInternational',
+        'CanFlyInternational',
+      ]),
+      baseCountry: pickStr(['baseCountry', 'BaseCountry']),
+      baseAirportName: pickStr(['baseAirportName', 'BaseAirportName']),
       companyId: companyId,
       companyName: companyName,
       model: pickStr(['model', 'Model', 'modelName', 'aircraftModel', 'name']),
@@ -82,6 +117,11 @@ class AvailableAircraftModel {
   }
 
   Map<String, dynamic> toJson() => {
+    if (id != null) 'id': id,
+    if (state != null) 'state': state,
+    if (canFlyInternational != null) 'canFlyInternational': canFlyInternational,
+    'baseCountry': baseCountry,
+    if (baseAirportName != null) 'baseAirportName': baseAirportName,
     'companyId': companyId,
     'companyName': companyName,
     'model': model,

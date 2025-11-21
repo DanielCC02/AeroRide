@@ -1,6 +1,5 @@
 ﻿using AeroRide.API.Models.Enums;
-using System;
-using System.Collections.Generic;
+
 
 namespace AeroRide.API.Models.Domain
 {

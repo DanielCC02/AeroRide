@@ -60,6 +60,32 @@ namespace AeroRide.API.Controllers
             return Ok(pilots);
         }
 
+        // ===================================================
+        // GET: api/flights/emptylegs
+        // Lista todas las empty legs futuras, ordenadas por fecha
+        // ===================================================
+        [HttpGet("emptylegs")]
+        public async Task<IActionResult> GetEmptyLegs()
+        {
+            var result = await _flightService.GetEmptyLegsAsync();
+            return Ok(result);
+        }
+
+        // ===================================================
+        // GET: api/flights/emptylegs/{id}
+        // Trae todos los detalles de una Empty Leg específica
+        // ===================================================
+        [HttpGet("emptylegs/{id}")]
+        public async Task<IActionResult> GetEmptyLegDetail(int id)
+        {
+            var result = await _flightService.GetEmptyLegDetailAsync(id);
+
+            if (result == null)
+                return NotFound(new { message = "Empty leg not found." });
+
+            return Ok(result);
+        }
+
         [HttpPut("{id}/status")]
         [Authorize(Roles = "Admin,CompanyAdmin, Pilot")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateFlightStatusDto dto)

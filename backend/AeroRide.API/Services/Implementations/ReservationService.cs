@@ -1,6 +1,7 @@
 ﻿using AeroRide.API.Data;
 using AeroRide.API.Helpers;
 using AeroRide.API.Models.Domain;
+using AeroRide.API.Models.DTOs.EmptyLegs;
 using AeroRide.API.Models.DTOs.Reservations;
 using AeroRide.API.Models.Enums;
 using AeroRide.API.Services.Interfaces;
@@ -474,109 +475,152 @@ namespace AeroRide.API.Services.Implementations
         /// </summary>
         public async Task<ReservationEstimateResponseDto> EstimatePriceAsync(ReservationEstimateDto dto)
         {
-            // ======================================================
-            // 1️⃣ VALIDAR DATOS BÁSICOS
-            // ======================================================
-            var aircraft = await _db.Aircrafts
-                .FirstOrDefaultAsync(a =>
-                    a.CompanyId == dto.CompanyId &&
-                    a.Model.ToLower() == dto.AircraftModel.ToLower() &&
-                    a.IsActive);
+            if (dto.AircraftIds == null || !dto.AircraftIds.Any())
+                throw new Exception("Debe seleccionar un modelo válido con aeronaves disponibles.");
 
-            if (aircraft == null)
-                throw new Exception("No se encontró la aeronave especificada.");
+            // ============================================
+            // 1️⃣ ESCOGER UNA AERONAVE REAL DISPONIBLE
+            // ============================================
+            Aircraft? selectedAircraft = null;
 
-            if (aircraft.MinuteCost <= 0)
-                throw new Exception("La aeronave no tiene una tarifa válida configurada.");
-
-            double totalMinutos = 0;
-            bool esInternacional = false;
-
-            // ======================================================
-            // 2️⃣ CALCULAR DURACIÓN TOTAL Y DETECTAR VUELOS INTERNACIONALES
-            // ======================================================
-            foreach (var segment in dto.Segments)
+            foreach (int id in dto.AircraftIds)
             {
-                var airportFrom = await _db.Airports.FirstAsync(a => a.Id == segment.DepartureAirportId);
-                var airportTo = await _db.Airports.FirstAsync(a => a.Id == segment.ArrivalAirportId);
+                var aircraft = await _db.Aircrafts
+                    .Include(a => a.BaseAirport)
+                    .FirstOrDefaultAsync(a => a.Id == id && a.IsActive);
 
-                // Detectar si el vuelo cruza fronteras
-                if (!string.Equals(airportFrom.Country.Trim(), airportTo.Country.Trim(), StringComparison.OrdinalIgnoreCase))
-                    esInternacional = true;
+                if (aircraft == null)
+                    continue;
 
-                // Validar si la aeronave puede operar internacionalmente
-                if (esInternacional && !aircraft.CanFlyInternational)
+                bool allSegmentsOk = true;
+
+                foreach (var seg in dto.Segments)
                 {
-                    throw new InvalidOperationException(
-                        $"La aeronave '{aircraft.Model}' (matrícula {aircraft.Patent}) no puede realizar vuelos internacionales."
-                    );
+                    var dep = await _db.Airports.FindAsync(seg.DepartureAirportId);
+                    var arr = await _db.Airports.FindAsync(seg.ArrivalAirportId);
+
+                    var startUtc = TimeHelper.ToUtc(seg.DepartureTime, dep.TimeZone);
+                    var endUtc = TimeHelper.ToUtc(seg.ArrivalTime, dep.TimeZone);
+
+                    if (!await IsAircraftAvailableInRangeAsync(aircraft.Id, startUtc, endUtc))
+                    {
+                        allSegmentsOk = false;
+                        break;
+                    }
                 }
 
-                // Calcular duración del segmento
-                totalMinutos += FlightMathHelper.CalcularDuracionVuelo(airportFrom, airportTo, aircraft);
+                if (allSegmentsOk)
+                {
+                    selectedAircraft = aircraft;
+                    break;
+                }
             }
 
-            // ======================================================
-            // 3️⃣ CALCULAR COSTO BASE POR MINUTO
-            // ======================================================
-            double costoBase = totalMinutos * aircraft.MinuteCost;
+            if (selectedAircraft == null)
+                throw new Exception("No hay ninguna aeronave disponible para este modelo.");
 
-            // ======================================================
-            // 4️⃣ CALCULAR IMPUESTOS SI ES INTERNACIONAL
-            // ======================================================
-            double impuestos = 0;
-            if (esInternacional)
+            // ============================================
+            // 2️⃣ CALCULAR DURACIÓN TOTAL DEL VIAJE
+            // ============================================
+            double totalMinutes = 0;
+            bool isInternational = false;
+
+            var baseAirport = selectedAircraft.BaseAirport;
+
+            // --------------------------------------------
+            // 2.1 PRIMERA REPOSICIÓN: Base → Departure inicial
+            // --------------------------------------------
+            var firstSeg = dto.Segments.First();
+            if (baseAirport.Id != firstSeg.DepartureAirportId)
             {
-                double impuestoAeroportuario = dto.TotalPassengers * 30;
-                double handling = dto.TotalPassengers * 100;
-                impuestos = impuestoAeroportuario + handling;
+                var depBase = baseAirport;
+                var depClient = await _db.Airports.FindAsync(firstSeg.DepartureAirportId);
+
+                totalMinutes += FlightMathHelper.CalcularDuracionVuelo(depBase, depClient, selectedAircraft);
+
+                if (!string.Equals(depBase.Country, depClient.Country, StringComparison.OrdinalIgnoreCase))
+                    isInternational = true;
             }
 
-            // ======================================================
-            // 5️⃣ CALCULAR COSTOS DE ESPERA Y PERNOCTA (solo si hay varios segmentos)
-            // ======================================================
-            double costoEspera = 0;
-            double costoPernocta = 0;
+            // --------------------------------------------
+            // 2.2 VUELOS REALES DEL CLIENTE
+            // --------------------------------------------
+            foreach (var seg in dto.Segments)
+            {
+                var dep = await _db.Airports.FindAsync(seg.DepartureAirportId);
+                var arr = await _db.Airports.FindAsync(seg.ArrivalAirportId);
+
+                if (!string.Equals(dep.Country, arr.Country, StringComparison.OrdinalIgnoreCase))
+                    isInternational = true;
+
+                totalMinutes += FlightMathHelper.CalcularDuracionVuelo(dep, arr, selectedAircraft);
+            }
+
+            if (totalMinutes < 10)
+                totalMinutes = 10;
+
+            // ============================================
+            // 3️⃣ COSTO BASE
+            // ============================================
+            double baseCost = totalMinutes * selectedAircraft.MinuteCost;
+
+            // ============================================
+            // 4️⃣ IMPUESTOS (si es internacional)
+            // ============================================
+            double taxes = 0;
+
+            if (isInternational)
+            {
+                double airportTax = dto.TotalPassengers * 30;
+                double handling = dto.TotalPassengers * 100;
+                taxes = airportTax + handling;
+            }
+
+            // ============================================
+            // 5️⃣ COSTO DE ESPERA / PERNOCTA (cliente)
+            // ============================================
+            double waitCost = 0;
+            double overnightCost = 0;
 
             if (dto.Segments.Count > 1)
             {
                 for (int i = 0; i < dto.Segments.Count - 1; i++)
                 {
-                    var actual = dto.Segments[i];
-                    var siguiente = dto.Segments[i + 1];
+                    var current = dto.Segments[i];
+                    var next = dto.Segments[i + 1];
 
-                    double horasDiferencia = (siguiente.DepartureTime - actual.ArrivalTime).TotalHours;
+                    double hours = (next.DepartureTime - current.ArrivalTime).TotalHours;
 
-                    // 🔹 Si la espera es entre 6h y 24h → Hora de espera
-                    if (horasDiferencia >= 6 && horasDiferencia < 24)
-                        costoEspera += esInternacional ? 200 : 50;
+                    if (hours >= 6 && hours < 24)
+                        waitCost += isInternational ? 200 : 50;
 
-                    // 🔹 Si cruza un día o supera las 24h → Pernocta
-                    if (horasDiferencia >= 24 || actual.ArrivalTime.Date != siguiente.DepartureTime.Date)
-                        costoPernocta += esInternacional ? 500 : 300;
+                    if (hours >= 24 || current.ArrivalTime.Date != next.DepartureTime.Date)
+                        overnightCost += isInternational ? 500 : 300;
                 }
             }
 
-            // ======================================================
-            // 6️⃣ CALCULAR TOTAL
-            // ======================================================
-            double totalPrice = Math.Round(costoBase + impuestos + costoEspera + costoPernocta, 2);
+            // ============================================
+            // 6️⃣ TOTAL
+            // ============================================
+            double total = Math.Round(baseCost + taxes + waitCost + overnightCost, 2);
 
-            // ======================================================
-            // 7️⃣ DEVOLVER DESGLOSE COMPLETO
-            // ======================================================
+            // ============================================
+            // 7️⃣ RESPUESTA
+            // ============================================
             return new ReservationEstimateResponseDto
             {
-                TotalMinutes = Math.Round(totalMinutos, 2),
-                MinuteCost = aircraft.MinuteCost,
-                BaseCost = Math.Round(costoBase, 2),
-                Taxes = Math.Round(impuestos, 2),
-                WaitCost = Math.Round(costoEspera, 2),
-                OvernightCost = Math.Round(costoPernocta, 2),
-                TotalPrice = totalPrice,
-                IsInternational = esInternacional
+                AircraftId = selectedAircraft.Id,
+                IsInternational = isInternational,
+                TotalMinutes = Math.Round(totalMinutes, 2),
+                MinuteCost = selectedAircraft.MinuteCost,
+                BaseCost = Math.Round(baseCost, 2),
+                Taxes = Math.Round(taxes, 2),
+                WaitCost = Math.Round(waitCost, 2),
+                OvernightCost = Math.Round(overnightCost, 2),
+                TotalPrice = total
             };
         }
+
 
         // ======================================================
         // 🔍 GET RESERVATION BY ID
@@ -638,6 +682,73 @@ namespace AeroRide.API.Services.Implementations
             await _db.SaveChangesAsync();
             return true;
         }
+
+        public async Task<ReservationResponseDto> ReserveEmptyLegAsync(EmptyLegReservationCreateDto dto)
+        {
+            using var transaction = await _db.Database.BeginTransactionAsync();
+
+            // 1️⃣ Validar empty leg
+            var flight = await _db.Flights
+                .Include(f => f.Aircraft)
+                .Include(f => f.Company)
+                .Include(f => f.DepartureAirport)
+                .Include(f => f.ArrivalAirport)
+                .FirstOrDefaultAsync(f => f.Id == dto.EmptyLegFlightId && f.IsEmptyLeg);
+
+            if (flight == null)
+                throw new Exception("Empty leg no existe o ya fue reservada.");
+
+            // 2️⃣ Crear reserva usando precio del front
+            var reservation = new Reservation
+            {
+                UserId = dto.UserId,
+                CompanyId = flight.CompanyId,
+                ReservationCode = await GenerateReservationCodeAsync(),
+                Status = ReservationStatus.Pendiente,
+                LapChild = dto.LapChild,
+                AssistanceAnimal = dto.AssistanceAnimal,
+                Notes = dto.Notes,
+                CreatedAt = DateTime.UtcNow,
+                IsRoundTrip = false,
+                PorcentPrice = 0,
+                TotalPrice = dto.Price // <- viene desde el front
+            };
+
+            _db.Reservations.Add(reservation);
+            await _db.SaveChangesAsync();
+
+            // 3️⃣ Crear pasajeros
+            foreach (var pax in dto.Passengers)
+            {
+                var passenger = _mapper.Map<PassengerDetail>(pax);
+                passenger.ReservationId = reservation.Id;
+                _db.PassengerDetails.Add(passenger);
+            }
+
+            await _db.SaveChangesAsync();
+
+            // 4️⃣ Asociar el vuelo vacío → vuelo del cliente
+            flight.ReservationId = reservation.Id;
+            flight.IsEmptyLeg = false;
+            flight.Status = FlightStatus.PreFlight;
+            flight.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+
+            await transaction.CommitAsync();
+
+            // 5️⃣ Cargar resultado completo
+            var result = await _db.Reservations
+                .Include(r => r.Company)
+                .Include(r => r.Passengers)
+                .Include(r => r.Flights).ThenInclude(f => f.DepartureAirport)
+                .Include(r => r.Flights).ThenInclude(f => f.ArrivalAirport)
+                .Include(r => r.Flights).ThenInclude(f => f.Aircraft)
+                .FirstAsync(r => r.Id == reservation.Id);
+
+            return _mapper.Map<ReservationResponseDto>(result);
+        }
+
 
         // ======================================================
         // 🧮 GENERADOR DE CÓDIGO DE RESERVA
@@ -747,6 +858,58 @@ namespace AeroRide.API.Services.Implementations
                 Reason = "Todas las aeronaves del modelo están ocupadas o sin suficiente ventana libre."
             };
         }
+
+        private async Task<bool> IsAircraftAvailableInRangeAsync(
+    int aircraftId,
+    DateTime requestedStart,
+    DateTime requestedEnd)
+        {
+            const int turnaroundMinutes = 30;
+
+            var occupancies = await _db.AircraftAvailabilities
+                .Where(av => av.AircraftId == aircraftId && av.Status == "Confirmado")
+                .OrderBy(av => av.StartTime)
+                .ToListAsync();
+
+            // No reservations → free
+            if (!occupancies.Any())
+                return true;
+
+            // 1️⃣ Direct conflict with any flight
+            bool conflict = occupancies.Any(av =>
+                requestedStart < av.EndTime.AddMinutes(turnaroundMinutes) &&
+                requestedEnd > av.StartTime.AddMinutes(-turnaroundMinutes)
+            );
+
+            if (!conflict)
+                return true;
+
+            // 2️⃣ Gap BEFORE the first flight
+            var first = occupancies.First();
+            if (requestedEnd <= first.StartTime.AddMinutes(-turnaroundMinutes))
+                return true;
+
+            // 3️⃣ Gaps BETWEEN flights
+            for (int i = 0; i < occupancies.Count - 1; i++)
+            {
+                var current = occupancies[i];
+                var next = occupancies[i + 1];
+
+                var gapStart = current.EndTime.AddMinutes(turnaroundMinutes);
+                var gapEnd = next.StartTime.AddMinutes(-turnaroundMinutes);
+
+                if (requestedStart >= gapStart && requestedEnd <= gapEnd)
+                    return true;
+            }
+
+            // 4️⃣ Gap AFTER the last flight
+            var last = occupancies.Last();
+            if (requestedStart >= last.EndTime.AddMinutes(turnaroundMinutes))
+                return true;
+
+            return false;
+        }
+
 
 
     }

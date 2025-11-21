@@ -245,7 +245,7 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
                     labelText: "Pilot",
                     border: OutlineInputBorder(),
                   ),
-                  value: _selectedPilot,
+                  initialValue: _selectedPilot,
                   items: pilotOptions
                       .map(
                         (p) => DropdownMenuItem(
@@ -274,7 +274,7 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
                     labelText: "Copilot (optional)",
                     border: OutlineInputBorder(),
                   ),
-                  value: _selectedCopilot,
+                  initialValue: _selectedCopilot,
                   items: [
                     const DropdownMenuItem<UserModel>(
                       value: null,

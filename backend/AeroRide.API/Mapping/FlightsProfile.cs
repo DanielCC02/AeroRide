@@ -1,4 +1,5 @@
 ﻿using AeroRide.API.Models.Domain;
+using AeroRide.API.Models.DTOs.EmptyLegs;
 using AeroRide.API.Models.DTOs.FlightAssignments;
 using AeroRide.API.Models.DTOs.Flights;
 using AeroRide.API.Models.Enums;
@@ -67,6 +68,56 @@ namespace AeroRide.API.Mappings
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
                 .ForMember(dest => dest.CrewRole, opt => opt.MapFrom(src => src.CrewRole.ToString()));
 
+            // =====================
+            // EMPTY LEG LIST DTO
+            // =====================
+            CreateMap<Flight, EmptyLegListDto>()
+                .ForMember(d => d.DepartureAirportName, o => o.MapFrom(s => s.DepartureAirport.Name))
+                .ForMember(d => d.DepartureIATA, o => o.MapFrom(s => s.DepartureAirport.CodeIATA))
+                .ForMember(d => d.ArrivalAirportName, o => o.MapFrom(s => s.ArrivalAirport.Name))
+                .ForMember(d => d.ArrivalIATA, o => o.MapFrom(s => s.ArrivalAirport.CodeIATA))
+                .ForMember(d => d.AircraftModel, o => o.MapFrom(s => s.Aircraft.Model))
+                .ForMember(d => d.AircraftImage, o => o.MapFrom(s => s.Aircraft.Image))
+                .ForMember(d => d.Seats, o => o.MapFrom(s => s.Aircraft.Seats))
+                .ForMember(d => d.MaxWeight, o => o.MapFrom(s => s.Aircraft.MaxWeight))
+                .ForMember(d => d.FinalPrice, o => o.Ignore()); // Se calcula afuera
+            ;
+
+            // =====================
+            // EMPTY LEG DETAIL DTO
+            // =====================
+            CreateMap<Flight, EmptyLegDetailDto>()
+                .ForMember(d => d.AircraftModel, o => o.MapFrom(s => s.Aircraft.Model))
+                .ForMember(d => d.AircraftPatent, o => o.MapFrom(s => s.Aircraft.Patent))
+                .ForMember(d => d.AircraftImage, o => o.MapFrom(s => s.Aircraft.Image))
+                .ForMember(d => d.Seats, o => o.MapFrom(s => s.Aircraft.Seats))
+                .ForMember(d => d.MaxWeight, o => o.MapFrom(s => s.Aircraft.MaxWeight))
+                .ForMember(d => d.MinuteCost, o => o.MapFrom(s => s.Aircraft.MinuteCost))
+                .ForMember(d => d.CanFlyInternational, o => o.MapFrom(s => s.Aircraft.CanFlyInternational))
+
+                // Aeropuerto salida
+                .ForMember(d => d.DepartureIATA, o => o.MapFrom(s => s.DepartureAirport.CodeIATA))
+                .ForMember(d => d.DepartureOACI, o => o.MapFrom(s => s.DepartureAirport.CodeOACI))
+                .ForMember(d => d.DepartureAirportName, o => o.MapFrom(s => s.DepartureAirport.Name))
+                .ForMember(d => d.DepartureCity, o => o.MapFrom(s => s.DepartureAirport.City))
+                .ForMember(d => d.DepartureCountry, o => o.MapFrom(s => s.DepartureAirport.Country))
+                .ForMember(d => d.DepartureAirportImage, o => o.MapFrom(s => s.DepartureAirport.Image))
+
+                // Aeropuerto destino
+                .ForMember(d => d.ArrivalIATA, o => o.MapFrom(s => s.ArrivalAirport.CodeIATA))
+                .ForMember(d => d.ArrivalOACI, o => o.MapFrom(s => s.ArrivalAirport.CodeOACI))
+                .ForMember(d => d.ArrivalAirportName, o => o.MapFrom(s => s.ArrivalAirport.Name))
+                .ForMember(d => d.ArrivalCity, o => o.MapFrom(s => s.ArrivalAirport.City))
+                .ForMember(d => d.ArrivalCountry, o => o.MapFrom(s => s.ArrivalAirport.Country))
+                .ForMember(d => d.ArrivalAirportImage, o => o.MapFrom(s => s.ArrivalAirport.Image))
+
+                // Empresa
+                .ForMember(d => d.CompanyName, o => o.MapFrom(s => s.Company.Name))
+                .ForMember(d => d.CompanyId, o => o.MapFrom(s => s.Company.Id))
+
+                // Valores calculados
+                .ForMember(d => d.FinalPrice, o => o.Ignore())
+                .ForMember(d => d.EFT, o => o.Ignore());
 
         }
     }

@@ -1,9 +1,9 @@
+// lib/models/passenger_info.dart
 enum PassengerGender { masculino, femenino }
 
 extension PassengerGenderX on PassengerGender {
   String get apiValue =>
-      this == PassengerGender.femenino ? 'Femenino' : 'Masculino';
-
+      this == PassengerGender.femenino ? 'femenino' : 'masculino';
   static PassengerGender fromApi(String s) => s.toLowerCase().startsWith('f')
       ? PassengerGender.femenino
       : PassengerGender.masculino;

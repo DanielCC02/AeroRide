@@ -47,6 +47,7 @@ class ApiClient extends http.BaseClient {
     return h;
   }
 
+  @override
   Future<http.StreamedResponse> send(http.BaseRequest request) {
     // Permite usar ApiClient como any BaseClient
     return _inner.send(request);

@@ -14,7 +14,9 @@ import '../services/reservation_service.dart' as rsvc;
 import '../services/aircraft_service.dart' as asvc;
 import '../models/aircraft_model.dart';
 
+// Usa ESTE form (retorna List<PassengerInfo>)
 import 'passengers_form_screen.dart';
+
 import 'reservation_route_map_screen.dart';
 import 'homepage_screen.dart';
 
@@ -46,19 +48,30 @@ class _ReservationScreenState extends State<ReservationScreen> {
   final _airSvc = asvc.AircraftService();
   final _resSvc = rsvc.ReservationService();
 
+  // Opciones
   bool lapInfant = false;
   bool dog = false;
-  List<PassengerInfo> _passengers = [];
-  bool _booking = false;
 
+  // Pasajeros (del form)
+  List<PassengerInfo> _passengers = [];
+
+  // Flujo
+  bool _booking = false;
   bool _estimating = false;
+
+  // Estimate
   String? _estimateError;
   double? _estimatedTotal;
   int? _estimateMinutes;
+  models.ReservationEstimateResponse? _estimateRaw;
 
+  // Resoluciones
   int? _effectiveCompanyId;
   String? _modelForApi; // exactamente el modelo que mandaremos
   AircraftModel? _assignedPreview;
+
+  // Aviso cuando el avión real pertenece a otra compañía
+  String? _companyMismatchWarning;
 
   @override
   void initState() {
@@ -111,7 +124,40 @@ class _ReservationScreenState extends State<ReservationScreen> {
         child: Column(
           children: [
             _buildHeader(eft),
-            // … resto igual que antes …
+
+            if (_companyMismatchWarning != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                child: Material(
+                  color: Colors.amberAccent.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.warning_amber_rounded,
+                          color: Colors.black87,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _companyMismatchWarning!,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+            // ===== Itinerary =====
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Column(
@@ -216,7 +262,119 @@ class _ReservationScreenState extends State<ReservationScreen> {
               ),
             ),
 
-            // … pasajeros / switches …
+            const Divider(height: 0),
+
+            // ===== Passengers & Options =====
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+              child: Row(
+                children: [
+                  const Text(
+                    'Passengers & Options',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const Spacer(),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      elevation: 0,
+                    ),
+                    onPressed: _openPassengersForm,
+                    icon: const Icon(Icons.group_add),
+                    label: Text(
+                      _passengers.isEmpty
+                          ? 'Fill passengers info'
+                          : 'Edit passengers info',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (_passengers.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: List.generate(_passengers.length, (i) {
+                    final p = _passengers[i];
+                    final name =
+                        '${p.name ?? 'Passenger'} ${p.lastName ?? (i + 1)}'
+                            .trim();
+                    return Chip(
+                      avatar: Icon(
+                        Icons.person,
+                        size: 18,
+                        color: Colors.red.shade700,
+                      ),
+                      label: Text(
+                        name,
+                        style: TextStyle(
+                          color: Colors.red.shade800,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      backgroundColor: Colors.red.shade50,
+                      shape: StadiumBorder(
+                        side: BorderSide(color: Colors.red.shade200),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            SwitchListTile(
+              title: const Text('Lap infant'),
+              subtitle: const Text(
+                'Infant travels on lap (counts for weight / some fees)',
+              ),
+              value: lapInfant,
+              onChanged: (v) => setState(() {
+                lapInfant = v;
+                _refreshEstimate();
+              }),
+            ),
+            SwitchListTile(
+              title: const Text('Assistance animal (dog)'),
+              value: dog,
+              onChanged: (v) => setState(() => dog = v),
+            ),
+
+            // ===== Price breakdown trigger =====
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  style: TextButton.styleFrom(
+                    foregroundColor: red,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                  ),
+                  onPressed: (_estimatedTotal != null) ? _showBreakdown : null,
+                  icon: const Icon(Icons.receipt_long),
+                  label: const Text(
+                    'View price breakdown',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ),
+
             if (_estimateError != null)
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
@@ -251,6 +409,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
     );
   }
 
+  // ================== Bottom bar ==================
   Widget _buildBottomBar(Color red) {
     return Container(
       decoration: BoxDecoration(
@@ -314,7 +473,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                   ),
                   elevation: 0,
                 ),
-                onPressed: _booking ? null : _book,
+                onPressed: _booking ? null : _confirmAndBook,
                 child: _booking
                     ? const SizedBox(
                         width: 18,
@@ -414,10 +573,51 @@ class _ReservationScreenState extends State<ReservationScreen> {
     return 0;
   }
 
+  // ---- Timezone helpers (pulidos) ----
+  DateTime _localAirportToUtc(DateTime localWallTime, String? timeZoneId) {
+    final offset = _tzOffsetHours(timeZoneId, localWallTime);
+    final naiveAsUtc = DateTime.utc(
+      localWallTime.year,
+      localWallTime.month,
+      localWallTime.day,
+      localWallTime.hour,
+      localWallTime.minute,
+    );
+    return naiveAsUtc.subtract(Duration(hours: offset));
+  }
+
+  int _tzOffsetHours(String? tz, DateTime at) {
+    final id = (tz ?? '').trim();
+    if (id.isEmpty || id == 'America/Costa_Rica') return -6; // sin DST
+    if (id == 'America/Guatemala') return -6;
+    if (id == 'America/Mexico_City') {
+      final m = at.month;
+      final isDST = (m >= 4 && m <= 10);
+      return isDST ? -5 : -6;
+    }
+    if (id == 'America/Los_Angeles' || id == 'US/Pacific' || id == 'PST8PDT') {
+      final m = at.month;
+      final isDST = (m >= 3 && m <= 11);
+      return isDST ? -7 : -8;
+    }
+    final match = RegExp(
+      r'([+-])(\d{1,2})(?::?(\d{2}))?',
+    ).firstMatch(id.replaceAll(' ', ''));
+    if (match != null) {
+      final sign = match.group(1) == '-' ? -1 : 1;
+      final h = int.tryParse(match.group(2) ?? '0') ?? 0;
+      final mm = int.tryParse(match.group(3) ?? '0') ?? 0;
+      final total = sign * (h + (mm >= 30 ? 1 : 0));
+      return total;
+    }
+    return -6; // fallback Centroamérica
+  }
+
   Future<void> _refreshEstimate() async {
     setState(() {
       _estimating = true;
       _estimateError = null;
+      _companyMismatchWarning = null; // limpiamos aviso previo
     });
 
     try {
@@ -425,24 +625,29 @@ class _ReservationScreenState extends State<ReservationScreen> {
       final resolvedCompanyId = await _resolveCompanyId();
       _effectiveCompanyId = resolvedCompanyId;
 
-      // Modelo EXACTO sin transformar
       final modelForEstimate = (_modelForApi ?? widget.aircraftModel).trim();
+
+      // Usa hora local del aeropuerto (no del dispositivo)
+      final depUtc = _localAirportToUtc(c.departure, c.from.timeZone);
+      final retUtc = (c.isRoundTrip && c.returnDateTime != null)
+          ? _localAirportToUtc(c.returnDateTime!, c.to.timeZone)
+          : null;
 
       final segs = <SegmentDto>[
         SegmentDto(
           departureAirportId: c.from.id,
           arrivalAirportId: c.to.id,
-          departureTime: c.departure.toUtc(),
-          arrivalTime: c.departure.toUtc(),
+          departureTime: depUtc,
+          arrivalTime: depUtc, // el back recalcula con ETE
         ),
       ];
-      if (c.isRoundTrip && c.returnDateTime != null) {
+      if (retUtc != null) {
         segs.add(
           SegmentDto(
             departureAirportId: c.to.id,
             arrivalAirportId: c.from.id,
-            departureTime: c.returnDateTime!.toUtc(),
-            arrivalTime: c.returnDateTime!.toUtc(),
+            departureTime: retUtc,
+            arrivalTime: retUtc,
           ),
         );
       }
@@ -451,7 +656,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
       final req = ReservationEstimateRequest(
         companyId: resolvedCompanyId,
-        aircraftModel: modelForEstimate, // EXACTO
+        aircraftModel: modelForEstimate,
         totalPassengers: passengersTotal,
         segments: segs,
       );
@@ -463,23 +668,76 @@ class _ReservationScreenState extends State<ReservationScreen> {
       if (!mounted) return;
 
       setState(() {
+        _estimateRaw = est;
         _estimatedTotal = est.totalPrice;
         _estimateMinutes = est.totalMinutes.round();
       });
 
-      // Preview opcional
+      // ===== Preview opcional + aviso si la compañía no coincide =====
       try {
         final preview = await _airSvc.findFirstAircraftByCompanyAndModel(
           companyId: resolvedCompanyId,
           model: modelForEstimate,
         );
-        if (mounted) setState(() => _assignedPreview = preview);
-      } catch (_) {}
+
+        if (!mounted) return;
+
+        String? warning;
+
+        if (preview != null) {
+          final selectedName = widget.companyName.trim().toLowerCase();
+          final previewName = preview.companyName.trim().toLowerCase();
+
+          if (selectedName.isNotEmpty &&
+              previewName.isNotEmpty &&
+              selectedName != previewName) {
+            warning =
+                'Heads up: the available aircraft for this model belongs to a '
+                'different company (${preview.companyName}) than the one you '
+                'filtered (${widget.companyName}).';
+          }
+        }
+
+        setState(() {
+          _assignedPreview = preview;
+          _companyMismatchWarning = warning;
+        });
+      } catch (_) {
+        // Si falla el preview, simplemente no mostramos matrícula ni warning
+      }
     } catch (e) {
+      if (!mounted) return;
       setState(() => _estimateError = 'No fue posible estimar el precio: $e');
     } finally {
       if (mounted) setState(() => _estimating = false);
     }
+  }
+
+  // ========= Confirm + Book =========
+  Future<void> _confirmAndBook() async {
+    if (_booking) return;
+
+    final shouldContinue = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm reservation'),
+        content: const Text('¿Deseas continuar y crear la reserva?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Continuar'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldContinue != true) return;
+
+    await _book();
   }
 
   Future<void> _book() async {
@@ -507,7 +765,11 @@ class _ReservationScreenState extends State<ReservationScreen> {
               c.to.longitude,
             );
 
-      final depUtc = _roundTo5(c.departure).toUtc();
+      // Misma regla de zona horaria del aeropuerto
+      final depUtc = _localAirportToUtc(
+        _roundTo5(c.departure),
+        c.from.timeZone,
+      );
       final arrUtc = depUtc.add(Duration(minutes: perLeg));
 
       final segments = <SegmentDto>[
@@ -520,7 +782,10 @@ class _ReservationScreenState extends State<ReservationScreen> {
       ];
 
       if (c.isRoundTrip && c.returnDateTime != null) {
-        final backDepUtc = _roundTo5(c.returnDateTime!).toUtc();
+        final backDepUtc = _localAirportToUtc(
+          _roundTo5(c.returnDateTime!),
+          c.to.timeZone,
+        );
         final backArrUtc = backDepUtc.add(Duration(minutes: perLeg));
         segments.add(
           SegmentDto(
@@ -536,7 +801,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
       final req = ReservationCreateRequest(
         companyId: resolvedCompanyId,
-        aircraftModel: modelForCreate, // EXACTO
+        aircraftModel: modelForCreate,
         porcentPrice: 100,
         totalPrice: (_estimatedTotal ?? 0).round(),
         isRoundTrip: c.isRoundTrip,
@@ -566,83 +831,174 @@ class _ReservationScreenState extends State<ReservationScreen> {
     }
   }
 
+  // ================== UI actions ==================
+  Future<void> _openPassengersForm() async {
+    final c = widget.criteria;
+    final result = await Navigator.of(context).push<List<PassengerInfo>>(
+      MaterialPageRoute(
+        builder: (_) => PassengersFormScreen(
+          passengersCount: c.passengers,
+          initialPassengers: _passengers,
+        ),
+      ),
+    );
+    if (result != null) {
+      setState(() => _passengers = result);
+    }
+  }
+
+  // ---- Price breakdown sheet (FUNCIONA) ----
+  void _showBreakdown() {
+    if (_estimatedTotal == null) return;
+
+    final total = _estimatedTotal!;
+    final minutes = _estimateMinutes ?? 0;
+    final minuteCost = _assignedPreview?.minuteCost;
+
+    // Intenta leer breakdown del API si existe
+    Map<String, dynamic>? apiBk;
+    try {
+      final m = (_estimateRaw as dynamic).toJson() as Map<String, dynamic>;
+      final b = m['breakdown'];
+      if (b is Map<String, dynamic>) {
+        apiBk = Map<String, dynamic>.from(b);
+      }
+    } catch (_) {
+      try {
+        final b = (_estimateRaw as dynamic).breakdown;
+        if (b is Map<String, dynamic>) apiBk = b;
+      } catch (_) {}
+    }
+
+    double? baseFlight;
+    double? otherFees;
+    if (minuteCost != null && minutes > 0) {
+      baseFlight = minuteCost * minutes;
+      otherFees = total - baseFlight;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (_) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Price breakdown',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Passengers'),
+                  Text(
+                    '${widget.criteria.passengers}'
+                    '${lapInfant ? ' + lap infant' : ''}',
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Estimated flight time'),
+                  Text('$minutes min'),
+                ],
+              ),
+
+              if (baseFlight != null) ...[
+                const Divider(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Base flight (${minuteCost!.toStringAsFixed(2)}/min)'),
+                    Text(baseFlight.toStringAsFixed(2)),
+                  ],
+                ),
+              ],
+
+              if (apiBk != null) ...[
+                const Divider(),
+                ...apiBk.entries.map(
+                  (e) => Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(_labelize(e.key)),
+                      Text(_fmtMoney(e.value)),
+                    ],
+                  ),
+                ),
+              ] else if (otherFees != null) ...[
+                const Divider(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Other fees (taxes, handling, etc.)'),
+                    Text(otherFees.toStringAsFixed(2)),
+                  ],
+                ),
+              ],
+
+              const Divider(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Total',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  Text(
+                    total.toStringAsFixed(2),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _labelize(String k) {
+    return k
+        .replaceAll('_', ' ')
+        .replaceAllMapped(RegExp(r'(^| )\w'), (m) => m.group(0)!.toUpperCase());
+  }
+
+  String _fmtMoney(Object? v) {
+    if (v is num) return v.toStringAsFixed(2);
+    try {
+      return double.parse(v.toString()).toStringAsFixed(2);
+    } catch (_) {
+      return v.toString();
+    }
+  }
+
   // ================== HELPERS ==================
   PassengerCreateRequest _mapPassenger(PassengerInfo p) {
-    String _pickName(PassengerInfo px) {
-      try {
-        final s = (px as dynamic).fullName as String?;
-        if (s != null && s.trim().isNotEmpty) return s.trim();
-      } catch (_) {}
-      try {
-        final s = (px as dynamic).name as String?;
-        if (s != null && s.trim().isNotEmpty) return s.trim();
-      } catch (_) {}
-      try {
-        final m = (px as dynamic).toJson() as Map<String, dynamic>;
-        final s = (m['fullName'] ?? m['name'])?.toString();
-        if (s != null && s.trim().isNotEmpty) return s.trim();
-      } catch (_) {}
-      return '';
-    }
+    // Aquí usamos directamente los campos del modelo ya alineados con la BD
+    final firstName = (p.name ?? '').trim();
+    final middleName = (p.middleName ?? '').trim();
+    final lastName = (p.lastName ?? '').trim();
+    final passport = (p.passport ?? '').trim().toUpperCase();
+    final nationality = (p.nationality ?? '').trim();
+    final dob = p.dateOfBirth ?? DateTime(2000, 1, 1);
 
-    DateTime _pickDob(PassengerInfo px) {
-      try {
-        final d = (px as dynamic).birthDate as DateTime?;
-        if (d != null) return d;
-      } catch (_) {}
-      try {
-        final d = (px as dynamic).dateOfBirth as DateTime?;
-        if (d != null) return d;
-      } catch (_) {}
-      try {
-        final m = (px as dynamic).toJson() as Map<String, dynamic>;
-        final v = m['birthDate'] ?? m['dateOfBirth'];
-        if (v is DateTime) return v;
-        if (v is String) {
-          final dt = DateTime.tryParse(v);
-          if (dt != null) return dt;
-        }
-      } catch (_) {}
-      return DateTime(2000, 1, 1);
-    }
-
-    String? _pickPassport(PassengerInfo px) {
-      try {
-        return (px as dynamic).passport as String?;
-      } catch (_) {}
-      try {
-        final m = (px as dynamic).toJson() as Map<String, dynamic>;
-        final v = m['passport'];
-        return v?.toString();
-      } catch (_) {}
-      return null;
-    }
-
-    String _pickNationality(PassengerInfo px) {
-      try {
-        final s = (px as dynamic).nationality as String?;
-        if (s != null) return s;
-      } catch (_) {}
-      return '';
-    }
-
-    String _pickGender(PassengerInfo px) {
-      try {
-        final s = (px as dynamic).gender?.toString().toLowerCase().trim();
-        if (s != null && s.startsWith('f')) return 'Femenino';
-        if (s != null && s.startsWith('m')) return 'Masculino';
-      } catch (_) {}
-      return 'Masculino';
-    }
+    final genderString = p.gender.apiValue; // 'Masculino' / 'Femenino'
 
     return PassengerCreateRequest(
-      name: _pickName(p),
-      middleName: '',
-      lastName: '',
-      passport: _pickPassport(p) ?? '',
-      nationality: _pickNationality(p),
-      dateOfBirth: _pickDob(p),
-      gender: _pickGender(p),
+      name: firstName,
+      middleName: middleName,
+      lastName: lastName,
+      passport: passport,
+      nationality: nationality,
+      dateOfBirth: dob,
+      gender: genderString,
     );
   }
 
@@ -657,13 +1013,14 @@ class _ReservationScreenState extends State<ReservationScreen> {
     const R = 6371.0;
     double deg2rad(double d) => d * math.pi / 180.0;
     final dLat = deg2rad(lat2 - lat1);
-    final dLon = deg2rad(lon2 - lon1);
+    final dLon = deg2rad(lat2 - lat1);
+    final dLon2 = deg2rad(lon2 - lon1);
     final a =
         math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(deg2rad(lat1)) *
             math.cos(deg2rad(lat2)) *
-            math.sin(dLon / 2) *
-            math.sin(dLon / 2);
+            math.sin(dLon2 / 2) *
+            math.sin(dLon2 / 2);
     final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
     final distanceKm = R * c;
     final speedKmh = 300.0;
