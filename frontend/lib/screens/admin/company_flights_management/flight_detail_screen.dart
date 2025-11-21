@@ -53,14 +53,14 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
     ).companyId;
     if (companyId == null) return;
 
-    // 1) Obtener todos los pilotos de la empresa
-    _pilots = await _userService.getPilotsByCompany(companyId);
+    // 1) Obtener SOLO los pilotos ACTIVOS de la empresa
+    _pilots = await _userService.getActivePilotsByCompany(companyId);
 
     // 2) Obtener asignaciones del backend
     List<FlightAssignedPilotModel> assigned = await _userService
         .getAssignedPilotsByFlight(widget.flight.id);
 
-    // 3) Asignar según el rol (Pilot / CoPilot)
+    // 3) Preseleccionar pilotos según rol
     for (var a in assigned) {
       if (a.crewRole == "Pilot") {
         _selectedPilot = _findPilot(a.pilotId);
@@ -125,7 +125,7 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
     final flight = widget.flight;
 
     // ==============================
-    // 🔥 NUEVAS REGLAS
+    // NUEVAS REGLAS
     // ==============================
     const assignableStates = ["PreFlight", "Boarding"];
     const lockedStates = [
@@ -214,8 +214,8 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: isCompleted
-                        ? Colors.green.withOpacity(0.15)
-                        : Colors.orange.withOpacity(0.15),
+                        ? Colors.green.withValues(alpha: 0.15)
+                        : Colors.orange.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -311,7 +311,7 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
                 // BOTTOM BUTTON AREA
                 // ===========================================
 
-                // ⛔ Locked mid-flight → NO button
+                // Locked mid-flight → NO button
                 if (isLockedMidFlight)
                   const SizedBox.shrink()
                 // ✔ Completed → show View Log

@@ -235,6 +235,26 @@ namespace AeroRide.API.Services.Implementations
             return _mapper.Map<IEnumerable<UserListDto>>(pilots);
         }
 
+        // ======================================================
+        // 🔟 LISTAR PILOTOS ACTIVOS DE UNA COMPAÑÍA ESPECÍFICA
+        // ======================================================
+        public async Task<IEnumerable<UserListDto>> GetActivePilotsByCompanyAsync(int companyId)
+        {
+            var pilots = await _db.Users
+                .Include(u => u.Role)
+                .Include(u => u.Company)
+                .Where(u =>
+                    u.Role.Name == "Pilot" &&
+                    u.CompanyId == companyId &&
+                    u.IsActive == true)                   
+                .OrderBy(u => u.Id)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<UserListDto>>(pilots);
+        }
+
+
 
         // ======================================================
         // 🔟 LISTAR PILOTOS Y ADMINS DE UNA COMPAÑÍA

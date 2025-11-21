@@ -8,7 +8,8 @@ import 'package:frontend/screens/pilot/flight_log_form_screen.dart';
 class PilotFlightCard extends StatefulWidget {
   final CompanyFlightModel flight;
   final bool hasLog; // NUEVO
-  final VoidCallback onReload; // Para refrescar HomePagePilot después de cambios
+  final VoidCallback
+  onReload; // Para refrescar HomePagePilot después de cambios
 
   const PilotFlightCard({
     super.key,
@@ -48,9 +49,12 @@ class _PilotFlightCardState extends State<PilotFlightCard> {
   Future<void> _updateStatus(String newStatus) async {
     // Regla: NO permitir "Completed" sin bitácora
     if (newStatus == "Completed" && !widget.hasLog) {
+      if (!mounted) return; // por si el widget ya no está en el árbol
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("You must submit a flight log before marking as Completed."),
+          content: Text(
+            "You must submit a flight log before marking as Completed.",
+          ),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -63,6 +67,8 @@ class _PilotFlightCardState extends State<PilotFlightCard> {
         newStatus: newStatus,
       );
 
+      if (!mounted) return; // guardia después del await
+
       setState(() => _currentStatus = newStatus);
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -74,6 +80,8 @@ class _PilotFlightCardState extends State<PilotFlightCard> {
 
       widget.onReload();
     } catch (e) {
+      if (!mounted) return; //
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Error updating status: $e"),
@@ -129,16 +137,13 @@ class _PilotFlightCardState extends State<PilotFlightCard> {
             // DROPDOWN DE ESTADO (solo si NO está completado)
             if (_currentStatus != "Completed")
               DropdownButtonFormField<String>(
-                value: _currentStatus,
+                initialValue: _currentStatus,
                 decoration: const InputDecoration(
                   labelText: "Flight Status",
                   border: OutlineInputBorder(),
                 ),
                 items: flightStatusOptions.map((status) {
-                  return DropdownMenuItem(
-                    value: status,
-                    child: Text(status),
-                  );
+                  return DropdownMenuItem(value: status, child: Text(status));
                 }).toList(),
                 onChanged: (value) {
                   if (value != null) {
@@ -167,9 +172,8 @@ class _PilotFlightCardState extends State<PilotFlightCard> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => ViewFlightLogScreen(
-                              flight: widget.flight,
-                            ),
+                            builder: (_) =>
+                                ViewFlightLogScreen(flight: widget.flight),
                           ),
                         );
                       }
@@ -184,18 +188,21 @@ class _PilotFlightCardState extends State<PilotFlightCard> {
 
                         if (refreshed == true && mounted) widget.onReload();
                       },
-                icon: Icon(widget.hasLog
-                    ? Icons.picture_as_pdf
-                    : Icons.assignment),
-                label: Text(widget.hasLog
-                    ? "View flight log"
-                    : "Fill flight log"),
+                icon: Icon(
+                  widget.hasLog ? Icons.picture_as_pdf : Icons.assignment,
+                ),
+                label: Text(
+                  widget.hasLog ? "View flight log" : "Fill flight log",
+                ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      widget.hasLog ? Colors.blueGrey : Colors.blueAccent,
+                  backgroundColor: widget.hasLog
+                      ? Colors.blueGrey
+                      : Colors.blueAccent,
                   foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                 ),
               ),
             ),

@@ -256,13 +256,23 @@ namespace AeroRide.API.Controllers
             return Ok(pilots);
         }
 
-
+        // Obtiene todos los pilotos de una compañía
         [HttpGet("company/{companyId}/pilots")]
         [Authorize(Roles = "Admin,CompanyAdmin")]
         [ProducesResponseType(typeof(IEnumerable<UserListDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetPilotsByCompany(int companyId)
         {
             var result = await _userService.GetPilotsByCompanyAsync(companyId);
+            return Ok(result);
+        }
+
+        // Obtiene los pilotos activos de una compañía
+        [HttpGet("company/{companyId}/pilots/active")]
+        [Authorize(Roles = "Admin,CompanyAdmin")]
+        [ProducesResponseType(typeof(IEnumerable<UserListDto>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetActivePilotsByCompany(int companyId)
+        {
+            var result = await _userService.GetActivePilotsByCompanyAsync(companyId);
             return Ok(result);
         }
 

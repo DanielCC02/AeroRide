@@ -24,8 +24,8 @@ class _FleetManagementScreenState extends State<FleetManagementScreen> {
     super.initState();
     final companyId = Provider.of<CompanyIdProvider>(context, listen: false).companyId;
 
-    // 🔹 Debug print
-    print('FleetManagementScreen - companyId: $companyId');
+    // Debug print
+    debugPrint('FleetManagementScreen - companyId: $companyId');
 
     if (companyId != null) {
       _aircraftsFuture = _aircraftService.getAircraftsByCompany(companyId);
@@ -37,8 +37,8 @@ class _FleetManagementScreenState extends State<FleetManagementScreen> {
   Future<void> _refreshAircrafts() async {
     final companyId = Provider.of<CompanyIdProvider>(context, listen: false).companyId;
 
-    // 🔹 Debug print
-    print('FleetManagementScreen - Refresh - companyId: $companyId');
+    // Debug print
+    debugPrint('FleetManagementScreen - Refresh - companyId: $companyId');
 
     if (companyId != null) {
       setState(() {
@@ -50,8 +50,8 @@ class _FleetManagementScreenState extends State<FleetManagementScreen> {
   Future<void> _goToCreateAircraft() async {
     final companyId = Provider.of<CompanyIdProvider>(context, listen: false).companyId;
 
-    // 🔹 Debug print
-    print('FleetManagementScreen - Go to Create Aircraft - companyId: $companyId');
+    // Debug print
+    debugPrint('FleetManagementScreen - Go to Create Aircraft - companyId: $companyId');
 
     if (companyId != null) {
       final refresh = await Navigator.push(

@@ -116,7 +116,7 @@ class _MyAppState extends State<MyApp> {
         });
       }
     } catch (e) {
-      print('⚠️ Error al verificar token/perfil: $e');
+      debugPrint('⚠️ Error al verificar token/perfil: $e');
       await TokenStorage.clearTokens();
       if (mounted) setState(() => _defaultScreen = const WelcomeScreen());
     }
@@ -180,7 +180,7 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
 
-      // 👇 IMPORTANTE PARA DevicePreview 👇
+      // IMPORTANTE PARA DevicePreview
       useInheritedMediaQuery: true,
       locale: DevicePreview.locale(context),
       builder: DevicePreview.appBuilder,

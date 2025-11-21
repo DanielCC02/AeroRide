@@ -71,7 +71,7 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 📸 Imagen
+                // Imagen
                 if (aircraft.image.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -88,7 +88,7 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
                               child: CircularProgressIndicator(),
                             );
                           },
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (_, _, _) => Container(
                             color: Colors.grey.shade200,
                             alignment: Alignment.center,
                             child: const Icon(
@@ -105,7 +105,7 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
                 const Divider(),
                 const SizedBox(height: 10),
 
-                // 🧾 Datos generales
+                // Datos generales
                 _buildSectionTitle('General Information'),
                 _buildDetailRow('Patent', aircraft.patent),
                 _buildDetailRow('Model', aircraft.model),
@@ -126,7 +126,7 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // 🌍 Ubicación (con nombres)
+                // Ubicación (con nombres)
                 _buildSectionTitle('Base & Current Airport'),
                 _buildDetailRow('Base Airport', aircraft.baseAirportName),
                 _buildDetailRow(
@@ -135,7 +135,7 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // ⚙️ Estado y compañía
+                // Estado y compañía
                 _buildSectionTitle('Status & Ownership'),
                 _buildDetailRow(
                   'State',
@@ -150,7 +150,7 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
                 _buildDetailRow('Company', aircraft.companyName),
                 const SizedBox(height: 30),
 
-                // 🔘 Botón activar/desactivar
+                // Botón activar/desactivar
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -176,6 +176,10 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
                       style: const TextStyle(color: Colors.white, fontSize: 16),
                     ),
                     onPressed: () async {
+                      // ✅ Usamos context ANTES de cualquier await
+                      final messenger = ScaffoldMessenger.of(context);
+                      final navigator = Navigator.of(context);
+
                       final confirm = await showDialog<bool>(
                         context: context,
                         builder: (_) => AlertDialog(
@@ -213,7 +217,7 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
                             await _aircraftService.deactivateAircraft(
                               aircraft.id,
                             );
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            messenger.showSnackBar(
                               const SnackBar(
                                 content: Text('🛑 Aircraft deactivated'),
                               ),
@@ -222,16 +226,17 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
                             await _aircraftService.reactivateAircraft(
                               aircraft.id,
                             );
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            messenger.showSnackBar(
                               const SnackBar(
                                 content: Text('♻️ Aircraft reactivated'),
                               ),
                             );
                           }
 
-                          if (context.mounted) Navigator.pop(context, true);
+                          if (!mounted) return;
+                          navigator.pop(true);
                         } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             SnackBar(content: Text('⚠️ Error: $e')),
                           );
                         }
@@ -247,7 +252,7 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
     );
   }
 
-  // 🔹 Subtítulo de sección
+  // Subtítulo de sección
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -262,7 +267,7 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
     );
   }
 
-  // 🔹 Reutilizable: campo-valor
+  // Reutilizable: campo-valor
   Widget _buildDetailRow(String title, String value, {Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),

@@ -20,7 +20,7 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
   final _aircraftService = AircraftService();
   final _airportService = AirportService();
 
-  // ✈️ Controladores
+  // Controladores
   final _patent = TextEditingController();
   final _model = TextEditingController();
   final _minuteCost = TextEditingController();
@@ -214,7 +214,7 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // 🌍 Puede volar internacionalmente
+                  // Puede volar internacionalmente
                   SwitchListTile(
                     title: const Text('Can Fly International'),
                     value: _canFlyInternational,
@@ -222,7 +222,7 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // 🛫 Aeropuerto Base
+                  // Aeropuerto Base
                   DropdownButtonFormField<Airport>(
                     decoration: const InputDecoration(
                       labelText: 'Base Airport',
@@ -244,7 +244,7 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // 🛬 Aeropuerto Actual (opcional)
+                  // Aeropuerto Actual (opcional)
                   DropdownButtonFormField<Airport>(
                     decoration: const InputDecoration(
                       labelText: 'Current Airport (optional)',
@@ -264,7 +264,7 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // ⚙️ Estado técnico
+                  // Estado técnico
                   DropdownButtonFormField<String>(
                     decoration: const InputDecoration(labelText: 'State'),
                     initialValue: _state,
@@ -287,7 +287,7 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // 📸 Imagen
+                  // Imagen
                   if (_selectedImage != null)
                     Column(
                       children: [
@@ -311,7 +311,7 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // 💾 Botón de guardar
+                  // Botón de guardar
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(

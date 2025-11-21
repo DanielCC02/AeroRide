@@ -48,7 +48,7 @@ class _EditCompanyAdminScreenState extends State<EditCompanyAdminScreen> {
     setState(() => _isLoading = true);
 
     try {
-      print('🏢 Actualizando admin de compañía con ID: ${widget.admin.id}');
+      debugPrint('Actualizando admin de compañía con ID: ${widget.admin.id}');
 
       await _userService.updateCompanyAdmin(
         id: widget.admin.id,
@@ -63,10 +63,10 @@ class _EditCompanyAdminScreenState extends State<EditCompanyAdminScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('✅ Administrador actualizado correctamente')),
         );
-        Navigator.pop(context, true); // 🔁 Devuelve “true” para refrescar lista
+        Navigator.pop(context, true); // Devuelve “true” para refrescar lista
       }
     } catch (e) {
-      print('❌ Error al actualizar administrador: $e');
+      debugPrint('❌ Error al actualizar administrador: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('⚠️ Error al actualizar: $e')),

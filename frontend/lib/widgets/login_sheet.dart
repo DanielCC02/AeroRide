@@ -18,7 +18,7 @@ class LoginSheet extends StatefulWidget {
   State<LoginSheet> createState() => _LoginSheetState();
 }
 
-enum LoginResult { success, unverified, invalid }
+enum LoginResult { success, unverified, invalid, inactive }
 
 class _LoginSheetState extends State<LoginSheet> {
   final _formKey = GlobalKey<FormState>();
@@ -175,7 +175,7 @@ class _LoginSheetState extends State<LoginSheet> {
 
       return LoginResult.success;
     } catch (e) {
-      print('❗ Connection/Parsing error: $e');
+      debugPrint('❗ Connection/Parsing error: $e');
       return LoginResult.invalid;
     }
   }

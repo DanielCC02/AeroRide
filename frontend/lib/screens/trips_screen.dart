@@ -54,7 +54,7 @@ class _TripsScreenState extends State<TripsScreen>
   /// - Muestra `UpcomingTripsEmpty` si no hay elementos.
   /// - Renderiza tarjetas `UpcomingTripCard` separadas por espaciado.
   Widget _buildUpcomingTab(BuildContext context) {
-    // TODO(backend): Reemplazar por lectura desde provider/repositorio.
+    // Reemplazar por lectura desde provider/repositorio.
     final trips = mockUpcomingTrips;
 
     if (trips.isEmpty) {
@@ -86,14 +86,14 @@ class _TripsScreenState extends State<TripsScreen>
   /// - Usa el MISMO diseño de card para mantener consistencia.
   /// - Cambia únicamente la fuente de datos (mockPastTrips).
   Widget _buildPastTab(BuildContext context) {
-    final trips = mockPastTrips; // TODO: reemplazar por provider
+    final trips = mockPastTrips; // reemplazar por provider
 
     if (trips.isEmpty) return const PastTripsEmpty();
 
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: trips.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 16),
+      separatorBuilder: (_, _) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
         final trip = trips[index];
         return TripCard(
