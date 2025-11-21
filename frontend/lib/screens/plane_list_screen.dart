@@ -160,15 +160,14 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
                   if (cmpModel != 0) return cmpModel;
                   return a.companyName.compareTo(b.companyName);
                 case PlaneSortOption.seatsAsc:
-                  final cmpSeats = (a.seats).compareTo(b.seats);
+                  final cmpSeats = a.seats.compareTo(b.seats);
                   if (cmpSeats != 0) return cmpSeats;
                   return a.model.compareTo(b.model);
                 case PlaneSortOption.seatsDesc:
-                  final cmpSeats = (b.seats).compareTo(a.seats);
+                  final cmpSeats = b.seats.compareTo(a.seats);
                   if (cmpSeats != 0) return cmpSeats;
                   return a.model.compareTo(b.model);
                 case PlaneSortOption.companyThenModel:
-                default:
                   final c1 = a.companyName.compareTo(b.companyName);
                   if (c1 != 0) return c1;
                   return a.model.compareTo(b.model);
@@ -213,7 +212,6 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
                     if (cmpSeats != 0) return cmpSeats;
                     return a.model.compareTo(b.model);
                   case PlaneSortOption.companyThenModel:
-                  default:
                     return a.model.compareTo(b.model);
                 }
               });
@@ -229,8 +227,9 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
                 itemCount: groups.length + 1,
-                separatorBuilder: (_, __) => const SizedBox(height: 14),
-                itemBuilder: (_, gi) {
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 14),
+                itemBuilder: (context, gi) {
                   if (gi == 0) {
                     // 👇 Nueva barra de filtros
                     return _FilterBar(
@@ -267,6 +266,9 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
                               // Resolver companyId por nombre si viene 0 (fallback)
                               int cid = m.companyId;
                               final cname = m.companyName;
+                              final criteria = widget.criteria;
+                              final navigator = Navigator.of(context);
+
                               if (cid == 0 && cname.trim().isNotEmpty) {
                                 try {
                                   final resolved = await _svc
@@ -275,16 +277,16 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
                                 } catch (_) {}
                               }
 
-                              final c = widget.criteria;
-                              Navigator.of(context).push(
+                              navigator.push(
                                 MaterialPageRoute(
                                   builder: (_) => ReservationScreen(
-                                    criteria: c,
+                                    criteria: criteria,
                                     companyId: cid,
                                     companyName: cname,
                                     aircraftModel: m.model,
                                     headerImage: m.image,
                                     seats: m.seats,
+                                    aircraftId: m.id,
                                   ),
                                 ),
                               );
@@ -337,7 +339,7 @@ class _FilterBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFF3F3),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.redAccent.withOpacity(0.2)),
+        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -496,7 +498,7 @@ class _ModelCard extends StatelessWidget {
                   ? Image.network(
                       m.image,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorBuilder: (context, error, stackTrace) => Container(
                         color: Colors.black12,
                         alignment: Alignment.center,
                         child: const Icon(Icons.broken_image, size: 48),

@@ -6,6 +6,7 @@ class AvailableAircraftModel {
   final bool? canFlyInternational;
   final String baseCountry; // pedido para mostrar en UI
   final String? baseAirportName;
+  final List<int> aircraftIds; // 👈 NUEVO
 
   // Existentes
   final int companyId;
@@ -21,6 +22,7 @@ class AvailableAircraftModel {
     this.canFlyInternational,
     this.baseCountry = '',
     this.baseAirportName,
+    this.aircraftIds = const [], // 👈 NUEVO
     required this.companyId,
     required this.companyName,
     required this.model,
@@ -75,6 +77,25 @@ class AvailableAircraftModel {
       return def;
     }
 
+    List<int> pickIntList(List<String> keys) {
+      for (final k in keys) {
+        final v = json[k];
+        if (v is List) {
+          return v
+              .where((e) => e != null)
+              .map((e) {
+                if (e is int) return e;
+                if (e is num) return e.toInt();
+                if (e is String) return int.tryParse(e) ?? -1;
+                return -1;
+              })
+              .where((e) => e > 0)
+              .toList();
+        }
+      }
+      return const <int>[];
+    }
+
     // Soporte para company anidado
     int companyId = pickInt(['companyId', 'CompanyId']);
     String companyName = pickStr(['companyName', 'CompanyName']);
@@ -93,6 +114,8 @@ class AvailableAircraftModel {
       }
     }
 
+    final parsedAircraftIds = pickIntList(['aircraftIds', 'AircraftIds']);
+
     return AvailableAircraftModel(
       id: pickInt(['id', 'Id'], def: 0),
       state: pickStr(['state', 'State']),
@@ -102,6 +125,7 @@ class AvailableAircraftModel {
       ]),
       baseCountry: pickStr(['baseCountry', 'BaseCountry']),
       baseAirportName: pickStr(['baseAirportName', 'BaseAirportName']),
+      aircraftIds: parsedAircraftIds, // 👈 NUEVO
       companyId: companyId,
       companyName: companyName,
       model: pickStr(['model', 'Model', 'modelName', 'aircraftModel', 'name']),
@@ -128,5 +152,6 @@ class AvailableAircraftModel {
     'image': image,
     'seats': seats,
     if (estimatedPrice != null) 'estimatedPrice': estimatedPrice,
+    if (aircraftIds.isNotEmpty) 'aircraftIds': aircraftIds, // 👈 NUEVO
   };
 }

@@ -260,8 +260,8 @@ class _SearchFormState extends State<SearchForm> {
         builder: (ctx, child) {
           return Theme(
             data: Theme.of(ctx).copyWith(
-              timePickerTheme: TimePickerThemeData(
-                helpTextStyle: const TextStyle(fontWeight: FontWeight.w600),
+              timePickerTheme: const TimePickerThemeData(
+                helpTextStyle: TextStyle(fontWeight: FontWeight.w600),
               ),
               textTheme: Theme.of(ctx).textTheme,
             ),
@@ -375,6 +375,8 @@ class _SearchFormState extends State<SearchForm> {
       to: _selectedTo!,
       passengers: _passengers,
       departure: _departure!,
+      isRoundTrip: tripType == TripType.roundTrip,
+      returnDateTime: _returnDateTime,
     );
 
     Navigator.of(context).push(
@@ -388,7 +390,7 @@ class _SearchFormState extends State<SearchForm> {
 
   // ====== Widgets ======
 
-  Widget _suggestionTile(Airport a, void Function() onTap) {
+  Widget _suggestionTile(Airport a, VoidCallback onTap) {
     final countryCity = () {
       final c = a.country.trim();
       final city = a.city.trim();
@@ -666,7 +668,7 @@ class _SearchFormState extends State<SearchForm> {
               child: Image.asset(
                 'assets/images/main_menu_pic.jpg',
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (context, error, stackTrace) => Container(
                   color: Colors.black12,
                   alignment: Alignment.center,
                   child: const Icon(Icons.image, size: 48),
