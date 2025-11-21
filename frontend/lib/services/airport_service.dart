@@ -1,6 +1,7 @@
 // lib/services/airport_service.dart
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'api_config.dart';
@@ -51,7 +52,7 @@ class AirportService {
   }
 
   // --------------------
-  // 🔎 Helpers PRIVADOS añadidos (no rompen nada existente)
+  // Helpers PRIVADOS añadidos (no rompen nada existente)
   // --------------------
 
   // ¿A este aeropuerto le "faltan" horarios o zona horaria?
@@ -167,7 +168,7 @@ class AirportService {
         .map((e) => Airport.fromJson(e as Map<String, dynamic>))
         .toList();
 
-    // 🔸 NUEVO: reforzar datos de los primeros N si faltan horarios/tz.
+    // NUEVO: reforzar datos de los primeros N si faltan horarios/tz.
     // Lo hacemos ANTES del ranking para que, al seleccionar, ya vengan completos.
     await _hydrateTopIfNeeded(all, max: limit * 2);
 
@@ -178,7 +179,7 @@ class AirportService {
     final ranked = _rankAndFilter(all, q);
     final out = ranked.take(limit).toList();
 
-    // ⬇️ Guardar en caché una versión extendida (hasta 20) para que sucesivas
+    // ⬇Guardar en caché una versión extendida (hasta 20) para que sucesivas
     // búsquedas con el mismo prefijo sean más rápidas.
     _searchCache.set(ck, ranked.take(20).toList());
     return out;
@@ -225,13 +226,14 @@ class AirportService {
           return f.contains(q) ||
               _fold(a.name).startsWith(q) ||
               _fold(a.city).startsWith(q);
-        }).toList()..sort((a, b) {
-          final sb = score(b);
-          final sa = score(a);
-          if (sb != sa) return sb.compareTo(sa);
-          // desempate alfabético por nombre
-          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-        });
+        }).toList()
+          ..sort((a, b) {
+            final sb = score(b);
+            final sa = score(a);
+            if (sb != sa) return sb.compareTo(sa);
+            // desempate alfabético por nombre
+            return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          });
 
     return filtered;
   }
@@ -255,7 +257,7 @@ class AirportService {
   }
 
   // ======================================================
-  // 🔹 GET: /api/airports/all
+  // GET: /api/airports/all
   // ======================================================
   /// Obtiene todos los aeropuertos (activos e inactivos) del sistema.
   /// Solo accesible por administradores o CompanyAdmin.
@@ -281,13 +283,15 @@ class AirportService {
           .map((e) => Airport.fromJson(e as Map<String, dynamic>))
           .toList();
     } else {
-      print('⚠️ Error al obtener aeropuertos: ${response.statusCode}');
+      debugPrint(
+        '⚠️ Error al obtener aeropuertos: ${response.statusCode}',
+      );
       throw Exception('Error al obtener la lista de aeropuertos');
     }
   }
 
   // ======================================================
-  // 🌎 GET: /api/airports  → Solo aeropuertos activos
+  // GET: /api/airports  → Solo aeropuertos activos
   // ======================================================
   /// Obtiene únicamente los aeropuertos activos (ordenados por Id ascendente).
   /// Endpoint: GET /api/airports
@@ -297,7 +301,7 @@ class AirportService {
     if (token == null) throw Exception('Token no disponible');
 
     final url = Uri.parse('${ApiConfig.baseUrl}/api/airports');
-    print('GET $url');
+    debugPrint('GET $url');
 
     final response = await http.get(
       url,
@@ -307,18 +311,18 @@ class AirportService {
       },
     );
 
-    print('📥 Status: ${response.statusCode}');
+    debugPrint('Status: ${response.statusCode}');
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((e) => Airport.fromJson(e)).toList();
     } else {
-      print('❌ Error al obtener aeropuertos activos: ${response.body}');
+      debugPrint('❌ Error al obtener aeropuertos activos: ${response.body}');
       throw Exception('Error al obtener la lista de aeropuertos activos');
     }
   }
 
   // ======================================================
-  // 🔹 GET: Obtener aeropuerto por ID
+  // GET: Obtener aeropuerto por ID
   // ======================================================
   Future<Airport> getAirportById(int id) async {
     final token = await TokenStorage.getAccessToken();
@@ -326,7 +330,7 @@ class AirportService {
 
     final url = Uri.parse('${ApiConfig.baseUrl}/api/airports/$id');
 
-    print('🌍 GET $url');
+    debugPrint('GET $url');
 
     final response = await http.get(
       url,
@@ -342,7 +346,7 @@ class AirportService {
     } else if (response.statusCode == 404) {
       throw Exception('Aeropuerto no encontrado');
     } else {
-      print('❌ Error al obtener aeropuerto: ${response.body}');
+      debugPrint('❌ Error al obtener aeropuerto: ${response.body}');
       throw Exception(
         'Error al obtener aeropuerto (status: ${response.statusCode})',
       );
@@ -350,7 +354,7 @@ class AirportService {
   }
 
   // ======================================================
-  // ✈️ POST: Crear un nuevo aeropuerto
+  // POST: Crear un nuevo aeropuerto
   // ======================================================
   Future<void> createAirport({
     required String name,
@@ -388,8 +392,8 @@ class AirportService {
         'closingTime': closingTime,
     };
 
-    print('🌍 POST $url');
-    print('Body enviado: $body');
+    debugPrint('POST $url');
+    debugPrint('Body enviado: $body');
 
     final response = await http.post(
       url,
@@ -400,19 +404,19 @@ class AirportService {
       body: jsonEncode(body),
     );
 
-    print('📥 Status: ${response.statusCode}');
-    print('📥 Response: ${response.body}');
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Response: ${response.body}');
 
     if (response.statusCode == 201) {
-      print('✅ Aeropuerto creado correctamente');
+      debugPrint('✅ Aeropuerto creado correctamente');
     } else {
-      print('❌ Error al crear aeropuerto: ${response.body}');
+      debugPrint('❌ Error al crear aeropuerto: ${response.body}');
       throw Exception('Error al crear aeropuerto');
     }
   }
 
   // ======================================================
-  // 🖼️ POST: Subir imagen de aeropuerto
+  // POST: Subir imagen de aeropuerto
   // ======================================================
   Future<String> uploadAirportImage(File imageFile) async {
     final token = await TokenStorage.getAccessToken();
@@ -427,21 +431,21 @@ class AirportService {
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
 
-    print('🖼️ Subiendo imagen: ${imageFile.path}');
-    print('📥 Status: ${response.statusCode}');
-    print('📥 Response: ${response.body}');
+    debugPrint('Subiendo imagen: ${imageFile.path}');
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Response: ${response.body}');
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       return data['imageUrl']; // URL pública del blob en Azure
     } else {
-      print('❌ Error al subir imagen: ${response.body}');
+      debugPrint('❌ Error al subir imagen: ${response.body}');
       throw Exception('Error al subir imagen de aeropuerto');
     }
   }
 
   // ===========================================================
-  // 🛠️ PUT: Actualizar aeropuerto
+  // PUT: Actualizar aeropuerto
   // ===========================================================
   Future<void> updateAirport({
     required int id,
@@ -463,7 +467,7 @@ class AirportService {
 
     final url = Uri.parse('${ApiConfig.baseUrl}/api/airports/$id');
 
-    // 📦 Construimos el cuerpo del request con datos opcionales manejados correctamente
+    // Construimos el cuerpo del request con datos opcionales manejados correctamente
     final body = {
       'name': name,
       'codeIATA': codeIATA,
@@ -482,8 +486,8 @@ class AirportService {
       if (imageUrl != null && imageUrl.isNotEmpty) 'image': imageUrl,
     };
 
-    print('🛠️ PUT $url');
-    print('📦 Body enviado: $body');
+    debugPrint('PUT $url');
+    debugPrint('Body enviado: $body');
 
     final response = await http.put(
       url,
@@ -494,11 +498,11 @@ class AirportService {
       body: jsonEncode(body),
     );
 
-    print('📥 Status: ${response.statusCode}');
-    print('📥 Response: ${response.body}');
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Response: ${response.body}');
 
     if (response.statusCode == 200) {
-      print('✅ Aeropuerto actualizado correctamente');
+      debugPrint('✅ Aeropuerto actualizado correctamente');
     } else if (response.statusCode == 404) {
       throw Exception('Aeropuerto no encontrado');
     } else if (response.statusCode == 400) {
@@ -511,7 +515,7 @@ class AirportService {
   }
 
   // ===========================================================
-  // 🛑 DELETE: Desactivar aeropuerto (soft delete)
+  // DELETE: Desactivar aeropuerto (soft delete)
   // ===========================================================
   Future<void> deactivateAirport(int id) async {
     final token = await TokenStorage.getAccessToken();
@@ -519,7 +523,7 @@ class AirportService {
 
     final url = Uri.parse('${ApiConfig.baseUrl}/api/airports/$id');
 
-    print('🛑 DELETE $url');
+    debugPrint('DELETE $url');
 
     final response = await http.delete(
       url,
@@ -530,11 +534,11 @@ class AirportService {
     );
 
     if (response.statusCode == 200) {
-      print('✅ Aeropuerto desactivado correctamente');
+      debugPrint('✅ Aeropuerto desactivado correctamente');
     } else if (response.statusCode == 404) {
       throw Exception('Aeropuerto no encontrado');
     } else {
-      print('❌ Error al desactivar aeropuerto: ${response.body}');
+      debugPrint('❌ Error al desactivar aeropuerto: ${response.body}');
       throw Exception(
         'Error al desactivar aeropuerto (status: ${response.statusCode})',
       );
@@ -542,7 +546,7 @@ class AirportService {
   }
 
   // ===========================================================
-  // ♻️ PUT: Reactivar aeropuerto
+  // PUT: Reactivar aeropuerto
   // ===========================================================
   Future<void> reactivateAirport(int id) async {
     final token = await TokenStorage.getAccessToken();
@@ -550,7 +554,7 @@ class AirportService {
 
     final url = Uri.parse('${ApiConfig.baseUrl}/api/airports/reactivate/$id');
 
-    print('♻️ PUT $url');
+    debugPrint('PUT $url');
 
     final response = await http.put(
       url,
@@ -561,11 +565,11 @@ class AirportService {
     );
 
     if (response.statusCode == 200) {
-      print('✅ Aeropuerto reactivado correctamente');
+      debugPrint('✅ Aeropuerto reactivado correctamente');
     } else if (response.statusCode == 404) {
       throw Exception('Aeropuerto no encontrado');
     } else {
-      print('❌ Error al reactivar aeropuerto: ${response.body}');
+      debugPrint('❌ Error al reactivar aeropuerto: ${response.body}');
       throw Exception(
         'Error al reactivar aeropuerto (status: ${response.statusCode})',
       );

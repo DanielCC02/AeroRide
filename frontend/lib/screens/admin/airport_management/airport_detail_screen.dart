@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/models/airport_model.dart';
 import 'package:frontend/services/airport_service.dart';
-import 'edit_airport_screen.dart'; // ⚙️ crea luego esta pantalla para edición
+import 'edit_airport_screen.dart';
 
 /// Pantalla de detalle de aeropuerto (solo para Admin o CompanyAdmin)
 class AirportDetailScreen extends StatefulWidget {
@@ -37,7 +37,7 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
             appBar: AppBar(title: const Text('Airport Details')),
             body: Center(
               child: Text(
-                '⚠️ Error: ${snapshot.error}',
+                'Error: ${snapshot.error}',
                 style: const TextStyle(color: Colors.red),
               ),
             ),
@@ -75,7 +75,7 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
                     ),
                   );
 
-                  if (refresh == true && context.mounted) {
+                  if (refresh == true && mounted) {
                     setState(() {
                       _airportFuture = _airportService.getAirportById(
                         widget.airportId,
@@ -91,7 +91,7 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 📸 Imagen del aeropuerto
+                // Imagen del aeropuerto
                 if (airport.image.isNotEmpty)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
@@ -122,7 +122,7 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
                 const Divider(),
                 const SizedBox(height: 10),
 
-                // 🧾 Información general
+                // Información general
                 _buildSectionTitle('General Information'),
                 _buildDetailRow('Name', airport.name),
                 _buildDetailRow('Code IATA', airport.codeIATA),
@@ -131,20 +131,20 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
                 _buildDetailRow('Country', airport.country),
                 const SizedBox(height: 20),
 
-                // 🌍 Ubicación y zona horaria
+                // Ubicación y zona horaria
                 _buildSectionTitle('Location & Time Zone'),
                 _buildDetailRow('Latitude', '${airport.latitude}'),
                 _buildDetailRow('Longitude', '${airport.longitude}'),
                 _buildDetailRow('Time Zone', airport.timeZone),
                 const SizedBox(height: 20),
 
-                // 🕓 Horarios y restricciones
+                // Horarios y restricciones
                 _buildSectionTitle('Operating Hours'),
                 _buildDetailRow('Opening Time', airport.openingTime ?? '—'),
                 _buildDetailRow('Closing Time', airport.closingTime ?? '—'),
                 const SizedBox(height: 20),
 
-                // ⚙️ Configuración técnica
+                // Configuración técnica
                 _buildSectionTitle('Technical Details'),
                 _buildDetailRow(
                   'Max Allowed Weight',
@@ -152,7 +152,7 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // 🔘 Estado actual
+                // Estado actual
                 _buildSectionTitle('Status'),
                 _buildDetailRow(
                   'Active',
@@ -161,7 +161,7 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // 🔘 Botón Activar / Desactivar
+                // Botón Activar / Desactivar
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -187,6 +187,10 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
                       style: const TextStyle(color: Colors.white, fontSize: 16),
                     ),
                     onPressed: () async {
+                      // Guardamos helpers ANTES de los awaits
+                      final messenger = ScaffoldMessenger.of(context);
+                      final navigator = Navigator.of(context);
+
                       final confirm = await showDialog<bool>(
                         context: context,
                         builder: (_) => AlertDialog(
@@ -222,23 +226,24 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
                         try {
                           if (airport.isActive) {
                             await _airportService.deactivateAirport(airport.id);
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            messenger.showSnackBar(
                               const SnackBar(
                                 content: Text('🛑 Airport deactivated'),
                               ),
                             );
                           } else {
                             await _airportService.reactivateAirport(airport.id);
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            messenger.showSnackBar(
                               const SnackBar(
                                 content: Text('♻️ Airport reactivated'),
                               ),
                             );
                           }
 
-                          if (context.mounted) Navigator.pop(context, true);
+                          if (!mounted) return;
+                          navigator.pop(true);
                         } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             SnackBar(content: Text('⚠️ Error: $e')),
                           );
                         }
@@ -254,7 +259,7 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
     );
   }
 
-  // 🔹 Subtítulo de sección
+  // Subtítulo de sección
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -269,7 +274,7 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
     );
   }
 
-  // 🔹 Reutilizable: campo-valor
+  // Reutilizable: campo-valor
   Widget _buildDetailRow(String title, String value, {Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),

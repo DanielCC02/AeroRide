@@ -15,14 +15,14 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
   final _formKey = GlobalKey<FormState>();
   final _companyService = CompanyService();
 
-  // 🧱 Controladores base
+  // Controladores base
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
   late TextEditingController _addressController;
   late TextEditingController _discountController;
 
-  // 💰 Nuevos controladores opcionales
+  // Nuevos controladores opcionales
   late TextEditingController _domesticWaitHourController;
   late TextEditingController _internationalWaitHourController;
   late TextEditingController _domesticOvernightController;
@@ -87,7 +87,7 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
   }
 
   // ===========================================================
-  // 🔧 Actualizar empresa
+  // Actualizar empresa
   // ===========================================================
   Future<void> _updateCompany() async {
     if (!_formKey.currentState!.validate()) return;
@@ -142,7 +142,7 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
   }
 
   // ===========================================================
-  // 🧩 UI
+  // UI
   // ===========================================================
   @override
   Widget build(BuildContext context) {
@@ -227,12 +227,16 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
 
               const SizedBox(height: 24),
 
-              // 🔘 Switch para activar/desactivar
+              // Switch para activar/desactivar
               SwitchListTile(
                 title: const Text('Active'),
                 value: _isActive,
                 activeThumbColor: Colors.green,
                 onChanged: (value) async {
+                  // Usar BuildContext ANTES de cualquier await
+                  final messenger = ScaffoldMessenger.of(context);
+                  final companyId = widget.company.id;
+
                   final confirm = await showDialog<bool>(
                     context: context,
                     builder: (_) => AlertDialog(
@@ -258,38 +262,46 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
                   );
 
                   if (confirm == true) {
+                    if (!mounted) {
+                      return;
+                    }
+
                     setState(() => _isLoading = true);
+
                     try {
                       if (value) {
-                        await _companyService.reactivateCompany(
-                          widget.company.id,
-                        );
+                        await _companyService.reactivateCompany(companyId);
                       } else {
-                        await _companyService.deactivateCompany(
-                          widget.company.id,
-                        );
+                        await _companyService.deactivateCompany(companyId);
                       }
+
+                      if (!mounted) {
+                        return;
+                      }
+
                       setState(() => _isActive = value);
 
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              value
-                                  ? '✅ Company reactivated successfully'
-                                  : '⚠️ Company deactivated successfully',
-                            ),
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            value
+                                ? '✅ Company reactivated successfully'
+                                : '⚠️ Company deactivated successfully',
                           ),
-                        );
-                      }
+                        ),
+                      );
                     } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                      if (!mounted) {
+                        return;
                       }
+
+                      messenger.showSnackBar(
+                        SnackBar(content: Text('Error: $e')),
+                      );
                     } finally {
-                      if (mounted) setState(() => _isLoading = false);
+                      if (mounted) {
+                        setState(() => _isLoading = false);
+                      }
                     }
                   }
                 },
@@ -326,7 +338,7 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
   }
 
   // ===========================================================
-  // 🔹 Widgets reutilizables
+  // Widgets reutilizables
   // ===========================================================
   Widget _buildField(
     String label,

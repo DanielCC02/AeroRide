@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:frontend/models/flight_assigned_pilot_model.dart';
 import 'package:http/http.dart' as http;
 import '../models/user_model.dart';
@@ -43,9 +44,9 @@ class UserService {
     );
 
     if (response.statusCode == 201) {
-      print('✅ Usuario creado correctamente');
+      debugPrint('✅ Usuario creado correctamente');
     } else {
-      print('❌ Error al crear usuario: ${response.body}');
+      debugPrint('❌ Error al crear usuario: ${response.body}');
       throw Exception('Error al crear el usuario');
     }
   }
@@ -55,7 +56,7 @@ class UserService {
     final token = await TokenStorage.getAccessToken();
     if (token == null) throw Exception('Token no disponible');
 
-    // ✅ CORRECTA: Mayúscula en "Users" y plural "admins"
+    // CORRECTA: Mayúscula en "Users" y plural "admins"
     final url = Uri.parse(
       '${ApiConfig.baseUrl}/api/Users/company/$companyId/admins',
     );
@@ -67,20 +68,20 @@ class UserService {
       },
     );
 
-    print('📡 GET $url');
-    print('📥 Status: ${response.statusCode}');
-    print('📥 Body: ${response.body}');
+    debugPrint('GET $url');
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Body: ${response.body}');
 
     if (response.statusCode == 200) {
       try {
         final List<dynamic> data = jsonDecode(response.body);
         return data.map((user) => UserModel.fromJson(user)).toList();
       } catch (e) {
-        print('❌ Error al parsear JSON: $e');
+        debugPrint('❌ Error al parsear JSON: $e');
         throw Exception('Formato de datos inválido del servidor');
       }
     } else {
-      print('⚠️ Error al obtener administradores: ${response.body}');
+      debugPrint('⚠️ Error al obtener administradores: ${response.body}');
       throw Exception('Error al obtener los administradores de la empresa');
     }
   }
@@ -105,33 +106,61 @@ class UserService {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((user) => UserModel.fromJson(user)).toList();
     } else {
-      print('⚠️ Error loading pilots: ${response.body}');
+      debugPrint('⚠️ Error loading pilots: ${response.body}');
       throw Exception('Error getting pilots for the company');
     }
   }
 
-    /// Obtiene los pilotos ya asignados a un vuelo específico
-  Future<List<FlightAssignedPilotModel>> getAssignedPilotsByFlight(int flightId) async {
-  final token = await TokenStorage.getAccessToken();
-  if (token == null) throw Exception('Token no disponible');
+  /// Obtiene solo los pilotos ACTIVOS pertenecientes a una compañía específica
+  Future<List<UserModel>> getActivePilotsByCompany(int companyId) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
 
-  final url = Uri.parse('${ApiConfig.baseUrl}/api/flights/$flightId/pilots');
+    final url = Uri.parse(
+      '${ApiConfig.baseUrl}/api/users/company/$companyId/pilots/active',
+    );
 
-  final response = await http.get(
-    url,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    },
-  );
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
 
-  if (response.statusCode == 200) {
-    final List<dynamic> data = jsonDecode(response.body);
-    return data.map((p) => FlightAssignedPilotModel.fromJson(p)).toList();
-  } else {
-    throw Exception('Error getting assigned pilots for flight');
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((user) => UserModel.fromJson(user)).toList();
+    } else {
+      debugPrint('⚠️ Error loading ACTIVE pilots: ${response.body}');
+      throw Exception('Error getting active pilots for the company');
+    }
   }
-}
+
+  /// Obtiene los pilotos ya asignados a un vuelo específico
+  Future<List<FlightAssignedPilotModel>> getAssignedPilotsByFlight(
+    int flightId,
+  ) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
+
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/flights/$flightId/pilots');
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((p) => FlightAssignedPilotModel.fromJson(p)).toList();
+    } else {
+      throw Exception('Error getting assigned pilots for flight');
+    }
+  }
 
   /// ===========================================================
   /// Actualiza la información de un piloto (solo para CompanyAdmin)
@@ -160,8 +189,8 @@ class UserService {
       if (isActive != null) 'isActive': isActive,
     };
 
-    print('📡 PUT $url');
-    print('📦 Body enviado: $body');
+    debugPrint('PUT $url');
+    debugPrint('Body enviado: $body');
 
     final response = await http.put(
       url,
@@ -172,11 +201,11 @@ class UserService {
       body: jsonEncode(body),
     );
 
-    print('📥 Status: ${response.statusCode}');
-    print('📥 Response: ${response.body}');
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Response: ${response.body}');
 
     if (response.statusCode == 200) {
-      print('✅ Piloto actualizado correctamente');
+      debugPrint('✅ Piloto actualizado correctamente');
     } else if (response.statusCode == 404) {
       throw Exception('❌ Piloto no encontrado');
     } else {
@@ -185,7 +214,7 @@ class UserService {
   }
 
   // ===========================================================
-  // 👤 GET: Obtener usuario (admin de compañía) por ID
+  // GET: Obtener usuario (admin de compañía) por ID
   // ===========================================================
   Future<UserModel> getCompanyAdminById(int id) async {
     final token = await TokenStorage.getAccessToken();
@@ -193,7 +222,7 @@ class UserService {
 
     final url = Uri.parse('${ApiConfig.baseUrl}/api/users/$id');
 
-    print('👤 GET $url');
+    debugPrint('👤 GET $url');
 
     final response = await http.get(
       url,
@@ -203,19 +232,19 @@ class UserService {
       },
     );
 
-    print('📥 Status: ${response.statusCode}');
+    debugPrint('Status: ${response.statusCode}');
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      print(
+      debugPrint(
         '✅ Usuario obtenido correctamente: ${data['name'] ?? data['email']}',
       );
       return UserModel.fromJson(data);
     } else if (response.statusCode == 404) {
-      print('⚠️ Usuario con ID $id no encontrado');
+      debugPrint('⚠️ Usuario con ID $id no encontrado');
       throw Exception('Usuario no encontrado');
     } else {
-      print('❌ Error al obtener detalle del usuario: ${response.body}');
+      debugPrint('❌ Error al obtener detalle del usuario: ${response.body}');
       throw Exception(
         'Error al obtener detalle del usuario (status: ${response.statusCode})',
       );
@@ -243,12 +272,12 @@ class UserService {
       'lastName': lastName,
       'email': email,
       'phoneNumber': phoneNumber,
-      'roleId': 2, // 👈 Rol fijo: CompanyAdmin
+      'roleId': 2, // Rol fijo: CompanyAdmin
       if (isActive != null) 'isActive': isActive,
     };
 
-    print('🏢 PUT $url');
-    print('📦 Body enviado: $body');
+    debugPrint('PUT $url');
+    debugPrint('Body enviado: $body');
 
     final response = await http.put(
       url,
@@ -259,11 +288,11 @@ class UserService {
       body: jsonEncode(body),
     );
 
-    print('📥 Status: ${response.statusCode}');
-    print('📥 Response: ${response.body}');
+    debugPrint('📥 Status: ${response.statusCode}');
+    debugPrint('📥 Response: ${response.body}');
 
     if (response.statusCode == 200) {
-      print('✅ Administrador de compañía actualizado correctamente');
+      debugPrint('✅ Administrador de compañía actualizado correctamente');
     } else if (response.statusCode == 404) {
       throw Exception('❌ Administrador no encontrado');
     } else if (response.statusCode == 400) {
@@ -339,9 +368,9 @@ class UserService {
     );
 
     if (response.statusCode == 200) {
-      print('✅ Usuario actualizado correctamente');
+      debugPrint('✅ Usuario actualizado correctamente');
     } else {
-      print('❌ Error al actualizar usuario: ${response.body}');
+      debugPrint('❌ Error al actualizar usuario: ${response.body}');
       throw Exception('Error al actualizar usuario');
     }
   }
@@ -361,9 +390,9 @@ class UserService {
     );
 
     if (response.statusCode == 200) {
-      print('✅ Usuario desactivado correctamente');
+      debugPrint('✅ Usuario desactivado correctamente');
     } else {
-      print('❌ Error al desactivar usuario: ${response.body}');
+      debugPrint('❌ Error al desactivar usuario: ${response.body}');
       throw Exception('Error al desactivar usuario');
     }
   }
@@ -383,9 +412,9 @@ class UserService {
     );
 
     if (response.statusCode == 200) {
-      print('✅ Usuario reactivado correctamente');
+      debugPrint('✅ Usuario reactivado correctamente');
     } else {
-      print('❌ Error al reactivar usuario: ${response.body}');
+      debugPrint('❌ Error al reactivar usuario: ${response.body}');
       throw Exception('Error al reactivar usuario');
     }
   }
@@ -408,7 +437,7 @@ class UserService {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((user) => UserModel.fromJson(user)).toList();
     } else {
-      print('⚠️ Error al obtener usuarios: ${response.statusCode}');
+      debugPrint('⚠️ Error al obtener usuarios: ${response.statusCode}');
       throw Exception('Error al obtener la lista de usuarios');
     }
   }

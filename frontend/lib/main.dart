@@ -187,6 +187,12 @@ class _MyAppState extends State<MyApp> {
           showUnselectedLabels: true,
         ),
       ),
+
+      // IMPORTANTE PARA DevicePreview
+      useInheritedMediaQuery: true,
+      locale: DevicePreview.locale(context),
+      builder: DevicePreview.appBuilder,
+
       home: _defaultScreen,
       routes: {
         '/user': (_) => const HomePageScreen(),

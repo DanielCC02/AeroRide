@@ -113,7 +113,7 @@ class FlightsOfDayBottomSheet extends StatelessWidget {
                         trailing: Text(
                           flight.status,
                           style: TextStyle(
-                            color: flight.status == 'Programado'
+                            color: flight.status == 'Completed'
                                 ? Colors.green
                                 : Colors.orange,
                             fontWeight: FontWeight.w600,
@@ -121,7 +121,7 @@ class FlightsOfDayBottomSheet extends StatelessWidget {
                         ),
 
                         onTap: () {
-                          Navigator.pop(context, flight); // 🔥 return selected flight
+                          Navigator.pop(context, flight); // return selected flight
                         },
                       ),
                     );

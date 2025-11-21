@@ -21,6 +21,10 @@ class _CreateAdminScreenState extends State<CreateAdminScreen> {
 
   Future<void> _createUser() async {
     if (_formKey.currentState!.validate()) {
+      // Tomamos helpers ANTES de cualquier await
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
+
       try {
         await _userService.createUser(
           name: _nameController.text,
@@ -32,18 +36,22 @@ class _CreateAdminScreenState extends State<CreateAdminScreen> {
           companyId: widget.companyId, // Asociación con la empresa
         );
 
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Usuario creado exitosamente')),
-          );
-          Navigator.pop(context);
+        if (!mounted) {
+          return;
         }
+
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Usuario creado exitosamente')),
+        );
+        navigator.pop();
       } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('❌ Error al crear el usuario: $e')),
-          );
+        if (!mounted) {
+          return;
         }
+
+        messenger.showSnackBar(
+          SnackBar(content: Text('❌ Error al crear el usuario: $e')),
+        );
       }
     }
   }

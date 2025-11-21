@@ -667,7 +667,7 @@ namespace AeroRide.API.Services.Implementations
 
             reservation.Status = ReservationStatus.Cancelada;
 
-            //// Cancelar vuelos comerciales (no empty legs)
+            // Cancelar vuelos comerciales (no empty legs)
             //foreach (var flight in reservation.Flights.Where(f => !f.IsEmptyLeg))
             //    flight.Status = FlightStatus.Cancelado;
 

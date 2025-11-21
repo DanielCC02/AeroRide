@@ -133,7 +133,7 @@ class _DateTimePickerModalState extends State<DateTimePickerModal> {
               },
               calendarStyle: CalendarStyle(
                 todayDecoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.15),
+                  color: Colors.red.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 selectedDecoration: const BoxDecoration(
