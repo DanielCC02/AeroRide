@@ -43,8 +43,13 @@ class _FlightScheduleScreenState extends State<FlightScheduleScreen> {
       final flights = await _flightService.getFlightsByCompany(companyId);
 
       final daysWithFlights = flights
-          .map((f) =>
-              DateTime(f.departureTime.year, f.departureTime.month, f.departureTime.day))
+          .map(
+            (f) => DateTime(
+              f.departureTime.year,
+              f.departureTime.month,
+              f.departureTime.day,
+            ),
+          )
           .toSet();
 
       setState(() {
@@ -67,12 +72,19 @@ class _FlightScheduleScreenState extends State<FlightScheduleScreen> {
 
   List<CompanyFlightModel> _flightsForDay(DateTime day) {
     return _flights.where((f) {
-      final d = DateTime(f.departureTime.year, f.departureTime.month, f.departureTime.day);
+      final d = DateTime(
+        f.departureTime.year,
+        f.departureTime.month,
+        f.departureTime.day,
+      );
       return d == DateTime(day.year, day.month, day.day);
     }).toList();
   }
 
- Future<void> _showFlightsModal(DateTime day) async {
+  Future<void> _showFlightsModal(DateTime day) async {
+    // Usar context ANTES de los await
+    final navigator = Navigator.of(context);
+
     final flightsOfDay = _flightsForDay(day);
 
     final selectedFlight = await showModalBottomSheet<CompanyFlightModel>(
@@ -82,15 +94,16 @@ class _FlightScheduleScreenState extends State<FlightScheduleScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => FlightsOfDayBottomSheet(
-        selectedDay: day,
-        flights: flightsOfDay,
-      ),
+      builder: (_) =>
+          FlightsOfDayBottomSheet(selectedDay: day, flights: flightsOfDay),
     );
 
     if (selectedFlight != null) {
-      final updated = await Navigator.push(
-        context,
+      if (!mounted) {
+        return;
+      }
+
+      final updated = await navigator.push(
         MaterialPageRoute(
           builder: (_) => FlightDetailScreen(flight: selectedFlight),
         ),
@@ -98,10 +111,13 @@ class _FlightScheduleScreenState extends State<FlightScheduleScreen> {
 
       if (updated == true) {
         await _loadFlights();
+        if (!mounted) {
+          return;
+        }
         setState(() {});
       }
     }
-}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,83 +140,84 @@ class _FlightScheduleScreenState extends State<FlightScheduleScreen> {
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _errorMessage != null
-                ? Center(
-                    child: Text(
-                      'Error al cargar vuelos:\n$_errorMessage',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.red),
+            ? Center(
+                child: Text(
+                  'Error al cargar vuelos:\n$_errorMessage',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  //if (companyId != null)
+                  //Text('Company ID: $companyId',
+                  //style: Theme.of(context).textTheme.labelLarge),
+                  const SizedBox(height: 12),
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      //if (companyId != null)
-                        //Text('Company ID: $companyId',
-                            //style: Theme.of(context).textTheme.labelLarge),
-                      const SizedBox(height: 12),
-                      Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: TableCalendar(
-                            firstDay: DateTime.utc(2000, 1, 1),
-                            lastDay: DateTime.utc(2100, 12, 31),
-                            focusedDay: _focusedDay,
-                            selectedDayPredicate: (day) =>
-                                isSameDay(_selectedDay, day),
-                            onDaySelected: (selectedDay, focusedDay) {
-                              setState(() {
-                                _selectedDay = selectedDay;
-                                _focusedDay = focusedDay;
-                              });
-                              if (_hasEvent(selectedDay)) {
-                                _showFlightsModal(selectedDay);
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content:
-                                        Text('There are no flights registered that day.'),
-                                    duration: Duration(seconds: 1),
-                                  ),
-                                );
-                              }
-                            },
-                            headerStyle: const HeaderStyle(
-                              titleCentered: true,
-                              formatButtonVisible: false,
-                            ),
-                            calendarStyle: CalendarStyle(
-                              isTodayHighlighted: true,
-                              markerDecoration: BoxDecoration(
-                                color: Colors.redAccent,
-                                shape: BoxShape.circle,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: TableCalendar(
+                        firstDay: DateTime.utc(2000, 1, 1),
+                        lastDay: DateTime.utc(2100, 12, 31),
+                        focusedDay: _focusedDay,
+                        selectedDayPredicate: (day) =>
+                            isSameDay(_selectedDay, day),
+                        onDaySelected: (selectedDay, focusedDay) {
+                          setState(() {
+                            _selectedDay = selectedDay;
+                            _focusedDay = focusedDay;
+                          });
+                          if (_hasEvent(selectedDay)) {
+                            _showFlightsModal(selectedDay);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'There are no flights registered that day.',
+                                ),
+                                duration: Duration(seconds: 1),
                               ),
-                            ),
-                            eventLoader: (day) =>
-                                _hasEvent(day) ? ['flight'] : [],
+                            );
+                          }
+                        },
+                        headerStyle: const HeaderStyle(
+                          titleCentered: true,
+                          formatButtonVisible: false,
+                        ),
+                        calendarStyle: CalendarStyle(
+                          isTodayHighlighted: true,
+                          markerDecoration: BoxDecoration(
+                            color: Colors.redAccent,
+                            shape: BoxShape.circle,
                           ),
                         ),
+                        eventLoader: (day) => _hasEvent(day) ? ['flight'] : [],
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: const [
-                          _LegendDot(),
-                          SizedBox(width: 6),
-                          Text('Days with flights'),
-                        ],
-                      ),
-                      const Spacer(),
-                      Text(
-                        _eventDays.isEmpty
-                            ? 'No flights registered.'
-                            : 'Tap a day with a marker to see the flights.',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: const [
+                      _LegendDot(),
+                      SizedBox(width: 6),
+                      Text('Days with flights'),
                     ],
                   ),
+                  const Spacer(),
+                  Text(
+                    _eventDays.isEmpty
+                        ? 'No flights registered.'
+                        : 'Tap a day with a marker to see the flights.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
       ),
     );
   }

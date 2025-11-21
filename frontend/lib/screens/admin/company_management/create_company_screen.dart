@@ -12,14 +12,14 @@ class CreateCompanyScreen extends StatefulWidget {
 class _CreateCompanyScreenState extends State<CreateCompanyScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // 🧱 Controladores básicos
+  // Controladores básicos
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
   final _discountController = TextEditingController(text: "0.5");
 
-  // 💰 Nuevos controladores opcionales
+  // Nuevos controladores opcionales
   final _domesticWaitHourController = TextEditingController();
   final _internationalWaitHourController = TextEditingController();
   final _domesticOvernightController = TextEditingController();
@@ -31,12 +31,20 @@ class _CreateCompanyScreenState extends State<CreateCompanyScreen> {
   final CompanyService _companyService = CompanyService();
 
   // =============================================================
-  // 🚀 Crear empresa
+  // Crear empresa
   // =============================================================
   Future<void> _createCompany() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
-    setState(() => _isLoading = true);
+    // Usar BuildContext ANTES de cualquier await
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
 
     try {
       final CompanyModel newCompany = await _companyService.createCompany(
@@ -44,34 +52,52 @@ class _CreateCompanyScreenState extends State<CreateCompanyScreen> {
         email: _emailController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
         address: _addressController.text.trim(),
-        emptyLegDiscount: double.tryParse(_discountController.text.trim()) ?? 0.5,
-
-        // 💰 Campos opcionales
-        domesticWaitHourCost: double.tryParse(_domesticWaitHourController.text.trim()),
-        internationalWaitHourCost: double.tryParse(_internationalWaitHourController.text.trim()),
-        domesticOvernightCost: double.tryParse(_domesticOvernightController.text.trim()),
-        internationalOvernightCost: double.tryParse(_internationalOvernightController.text.trim()),
-        airportTaxPerPassenger: double.tryParse(_airportTaxController.text.trim()),
+        emptyLegDiscount:
+            double.tryParse(_discountController.text.trim()) ?? 0.5,
+        // Campos opcionales
+        domesticWaitHourCost: double.tryParse(
+          _domesticWaitHourController.text.trim(),
+        ),
+        internationalWaitHourCost: double.tryParse(
+          _internationalWaitHourController.text.trim(),
+        ),
+        domesticOvernightCost: double.tryParse(
+          _domesticOvernightController.text.trim(),
+        ),
+        internationalOvernightCost: double.tryParse(
+          _internationalOvernightController.text.trim(),
+        ),
+        airportTaxPerPassenger: double.tryParse(
+          _airportTaxController.text.trim(),
+        ),
         handlingPerPassenger: double.tryParse(_handlingController.text.trim()),
       );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('✅ Empresa creada: ${newCompany.name}')),
-        );
-        Navigator.pop(context, true);
+      if (!mounted) {
+        return;
       }
+
+      messenger.showSnackBar(
+        SnackBar(content: Text('✅ Empresa creada: ${newCompany.name}')),
+      );
+      navigator.pop(true);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) {
+        return;
+      }
+
+      messenger.showSnackBar(
         SnackBar(content: Text('❌ Error al crear empresa: $e')),
       );
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   // =============================================================
-  // 🧹 Liberar controladores
+  // Liberar controladores
   // =============================================================
   @override
   void dispose() {
@@ -90,7 +116,7 @@ class _CreateCompanyScreenState extends State<CreateCompanyScreen> {
   }
 
   // =============================================================
-  // 🧩 UI
+  // UI
   // =============================================================
   @override
   Widget build(BuildContext context) {
@@ -195,7 +221,7 @@ class _CreateCompanyScreenState extends State<CreateCompanyScreen> {
   }
 
   // =============================================================
-  // 🧱 Campos reutilizables
+  // Campos reutilizables
   // =============================================================
 
   /// Campo obligatorio

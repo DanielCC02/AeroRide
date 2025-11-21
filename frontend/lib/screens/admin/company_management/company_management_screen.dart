@@ -68,7 +68,7 @@ class _CompanyManagementScreenState extends State<CompanyManagementScreen> {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: companies.length,
-            separatorBuilder: (_, __) => const Divider(),
+            separatorBuilder: (_, _) => const Divider(),
             itemBuilder: (context, index) {
               final company = companies[index];
               return ListTile(

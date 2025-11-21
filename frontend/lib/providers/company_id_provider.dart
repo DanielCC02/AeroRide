@@ -7,7 +7,7 @@ class CompanyIdProvider with ChangeNotifier {
 
   set companyId(int? newCompanyId) {
     _companyId = newCompanyId;
-    print('CompanyIdProvider - companyId set to: $_companyId'); // Agregar un print
+    debugPrint('CompanyIdProvider - companyId set to: $_companyId'); // Agregar un print
     notifyListeners(); // Notificar a los listeners cuando el companyId cambia
   }
 }

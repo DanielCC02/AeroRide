@@ -62,31 +62,43 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
   }
 
   // ======================================================
-  // 📸 Seleccionar nueva imagen
+  // Seleccionar nueva imagen
   // ======================================================
   Future<void> _pickImage() async {
+    // Usar context ANTES de cualquier await
+    final messenger = ScaffoldMessenger.of(context);
+
     final picked = await _picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      try {
+    if (picked == null) return;
+
+    try {
+      if (mounted) {
         setState(() => _isLoading = true);
-        final file = File(picked.path);
-        final uploadedUrl = await _aircraftService.uploadAircraftImage(
-          widget.aircraft.id, // ⬅️ id primero
-          file.path, // ⬅️ path del archivo
-        );
+      }
+
+      final file = File(picked.path);
+      final uploadedUrl = await _aircraftService.uploadAircraftImage(
+        widget.aircraft.id, // ⬅️ id primero
+        file.path, // ⬅️ path del archivo
+      );
+
+      if (mounted) {
         setState(() => _imageUrl = uploadedUrl);
-      } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('⚠️ Error al subir imagen: $e')));
-      } finally {
+      }
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('⚠️ Error al subir imagen: $e')),
+      );
+    } finally {
+      if (mounted) {
         setState(() => _isLoading = false);
       }
     }
   }
 
   // ======================================================
-  // 💾 Guardar cambios
+  // Guardar cambios
   // ======================================================
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -136,7 +148,7 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
   }
 
   // ======================================================
-  // 🧱 Interfaz de usuario
+  // Interfaz de usuario
   // ======================================================
   @override
   Widget build(BuildContext context) {
@@ -202,7 +214,7 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
                               width: double.infinity,
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(12),
-                                color: Colors.black.withOpacity(0.3),
+                                color: Colors.black.withValues(alpha: 0.3),
                               ),
                               alignment: Alignment.center,
                               child: const Column(
@@ -231,7 +243,7 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
                                 width: double.infinity,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(12),
-                                  color: Colors.black.withOpacity(0.4),
+                                  color: Colors.black.withValues(alpha: 0.4),
                                 ),
                                 alignment: Alignment.center,
                                 child: const CircularProgressIndicator(
@@ -370,7 +382,7 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
   }
 
   // ======================================================
-  // 🔹 Widgets auxiliares
+  // Widgets auxiliares
   // ======================================================
   Widget _buildTextField(
     TextEditingController controller,

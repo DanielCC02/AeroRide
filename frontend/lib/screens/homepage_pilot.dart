@@ -141,7 +141,7 @@ class _HomePagePilotState extends State<HomePagePilot>
                     : ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: _upcoming.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 16),
+                        separatorBuilder: (_, _) => const SizedBox(height: 16),
                         itemBuilder: (context, index) {
                           final flight = _upcoming[index];
                           final hasLog = _logsMap[flight.id] ?? false;
@@ -179,7 +179,7 @@ class _HomePagePilotState extends State<HomePagePilot>
                     : ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: _past.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 16),
+                        separatorBuilder: (_, _) => const SizedBox(height: 16),
                         itemBuilder: (context, index) {
                           final flight = _past[index];
                           return PilotFlightCardPast(

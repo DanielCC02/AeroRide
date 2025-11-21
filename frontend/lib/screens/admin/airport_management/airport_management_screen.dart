@@ -26,7 +26,7 @@ class _AirportManagementScreenState extends State<AirportManagementScreen> {
     _airportsFuture = _airportService.getAllAirports();
   }
 
-  // 🔁 Refrescar lista tras crear aeropuerto
+  // Refrescar lista tras crear aeropuerto
   void _refreshAirports() {
     setState(() {
       _airportsFuture = _airportService.getAllAirports();
@@ -77,7 +77,7 @@ class _AirportManagementScreenState extends State<AirportManagementScreen> {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: airports.length,
-            separatorBuilder: (_, __) => const Divider(),
+            separatorBuilder: (context, _) => const Divider(),
             itemBuilder: (context, index) {
               final airport = airports[index];
 
@@ -110,7 +110,7 @@ class _AirportManagementScreenState extends State<AirportManagementScreen> {
                     ),
                   );
 
-                  // 🔁 Si el aeropuerto fue editado o desactivado, refrescar lista
+                  // Si el aeropuerto fue editado o desactivado, refrescar lista
                   if (refresh == true && context.mounted) {
                     _refreshAirports();
                   }

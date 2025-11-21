@@ -12,7 +12,6 @@ import 'package:frontend/models/company_flight_model.dart';
 import 'package:frontend/services/pilot_flight_service.dart';
 import 'package:frontend/services/token_storage.dart';
 
-
 class FlightLogFormScreen extends StatefulWidget {
   final CompanyFlightModel flight;
 
@@ -59,10 +58,16 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
   }
 
   Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    // 👇 Cacheamos helpers basados en context ANTES de cualquier await
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
 
     if (_signatureController.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text("Please sign the flight log."),
           backgroundColor: Colors.redAccent,
@@ -88,29 +93,24 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
           children: [
             pw.Text("Flight Log", style: pw.TextStyle(fontSize: 24)),
             pw.SizedBox(height: 20),
-
             pw.Text("Flight ID: ${widget.flight.id}"),
             pw.Text(
               "Route: ${widget.flight.departureAirportName} → ${widget.flight.arrivalAirportName}",
             ),
             pw.Text("Aircraft: ${widget.flight.aircraftModel}"),
             pw.SizedBox(height: 10),
-
             pw.Text("Hobbs Start: ${_hobbsStart.text}"),
             pw.Text("Hobbs End: ${_hobbsEnd.text}"),
             pw.Text("Block Off: ${_blockOff.text}"),
             pw.Text("Block On: ${_blockOn.text}"),
             pw.SizedBox(height: 10),
-
             pw.Text("Fuel Start: ${_fuelStart.text}"),
             pw.Text("Fuel End: ${_fuelEnd.text}"),
             pw.SizedBox(height: 10),
-
             pw.Text("METAR: ${_metar.text}"),
             pw.Text("TAF: ${_taf.text}"),
             pw.Text("Remarks: ${_remarks.text}"),
             pw.SizedBox(height: 20),
-
             pw.Text("Signature:"),
             if (signatureImage != null) pw.Image(signatureImage, width: 200),
           ],
@@ -125,23 +125,29 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
 
     // ============== 4) Upload to backend ========================
     final pilotId = await TokenStorage.getUserId();
-
     final service = PilotFlightService();
 
     try {
       await service.saveFlightLog(
         flightId: widget.flight.id,
-        pilotUserId: pilotId!,
+        pilotUserId: pilotId!, // mismo comportamiento que antes
         pdfFile: file,
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) {
+        return;
+      }
+
+      messenger.showSnackBar(
         const SnackBar(content: Text("Flight log uploaded successfully")),
       );
-
-      Navigator.pop(context, true);
+      navigator.pop(true);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) {
+        return;
+      }
+
+      messenger.showSnackBar(
         SnackBar(
           content: Text("Error uploading log: $e"),
           backgroundColor: Colors.redAccent,

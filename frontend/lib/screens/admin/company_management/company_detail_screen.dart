@@ -16,7 +16,7 @@ class CompanyDetailScreen extends StatefulWidget {
 class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
   final CompanyService _companyService = CompanyService();
   late Future<CompanyModel> _companyFuture;
-  bool _hasUpdated = false; // 👈 Para saber si hubo cambios al editar
+  bool _hasUpdated = false; // Para saber si hubo cambios al editar
 
   @override
   void initState() {
@@ -30,16 +30,19 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
     });
   }
 
-  // 👇 Al salir de esta pantalla, devolvemos “true” si hubo cambios
-  Future<bool> _onWillPop() async {
-    Navigator.pop(context, _hasUpdated);
-    return false;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop, // 🔁 Captura el back button
+    return PopScope(
+      // Evitamos que Flutter haga el pop automático: queremos controlar el resultado (_hasUpdated)
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        // Si ya se hizo pop por otra razón, no hacemos nada
+        if (didPop) {
+          return;
+        }
+        // Misma lógica que antes: devolver _hasUpdated al cerrar
+        Navigator.pop(context, _hasUpdated);
+      },
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Company Details'),
@@ -91,7 +94,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 🏢 Nombre
+                    // Nombre
                     Text(
                       company.name,
                       style: const TextStyle(
@@ -101,7 +104,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                     ),
                     const SizedBox(height: 8),
 
-                    // ✉️ Email
+                    // Email
                     Row(
                       children: [
                         const Icon(Icons.email_outlined, size: 20),
@@ -111,7 +114,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                     ),
                     const SizedBox(height: 8),
 
-                    // ☎️ Teléfono
+                    // Teléfono
                     Row(
                       children: [
                         const Icon(Icons.phone_outlined, size: 20),
@@ -133,7 +136,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // 💰 Descuento EmptyLeg
+                    // Descuento EmptyLeg
                     Row(
                       children: [
                         const Icon(Icons.local_offer_outlined, size: 20),
@@ -145,7 +148,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // 📅 Fecha de creación
+                    // Fecha de creación
                     Row(
                       children: [
                         const Icon(Icons.calendar_today_outlined, size: 20),
@@ -157,7 +160,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // 🔘 Estado
+                    // Estado
                     Row(
                       children: [
                         const Icon(Icons.power_settings_new, size: 20),
@@ -177,18 +180,20 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                     Center(
                       child: ElevatedButton.icon(
                         onPressed: () async {
-                          final refresh = await Navigator.push(
-                            context,
+                          // Usamos navigator local para evitar usar context tras el await
+                          final navigator = Navigator.of(context);
+
+                          final refresh = await navigator.push(
                             MaterialPageRoute(
                               builder: (_) =>
                                   EditCompanyScreen(company: company),
                             ),
                           );
 
-                          // 🔁 Si vuelve con “true”, refrescamos la información
-                          if (refresh == true && context.mounted) {
+                          // Si vuelve con “true”, refrescamos la información
+                          if (refresh == true && mounted) {
                             setState(() {
-                              _hasUpdated = true; // 👈 Marca cambios realizados
+                              _hasUpdated = true; // Marca cambios realizados
                             });
                             await _refreshCompany();
                           }

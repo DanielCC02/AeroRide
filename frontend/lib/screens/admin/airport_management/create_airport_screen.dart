@@ -14,7 +14,7 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
   final _formKey = GlobalKey<FormState>();
   final _airportService = AirportService();
 
-  // 🧱 Controladores
+  // Controladores
   final _name = TextEditingController();
   final _codeIATA = TextEditingController();
   final _codeOACI = TextEditingController();
@@ -32,7 +32,7 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
   final ImagePicker _picker = ImagePicker();
 
   // ======================================================
-  // 📸 Seleccionar imagen desde galería
+  // Seleccionar imagen desde galería
   // ======================================================
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
@@ -40,12 +40,12 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
       setState(() {
         _selectedImage = File(pickedFile.path);
       });
-      print('📸 Imagen seleccionada: ${pickedFile.path}');
+      debugPrint('📸 Imagen seleccionada: ${pickedFile.path}');
     }
   }
 
   // ======================================================
-  // ✈️ Crear aeropuerto (con subida de imagen)
+  // Crear aeropuerto (con subida de imagen)
   // ======================================================
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -60,10 +60,10 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // 🔹 Subir imagen primero
-      print('📤 Subiendo imagen de aeropuerto...');
+      // Subir imagen primero
+      debugPrint('📤 Subiendo imagen de aeropuerto...');
       final imageUrl = await _airportService.uploadAirportImage(_selectedImage!);
-      print('✅ Imagen subida con URL: $imageUrl');
+      debugPrint('✅ Imagen subida con URL: $imageUrl');
 
       // 🔹 Crear aeropuerto
       await _airportService.createAirport(
@@ -91,10 +91,10 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('✅ Aeropuerto creado correctamente')),
         );
-        Navigator.pop(context, true); // 🔁 Regresa y refresca la lista
+        Navigator.pop(context, true); // Regresa y refresca la lista
       }
     } catch (e) {
-      print('❌ Error al crear aeropuerto: $e');
+      debugPrint('❌ Error al crear aeropuerto: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('⚠️ Error: $e')),
@@ -106,7 +106,7 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
   }
 
   // ======================================================
-  // 🧹 Dispose controladores
+  // Dispose controladores
   // ======================================================
   @override
   void dispose() {
@@ -125,7 +125,7 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
   }
 
   // ======================================================
-  // 🧩 UI
+  // UI
   // ======================================================
   @override
   Widget build(BuildContext context) {
@@ -162,7 +162,7 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
               _buildOptionalTextField(_closingTime, 'Closing Time (HH:mm:ss)'),
               const SizedBox(height: 20),
 
-              // 🔹 Imagen seleccionada (preview)
+              // Imagen seleccionada (preview)
               if (_selectedImage != null)
                 Column(
                   children: [
@@ -171,7 +171,7 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
                   ],
                 ),
 
-              // 🔹 Botón para seleccionar imagen
+              // Botón para seleccionar imagen
               ElevatedButton.icon(
                 onPressed: _pickImage,
                 icon: const Icon(Icons.image),
@@ -183,7 +183,7 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
               ),
               const SizedBox(height: 24),
 
-              // 🔹 Botón para crear aeropuerto
+              // Botón para crear aeropuerto
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -209,7 +209,7 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
   }
 
   // ======================================================
-  // 🔹 Campos reutilizables
+  // Campos reutilizables
   // ======================================================
   Widget _buildTextField(
     TextEditingController controller,
