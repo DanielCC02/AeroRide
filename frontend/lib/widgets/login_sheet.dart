@@ -142,7 +142,7 @@ class _LoginSheetState extends State<LoginSheet> {
               (route) => false,
             );
           } else if (roleName == 'companyadmin' || roleId == 2) {
-            // ✅ Asegurarse de que companyId está presente y pasarlo correctamente
+            // Asegurarse de que companyId está presente y pasarlo correctamente
             if (companyId == null) {
               // Si el companyId no está presente, mostrar un error
               ScaffoldMessenger.of(context).showSnackBar(

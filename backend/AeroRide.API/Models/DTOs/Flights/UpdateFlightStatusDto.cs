@@ -9,3 +9,4 @@ namespace AeroRide.API.Models.DTOs.Flights
         public FlightStatus Status { get; set; }
     }
 }
+

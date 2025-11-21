@@ -69,7 +69,7 @@ class PilotFlightCardPast extends StatelessWidget {
                 'Status: ${flight.status}',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: flight.status == "Programado"
+                  color: flight.status == "Completed"
                       ? Colors.green
                       : Colors.orange,
                 ),

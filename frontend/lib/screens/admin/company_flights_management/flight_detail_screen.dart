@@ -123,7 +123,27 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
   Widget build(BuildContext context) {
     final df = DateFormat('MMM d, yyyy • hh:mm a');
     final flight = widget.flight;
-    final bool isCompleted = flight.status == 'Completado';
+
+    // ==============================
+    // 🔥 NUEVAS REGLAS
+    // ==============================
+    const assignableStates = ["PreFlight", "Boarding"];
+    const lockedStates = [
+      "PushbackOrRamp",
+      "TaxiToRunway",
+      "HoldingShort",
+      "Takeoff",
+      "EnRoute",
+      "Landing",
+      "TaxiToRamp",
+      "Deboarding",
+    ];
+
+    final bool isCompleted = flight.status == "Completed";
+    final bool canEditAssignments = assignableStates.contains(flight.status);
+    final bool isLockedMidFlight = lockedStates.contains(flight.status);
+
+    final bool canViewLog = isCompleted; // solo cuando está completado
 
     return Scaffold(
       appBar: AppBar(title: const Text('Flight Details'), centerTitle: true),
@@ -134,7 +154,6 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          /// Filtrar pilotos para evitar duplicados entre pilot y copilot
           final pilotOptions = _pilots
               .where((p) => p.id != _selectedCopilot?.id)
               .toList();
@@ -147,7 +166,9 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Ruta
+                // ===========================================
+                // FLIGHT DATA
+                // ===========================================
                 Center(
                   child: Text(
                     '${flight.departureAirportName} → ${flight.arrivalAirportName}',
@@ -160,7 +181,6 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
 
                 const SizedBox(height: 30),
 
-                // Horarios
                 _buildSectionTitle(context, 'Schedule'),
                 _buildRow(
                   'Departure',
@@ -174,21 +194,18 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
 
                 const SizedBox(height: 20),
 
-                // Aeronave
                 _buildSectionTitle(context, 'Aircraft'),
                 _buildRow('Model', flight.aircraftModel ?? 'N/A'),
                 _buildRow('Patent', flight.aircraftPatent ?? 'N/A'),
 
                 const SizedBox(height: 20),
 
-                // Compañía
                 _buildSectionTitle(context, 'Company'),
                 _buildRow('Name', flight.companyName ?? 'N/A'),
                 _buildRow('Reservation Code', flight.reservationCode ?? 'N/A'),
 
                 const SizedBox(height: 20),
 
-                // Estado
                 _buildSectionTitle(context, 'Status'),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -196,7 +213,7 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
                     horizontal: 14,
                   ),
                   decoration: BoxDecoration(
-                    color: flight.status == 'Programado'
+                    color: isCompleted
                         ? Colors.green.withOpacity(0.15)
                         : Colors.orange.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(10),
@@ -204,7 +221,7 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
                   child: Text(
                     flight.status,
                     style: TextStyle(
-                      color: flight.status == 'Programado'
+                      color: isCompleted
                           ? Colors.green[700]
                           : Colors.orange[700],
                       fontWeight: FontWeight.w600,
@@ -214,13 +231,15 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
 
                 const SizedBox(height: 30),
 
-                // ASIGNACIÓN DE PILOTOS
+                // ===========================================
+                // CREW SECTION
+                // ===========================================
                 _buildSectionTitle(
                   context,
-                  isCompleted ? 'Assigned Crew' : 'Assign Pilots',
+                  canEditAssignments ? 'Assign Pilots' : 'Assigned Crew',
                 ),
 
-                // PILOTO PRINCIPAL
+                // Pilot selector
                 DropdownButtonFormField<UserModel>(
                   decoration: const InputDecoration(
                     labelText: "Pilot",
@@ -235,22 +254,21 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
                         ),
                       )
                       .toList(),
-                  onChanged: isCompleted
-                      ? null // 🚫 No editable si el vuelo está completado
-                      : (value) {
+                  onChanged: (canEditAssignments)
+                      ? (value) {
                           setState(() {
                             if (_selectedCopilot?.id == value?.id) {
-                              _selectedCopilot =
-                                  null; // limpiar copiloto si coincide
+                              _selectedCopilot = null;
                             }
                             _selectedPilot = value;
                           });
-                        },
+                        }
+                      : null,
                 ),
 
                 const SizedBox(height: 16),
 
-                // COPILOTO
+                // Copilot selector
                 DropdownButtonFormField<UserModel>(
                   decoration: const InputDecoration(
                     labelText: "Copilot (optional)",
@@ -263,67 +281,78 @@ class _FlightDetailScreenState extends State<FlightDetailScreen> {
                       child: Text("— None —"),
                     ),
                     ...copilotOptions.map(
-                      (p) => DropdownMenuItem<UserModel>(
+                      (p) => DropdownMenuItem(
                         value: p,
                         child: Text("${p.name} ${p.lastName}"),
                       ),
                     ),
                   ],
-                  onChanged: isCompleted
-                      ? null // 🚫 No editable si el vuelo está completado
-                      : (value) {
+                  onChanged: (canEditAssignments)
+                      ? (value) {
                           setState(() {
                             if (value == null) {
                               _selectedCopilot = null;
                               return;
                             }
 
-                            // Evitar duplicado piloto/copiloto
                             if (_selectedPilot?.id == value.id) {
                               _selectedPilot = null;
                             }
 
                             _selectedCopilot = value;
                           });
-                        },
+                        }
+                      : null,
                 ),
 
                 const SizedBox(height: 24),
 
-                // BOTÓN DE ASIGNACIÓN / VER BITÁCORA
-                SizedBox(
-                  width: double.infinity,
-                  child: isCompleted
-                      ? ElevatedButton.icon(
-                          icon: const Icon(Icons.picture_as_pdf),
-                          label: const Text("View flight log"),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    AdminViewFlightLogScreen(flight: flight),
-                              ),
-                            );
-                          },
-                        )
-                      : ElevatedButton.icon(
-                          icon: _isAssigning
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Icon(Icons.assignment),
-                          label: Text(
-                            _isAssigning ? "Assigning..." : "Assign Flight",
+                // ===========================================
+                // BOTTOM BUTTON AREA
+                // ===========================================
+
+                // ⛔ Locked mid-flight → NO button
+                if (isLockedMidFlight)
+                  const SizedBox.shrink()
+                // ✔ Completed → show View Log
+                else if (canViewLog)
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.picture_as_pdf),
+                      label: const Text("View flight log"),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                AdminViewFlightLogScreen(flight: flight),
                           ),
-                          onPressed: _isAssigning ? null : _assignFlight,
-                        ),
-                ),
+                        );
+                      },
+                    ),
+                  )
+                // ✔ Can assign pilots
+                else if (canEditAssignments)
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: _isAssigning
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.assignment),
+                      label: Text(
+                        _isAssigning ? "Assigning..." : "Assign Flight",
+                      ),
+                      onPressed: _isAssigning ? null : _assignFlight,
+                    ),
+                  ),
               ],
             ),
           );

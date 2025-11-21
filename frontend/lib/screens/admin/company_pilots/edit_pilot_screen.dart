@@ -39,7 +39,7 @@ class _EditPilotScreenState extends State<EditPilotScreen> {
     setState(() => _isLoading = true);
 
     try {
-      print('🛠️ Actualizando piloto con ID: ${widget.user.id}');
+      print('Actualizando piloto con ID: ${widget.user.id}');
 
       await _userService.updatePilotByCompanyAdmin(
         id: widget.user.id,
@@ -57,11 +57,11 @@ class _EditPilotScreenState extends State<EditPilotScreen> {
         Navigator.pop(context, true); //Devuelve “true” para refrescar lista
       }
     } catch (e) {
-      print('❌ Error al actualizar piloto: $e');
+      print('Error al actualizar piloto: $e');
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('⚠️ Error al actualizar: $e')));
+        ).showSnackBar(SnackBar(content: Text('Error al actualizar: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -110,7 +110,7 @@ class _EditPilotScreenState extends State<EditPilotScreen> {
               ),
               const SizedBox(height: 12),
 
-              // 🔹 Switch de estado activo/inactivo
+              // Switch de estado activo/inactivo
               SwitchListTile(
                 title: const Text('Active'),
                 value: _isActive,
@@ -119,7 +119,7 @@ class _EditPilotScreenState extends State<EditPilotScreen> {
 
               const SizedBox(height: 24),
 
-              // 🔹 Botón de guardar
+              // Botón de guardar
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
