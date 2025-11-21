@@ -205,7 +205,7 @@ namespace AeroRide.API.Services.Implementations
             // 🔹 Calcular precio final con descuento
             // ===============================
             double baseCost = flight.DurationMinutes * flight.Aircraft.MinuteCost;
-            double discountMultiplier = flight.Company.EmptyLegDiscount / 100.0;
+            double discountMultiplier = flight.Company.EmptyLegDiscount;
 
             dto.FinalPrice = Math.Round(baseCost * discountMultiplier, 2);
 
