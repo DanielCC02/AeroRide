@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart'; // 👈 para kDebugMode + debugPrint
+import 'package:device_preview/device_preview.dart';
+import 'package:flutter/foundation.dart'; 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
@@ -20,6 +21,20 @@ import 'package:frontend/providers/company_id_provider.dart';
 import 'package:frontend/providers/client_provider.dart';
 
 void main() {
+  // TOMAS
+  runApp(
+    DevicePreview(
+      enabled: !kReleaseMode, // se desactiva automáticamente en release
+      builder: (context) => MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => CompanyIdProvider()),
+          ChangeNotifierProvider(create: (_) => ClientProvider()..load()),
+        ],
+        child: const MyApp(),
+      ),
+    ),
+  );
+  /* TIFFER
   runApp(
     MultiProvider(
       providers: [
@@ -30,7 +45,7 @@ void main() {
       ],
       child: const MyApp(),
     ),
-  );
+  ); */
 }
 
 class MyApp extends StatefulWidget {

@@ -18,6 +18,8 @@ namespace AeroRide.API.Services.Interfaces
         Task<IEnumerable<EmptyLegListDto>> GetEmptyLegsAsync();
         Task<EmptyLegDetailDto?> GetEmptyLegDetailAsync(int id);
         Task<bool> UpdateFlightStatusAsync(int flightId, FlightStatus status);
+        Task<IEnumerable<FlightResponseDto>> GetFlightsByAircraftAsync(int aircraftId);
+
 
     }
 }

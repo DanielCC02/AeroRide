@@ -1,6 +1,7 @@
 // lib/services/aircraft_service.dart
 import 'dart:convert';
 import 'dart:io';
+import 'package:frontend/models/company_flight_model.dart';
 import 'package:http/http.dart' as http;
 
 import 'api_config.dart';
@@ -624,6 +625,44 @@ class AircraftService {
 
     throw HttpException('Failed to upload aircraft image (${resp.statusCode})');
   }
+
+  // Obtener los vuelos de una avioneta
+  Future<List<CompanyFlightModel>> getFlightsByAircraft(int aircraftId) async {
+  final token = await TokenStorage.getAccessToken();
+  if (token == null) throw Exception("Token no disponible");
+
+  final url = Uri.parse("${ApiConfig.baseUrl}/api/flights/aircraft/$aircraftId");
+
+  final response = await http.get(
+    url,
+    headers: {
+      "Authorization": "Bearer $token",
+      "Content-Type": "application/json",
+    },
+  );
+
+  if (response.statusCode == 200) {
+    final List<dynamic> jsonData = jsonDecode(response.body);
+    return jsonData.map((e) => CompanyFlightModel.fromJson(e)).toList();
+  }
+
+  throw Exception("Error loading aircraft flights (${response.statusCode}): ${response.body}");
+}
+
+Future<bool> hasFutureFlights(int aircraftId) async {
+  try {
+    final flights = await getFlightsByAircraft(aircraftId);
+
+    final now = DateTime.now();
+
+    final upcoming = flights.where((f) => f.departureTime.isAfter(now));
+
+    return upcoming.isNotEmpty;
+  } catch (e) {
+    print("Error checking future flights for aircraft: $e");
+    return false;
+  }
+}
 
   /*Future<AircraftModel> updateAircraft(
     int id, {

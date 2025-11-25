@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
 import 'package:signature/signature.dart';
 
 // NUEVOS
@@ -11,6 +12,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:frontend/models/company_flight_model.dart';
 import 'package:frontend/services/pilot_flight_service.dart';
 import 'package:frontend/services/token_storage.dart';
+import 'package:image/image.dart' as img;
 
 class FlightLogFormScreen extends StatefulWidget {
   final CompanyFlightModel flight;
@@ -22,16 +24,29 @@ class FlightLogFormScreen extends StatefulWidget {
 }
 
 class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
-  // Controllers -----------------------------
+  // TIMES
   final _hobbsStart = TextEditingController();
   final _hobbsEnd = TextEditingController();
   final _blockOff = TextEditingController();
   final _blockOn = TextEditingController();
+
+  // NEW: AIRBORNE + PIC + SIC
+  final _airborneTime = TextEditingController();
+  final _picTime = TextEditingController();
+  final _sicTime = TextEditingController();
+
+  // FUEL
   final _fuelStart = TextEditingController();
   final _fuelEnd = TextEditingController();
+
+  // WEATHER
   final _metar = TextEditingController();
   final _taf = TextEditingController();
   final _remarks = TextEditingController();
+
+  // NEW: RUNWAYS
+  final _departureRunway = TextEditingController();
+  final _arrivalRunway = TextEditingController();
 
   final SignatureController _signatureController = SignatureController(
     penStrokeWidth: 3,
@@ -40,19 +55,22 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
 
   final _formKey = GlobalKey<FormState>();
 
-  // ------------------------------------------
-
   @override
   void dispose() {
     _hobbsStart.dispose();
     _hobbsEnd.dispose();
     _blockOff.dispose();
     _blockOn.dispose();
+    _airborneTime.dispose();
+    _picTime.dispose();
+    _sicTime.dispose();
     _fuelStart.dispose();
     _fuelEnd.dispose();
     _metar.dispose();
     _taf.dispose();
     _remarks.dispose();
+    _departureRunway.dispose();
+    _arrivalRunway.dispose();
     _signatureController.dispose();
     super.dispose();
   }
@@ -62,7 +80,6 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
       return;
     }
 
-    // 👇 Cacheamos helpers basados en context ANTES de cualquier await
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
 
@@ -76,76 +93,315 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
       return;
     }
 
-    // ============== 1) Convert signature to bytes ==============
-    final signatureBytes = await _signatureController.toPngBytes();
+    // ============== FIRMA: Convert PNG to JPEG (FIX) =================
+    final pngBytes = await _signatureController.toPngBytes();
 
-    // ============== 2) Generate PDF ============================
+    img.Image? decodedImage = img.decodePng(pngBytes!);
+    final jpgBytes = img.encodeJpg(decodedImage!, quality: 90);
+
+    final signatureImage = pw.MemoryImage(jpgBytes);
+
+    // 2) Generate PDF
     final pdf = pw.Document();
-
-    final signatureImage = signatureBytes != null
-        ? pw.MemoryImage(signatureBytes)
-        : null;
 
     pdf.addPage(
       pw.Page(
-        build: (pw.Context context) => pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text("Flight Log", style: pw.TextStyle(fontSize: 24)),
-            pw.SizedBox(height: 20),
-            pw.Text("Flight ID: ${widget.flight.id}"),
-            pw.Text(
-              "Route: ${widget.flight.departureAirportName} → ${widget.flight.arrivalAirportName}",
-            ),
-            pw.Text("Aircraft: ${widget.flight.aircraftModel}"),
-            pw.SizedBox(height: 10),
-            pw.Text("Hobbs Start: ${_hobbsStart.text}"),
-            pw.Text("Hobbs End: ${_hobbsEnd.text}"),
-            pw.Text("Block Off: ${_blockOff.text}"),
-            pw.Text("Block On: ${_blockOn.text}"),
-            pw.SizedBox(height: 10),
-            pw.Text("Fuel Start: ${_fuelStart.text}"),
-            pw.Text("Fuel End: ${_fuelEnd.text}"),
-            pw.SizedBox(height: 10),
-            pw.Text("METAR: ${_metar.text}"),
-            pw.Text("TAF: ${_taf.text}"),
-            pw.Text("Remarks: ${_remarks.text}"),
-            pw.SizedBox(height: 20),
-            pw.Text("Signature:"),
-            if (signatureImage != null) pw.Image(signatureImage, width: 200),
-          ],
-        ),
+        margin: const pw.EdgeInsets.all(32),
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // HEADER ------------------------------------------------------
+              pw.Center(
+                child: pw.Text(
+                  "AeroCaribe Flight Log",
+                  style: pw.TextStyle(
+                    fontSize: 28,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ),
+              pw.SizedBox(height: 12),
+              pw.Divider(),
+
+              // BASIC INFO --------------------------------------------------
+              pw.SizedBox(height: 12),
+              pw.Text(
+                "Flight Information",
+                style: pw.TextStyle(
+                  fontSize: 18,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 8),
+
+              pw.Table(
+                columnWidths: {
+                  0: pw.FlexColumnWidth(2),
+                  1: pw.FlexColumnWidth(3),
+                },
+                children: [
+                  pw.TableRow(
+                    children: [
+                      pw.Text("Flight ID:"),
+                      pw.Text(widget.flight.id.toString()),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
+                      pw.Text("Route:"),
+                      pw.Text(
+                        "${widget.flight.departureAirportName} to ${widget.flight.arrivalAirportName}",
+                      ),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
+                      pw.Text("Aircraft:"),
+                      pw.Text(widget.flight.aircraftModel ?? ''),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
+                      pw.Text("Runways:"),
+                      pw.Text(
+                        "DEP: ${_departureRunway.text}   ARR: ${_arrivalRunway.text}",
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              pw.SizedBox(height: 20),
+
+              // TIMES -------------------------------------------------------
+              pw.Text(
+                "Times",
+                style: pw.TextStyle(
+                  fontSize: 18,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 8),
+
+              pw.Table(
+                border: pw.TableBorder.all(),
+                children: [
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(6),
+                        child: pw.Text("Hobbs Start"),
+                      ),
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(6),
+                        child: pw.Text(_hobbsStart.text),
+                      ),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(6),
+                        child: pw.Text("Hobbs End"),
+                      ),
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(6),
+                        child: pw.Text(_hobbsEnd.text),
+                      ),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(6),
+                        child: pw.Text("Block Off"),
+                      ),
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(6),
+                        child: pw.Text(_blockOff.text),
+                      ),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(6),
+                        child: pw.Text("Block On"),
+                      ),
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(6),
+                        child: pw.Text(_blockOn.text),
+                      ),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(6),
+                        child: pw.Text("Airborne Time"),
+                      ),
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(6),
+                        child: pw.Text(_airborneTime.text),
+                      ),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(6),
+                        child: pw.Text("PIC Time"),
+                      ),
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(6),
+                        child: pw.Text(_picTime.text),
+                      ),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(6),
+                        child: pw.Text("SIC Time"),
+                      ),
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(6),
+                        child: pw.Text(_sicTime.text),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              pw.SizedBox(height: 20),
+
+              // FUEL -------------------------------------------------------
+              pw.Text(
+                "Fuel",
+                style: pw.TextStyle(
+                  fontSize: 18,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 8),
+
+              pw.Table(
+                border: pw.TableBorder.all(),
+                children: [
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(6),
+                        child: pw.Text("Fuel Start"),
+                      ),
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(6),
+                        child: pw.Text(_fuelStart.text),
+                      ),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(6),
+                        child: pw.Text("Fuel End"),
+                      ),
+                      pw.Padding(
+                        padding: pw.EdgeInsets.all(6),
+                        child: pw.Text(_fuelEnd.text),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              pw.SizedBox(height: 20),
+
+              // WEATHER -------------------------------------------------------
+              pw.Text(
+                "Weather",
+                style: pw.TextStyle(
+                  fontSize: 18,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 8),
+
+              pw.Text("METAR: ${_metar.text}"),
+              pw.Text("TAF: ${_taf.text}"),
+
+              pw.SizedBox(height: 20),
+
+              // REMARKS -------------------------------------------------------
+              pw.Text(
+                "Remarks",
+                style: pw.TextStyle(
+                  fontSize: 18,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 8),
+              pw.Text(_remarks.text),
+
+              pw.SizedBox(height: 20),
+
+              // SIGNATURE -------------------------------------------------------
+              pw.Text(
+                "Signature",
+                style: pw.TextStyle(
+                  fontSize: 18,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 8),
+              pw.Container(
+                height: 120,
+                width: 300,
+                decoration: pw.BoxDecoration(border: pw.Border.all()),
+                child: pw.Image(signatureImage),
+              ),
+
+              pw.Spacer(),
+
+              // FOOTER -------------------------------------------------------
+              pw.Center(
+                child: pw.Text(
+                  "Generated automatically by AeroRide – ${DateTime.now().toLocal()}",
+                  style: pw.TextStyle(fontSize: 10, color: PdfColors.grey),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
 
-    // ============== 3) Save PDF in temp folder =================
+    // 3) Save PDF locally
     final dir = await getTemporaryDirectory();
     final file = File("${dir.path}/flight_log_${widget.flight.id}.pdf");
     await file.writeAsBytes(await pdf.save());
 
-    // ============== 4) Upload to backend ========================
+    // 4) Upload
     final pilotId = await TokenStorage.getUserId();
     final service = PilotFlightService();
 
     try {
       await service.saveFlightLog(
         flightId: widget.flight.id,
-        pilotUserId: pilotId!, // mismo comportamiento que antes
+        pilotUserId: pilotId!,
         pdfFile: file,
       );
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       messenger.showSnackBar(
         const SnackBar(content: Text("Flight log uploaded successfully")),
       );
+
       navigator.pop(true);
     } catch (e) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       messenger.showSnackBar(
         SnackBar(
@@ -156,11 +412,11 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
     }
   }
 
-  Widget _buildSectionTitle(String text) {
+  Widget _section(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Text(
-        text,
+        title,
         style: const TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
@@ -172,11 +428,11 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
 
   Widget _input(
     String label,
-    TextEditingController controller, {
+    TextEditingController c, {
     TextInputType type = TextInputType.text,
   }) {
     return TextFormField(
-      controller: controller,
+      controller: c,
       keyboardType: type,
       decoration: InputDecoration(
         labelText: label,
@@ -199,8 +455,7 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // FLIGHT HEADER -----------------------------------
-              _buildSectionTitle("Flight Information"),
+              _section("Flight Information"),
 
               Card(
                 elevation: 2,
@@ -231,56 +486,53 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
               ),
 
               const SizedBox(height: 20),
+              _section("Runways"),
 
-              // HOBBS & BLOCK TIME ------------------------------
-              _buildSectionTitle("Times"),
+              _input("Departure Runway", _departureRunway),
+              const SizedBox(height: 12),
+              _input("Arrival Runway", _arrivalRunway),
+
+              const SizedBox(height: 20),
+              _section("Times"),
 
               _input("Hobbs Start", _hobbsStart, type: TextInputType.number),
               const SizedBox(height: 12),
-
               _input("Hobbs End", _hobbsEnd, type: TextInputType.number),
               const SizedBox(height: 12),
-
               _input("Block Off (HH:MM)", _blockOff),
               const SizedBox(height: 12),
-
               _input("Block On (HH:MM)", _blockOn),
-
-              const SizedBox(height: 20),
-
-              // FUEL ----------------------------------------------------
-              _buildSectionTitle("Fuel"),
-
-              _input(
-                "Fuel Start (lbs/gal)",
-                _fuelStart,
-                type: TextInputType.number,
-              ),
               const SizedBox(height: 12),
-
-              _input(
-                "Fuel End (lbs/gal)",
-                _fuelEnd,
-                type: TextInputType.number,
-              ),
+              _input("Airborne Time (HH:MM)", _airborneTime),
 
               const SizedBox(height: 20),
+              _section("Crew Times"),
 
-              // WEATHER ------------------------------------------------
-              _buildSectionTitle("Weather"),
+              _input("PIC Time (HH:MM)", _picTime),
+              const SizedBox(height: 12),
+              _input("SIC Time (HH:MM)", _sicTime),
+
+              const SizedBox(height: 20),
+              _section("Fuel"),
+
+              _input("Fuel Start", _fuelStart, type: TextInputType.number),
+              const SizedBox(height: 12),
+              _input("Fuel End", _fuelEnd, type: TextInputType.number),
+
+              const SizedBox(height: 20),
+              _section("Weather"),
 
               _input("METAR", _metar),
               const SizedBox(height: 12),
-
               _input("TAF", _taf),
-              const SizedBox(height: 12),
+
+              const SizedBox(height: 20),
+              _section("Remarks"),
 
               _input("Remarks / Notes", _remarks),
 
               const SizedBox(height: 20),
-
-              // SIGNATURE -------------------------------------------
-              _buildSectionTitle("Signature"),
+              _section("Signature"),
 
               Container(
                 height: 200,
@@ -293,15 +545,12 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
                   backgroundColor: Colors.white,
                 ),
               ),
-
               TextButton(
                 onPressed: () => _signatureController.clear(),
                 child: const Text("Clear Signature"),
               ),
 
               const SizedBox(height: 20),
-
-              // SAVE BUTTON --------------------------------------
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
