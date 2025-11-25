@@ -103,5 +103,17 @@ namespace AeroRide.API.Controllers
                 return BadRequest(new { error = ex.Message });
             }
         }
+
+        // ======================================================
+        // GET: OBTENER VUELOS POR AERONAVE
+        // ======================================================
+        [HttpGet("aircraft/{aircraftId}")]
+        [Authorize(Roles = "Admin,CompanyAdmin")]
+        [ProducesResponseType(typeof(IEnumerable<FlightResponseDto>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetFlightsByAircraft(int aircraftId)
+        {
+            var flights = await _flightService.GetFlightsByAircraftAsync(aircraftId);
+            return Ok(flights);
+        }
     }
 }

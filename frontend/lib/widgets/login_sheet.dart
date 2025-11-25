@@ -46,6 +46,7 @@ class _LoginSheetState extends State<LoginSheet> {
           }
         } catch (_) {}
 
+        // Cuenta no verificada
         final unverified =
             (loginRes.statusCode == 401 || loginRes.statusCode == 403) &&
             (msg.contains('no ha sido verificada') ||
@@ -53,14 +54,25 @@ class _LoginSheetState extends State<LoginSheet> {
                 msg.contains('not verified') ||
                 msg.contains('verify your email'));
 
-        return unverified ? LoginResult.unverified : LoginResult.invalid;
+        if (unverified) return LoginResult.unverified;
+
+        // Cuenta desactivada
+        final inactive =
+            msg.contains('desactivada') ||
+            msg.contains('inactive') ||
+            msg.contains('disabled');
+
+        if (inactive) return LoginResult.inactive;
+
+        return LoginResult.invalid;
       }
 
       // 2️⃣ Extraer tokens
       final loginData = jsonDecode(loginRes.body) as Map<String, dynamic>;
       final token = (loginData['token'] ?? loginData['Token']) as String? ?? '';
       final refreshToken =
-          (loginData['refreshToken'] ?? loginData['RefreshToken']) as String? ?? '';
+          (loginData['refreshToken'] ?? loginData['RefreshToken']) as String? ??
+          '';
       if (token.isEmpty) return LoginResult.invalid;
 
       await TokenStorage.saveTokens(token, refreshToken);
@@ -96,7 +108,7 @@ class _LoginSheetState extends State<LoginSheet> {
         roleId = userData['roleId'] as int;
       }
 
-            // Guardar userId (sirve como pilotId cuando el rol es Pilot)
+      // Guardar userId (sirve como pilotId cuando el rol es Pilot)
       if (userData['id'] is int) {
         await TokenStorage.saveUserId(userData['id'] as int);
       } else {
@@ -112,12 +124,14 @@ class _LoginSheetState extends State<LoginSheet> {
         ); // Guardar correctamente el companyId
 
         // Guardar companyId en el provider
-        Provider.of<CompanyIdProvider>(context, listen: false).companyId = companyId;
+        Provider.of<CompanyIdProvider>(context, listen: false).companyId =
+            companyId;
       } else {
         await TokenStorage.saveCompanyId(
           null,
         ); // Si no tiene un companyId, se guarda null
-        Provider.of<CompanyIdProvider>(context, listen: false).companyId = null; // Limpiar el companyId en el provider
+        Provider.of<CompanyIdProvider>(context, listen: false).companyId =
+            null; // Limpiar el companyId en el provider
       }
 
       // Guardar companyName (solo si viene)
@@ -154,9 +168,7 @@ class _LoginSheetState extends State<LoginSheet> {
             }
 
             nav.pushAndRemoveUntil(
-              MaterialPageRoute(
-                builder: (_) => HomePageAdminCompany(),
-              ),
+              MaterialPageRoute(builder: (_) => HomePageAdminCompany()),
               (route) => false,
             );
           } else if (roleName == 'pilot' || roleId == 3) {
@@ -272,7 +284,13 @@ class _LoginSheetState extends State<LoginSheet> {
                               await _showDialog(
                                 title: 'Account not verified',
                                 message:
-                                    'Please verify your email to continue. We just sent you a new confirmation email.',
+                                    'Please verify your email to continue.',
+                              );
+                            } else if (result == LoginResult.inactive) {
+                              await _showDialog(
+                                title: 'Account disabled',
+                                message:
+                                    'Login failed. Your user account is currently deactivated.',
                               );
                             } else if (result == LoginResult.invalid) {
                               await _showDialog(

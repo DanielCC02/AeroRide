@@ -176,10 +176,39 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
                       style: const TextStyle(color: Colors.white, fontSize: 16),
                     ),
                     onPressed: () async {
-                      // ✅ Usamos context ANTES de cualquier await
+                      // Guardamos referencias antes del await
                       final messenger = ScaffoldMessenger.of(context);
                       final navigator = Navigator.of(context);
 
+                      // Antes de pedir confirmación → validar vuelos futuros
+                      if (aircraft.isActive) {
+                        final hasFutureFlights = await _aircraftService
+                            .hasFutureFlights(aircraft.id);
+
+                        if (hasFutureFlights) {
+                          if (!mounted) return;
+
+                          await showDialog(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: const Text("Action not allowed"),
+                              content: const Text(
+                                "This aircraft is assigned to future scheduled flights.",
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text("OK"),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          return; // No permitir desactivación
+                        }
+                      }
+
+                      // Si llegó aquí → pedir confirmación normal
                       final confirm = await showDialog<bool>(
                         context: context,
                         builder: (_) => AlertDialog(

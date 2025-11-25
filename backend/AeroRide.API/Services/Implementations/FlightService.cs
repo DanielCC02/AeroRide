@@ -220,8 +220,6 @@ namespace AeroRide.API.Services.Implementations
             return dto;
         }
 
-
-
         public async Task<bool> UpdateFlightStatusAsync(int flightId, FlightStatus status)
         {
             var flight = await _db.Flights.FirstOrDefaultAsync(f => f.Id == flightId);
@@ -239,6 +237,25 @@ namespace AeroRide.API.Services.Implementations
             await _db.SaveChangesAsync();
             return true;
         }
+
+        // ======================================================
+        //  OBTENER TODOS LOS VUELOS DE UNA AERONAVE
+        // ======================================================
+        public async Task<IEnumerable<FlightResponseDto>> GetFlightsByAircraftAsync(int aircraftId)
+        {
+            var flights = await _db.Flights
+                .Where(f => f.AircraftId == aircraftId)
+                .Include(f => f.DepartureAirport)
+                .Include(f => f.ArrivalAirport)
+                .Include(f => f.Aircraft)
+                .Include(f => f.Company)
+                .OrderBy(f => f.DepartureTime)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<FlightResponseDto>>(flights);
+        }
+
 
     }
 }
