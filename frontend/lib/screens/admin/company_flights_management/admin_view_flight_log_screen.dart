@@ -40,6 +40,9 @@ class _AdminViewFlightLogScreenState extends State<AdminViewFlightLogScreen> {
     super.dispose();
   }
 
+  // ==============================
+  // FETCH PDF BYTES
+  // ==============================
   Future<Uint8List> _loadPdfBytes(String url) async {
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
@@ -48,18 +51,63 @@ class _AdminViewFlightLogScreenState extends State<AdminViewFlightLogScreen> {
     throw Exception("Error loading PDF");
   }
 
+  // ==============================
+  // NORMALIZE URL
+  // ==============================
   String _normalizeUrl(String rawUrl) {
-    String url = rawUrl.trim();
+    final url = rawUrl.trim();
 
-    if (!url.startsWith("http://") && !url.startsWith("https://")) {
-      url = "${ApiConfig.baseUrl}$url";
-      url = url
-          .replaceAll("//", "/")
-          .replaceFirst("http:/", "http://")
-          .replaceFirst("https:/", "https://");
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return url;
     }
 
-    return url;
+    return "${ApiConfig.baseUrl}$url"
+        .replaceAll("//", "/")
+        .replaceFirst("http:/", "http://")
+        .replaceFirst("https:/", "https://");
+  }
+
+  // ==============================
+  // DOWNLOAD HANDLER (with Fallback)
+  // ==============================
+  Future<void> _handleDownload(String rawUrl) async {
+    final url = _normalizeUrl(rawUrl);
+    final uri = Uri.parse(url);
+
+    // -------- 1️⃣ Intento abrir navegador externo ----------
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (launched) return; // ¡Éxito!
+    } catch (_) {
+      // Ignorar, pasamos al fallback
+    }
+
+    // -------- 2️⃣ Google Docs Viewer (fallback universal) --------
+    final viewerUrl =
+        "https://docs.google.com/viewer?url=${Uri.encodeComponent(url)}&embedded=true";
+
+    final viewerUri = Uri.parse(viewerUrl);
+
+    try {
+      final launched = await launchUrl(
+        viewerUri,
+        mode: LaunchMode.inAppWebView,
+      );
+
+      if (launched) return; // ¡Éxito!
+    } catch (_) {
+      // Continuar al fallback final
+    }
+
+    // -------- 3️⃣ Error final --------
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Unable to open PDF:\n$url")),
+    );
   }
 
   @override
@@ -79,30 +127,16 @@ class _AdminViewFlightLogScreenState extends State<AdminViewFlightLogScreen> {
               if (log == null) return const SizedBox.shrink();
 
               return IconButton(
-                icon: const Icon(Icons.download),
                 tooltip: "Download PDF",
-                onPressed: () async {
-                  final normalized = _normalizeUrl(log.pdfUrl);
-                  final uri = Uri.parse(normalized);
-
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  } else {
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("Unable to open download link:\n$normalized"),
-                        backgroundColor: Colors.redAccent,
-                      ),
-                    );
-                  }
-                },
+                icon: const Icon(Icons.download),
+                onPressed: () => _handleDownload(log.pdfUrl),
               );
             },
           ),
         ],
       ),
 
+      // ========================= BODY ============================
       body: FutureBuilder<FlightLogModel?>(
         future: _logFuture,
         builder: (context, snapshot) {

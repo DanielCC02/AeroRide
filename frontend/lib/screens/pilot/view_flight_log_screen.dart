@@ -36,6 +36,7 @@ class _ViewFlightLogScreenState extends State<ViewFlightLogScreen> {
     super.dispose();
   }
 
+  /// DESCARGA EL PDF COMO BYTES (para el visor PdfX)
   Future<Uint8List> _loadPdfBytes(String url) async {
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
@@ -44,18 +45,20 @@ class _ViewFlightLogScreenState extends State<ViewFlightLogScreen> {
     throw Exception("Error loading PDF bytes");
   }
 
+  /// NORMALIZA LA URL — evita romper las URLs de Azure Blob Storage
   String _normalizeUrl(String rawUrl) {
-    String url = rawUrl.trim();
+    final url = rawUrl.trim();
 
-    if (!url.startsWith("http://") && !url.startsWith("https://")) {
-      url = "${ApiConfig.baseUrl}$url";
-      url = url
-          .replaceAll("//", "/")
-          .replaceFirst("http:/", "http://")
-          .replaceFirst("https:/", "https://");
+    // ⚠️ Si es absoluta (como Azure Blob Storage), NO tocarla
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return url;
     }
 
-    return url;
+    // ⚠️ Solo normalizar si es relativa
+    return "${ApiConfig.baseUrl}$url"
+        .replaceAll("//", "/")
+        .replaceFirst("http:/", "http://")
+        .replaceFirst("https:/", "https://");
   }
 
   @override
@@ -84,14 +87,46 @@ class _ViewFlightLogScreenState extends State<ViewFlightLogScreen> {
               final url = _normalizeUrl(log.pdfUrl);
               final uri = Uri.parse(url);
 
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
-              } else {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Unable to open download link:\n$url")),
+              // =============================================
+              // 1️⃣ Intentar abrir con un navegador externo
+              // =============================================
+              try {
+                final launched = await launchUrl(
+                  uri,
+                  mode: LaunchMode.externalApplication,
                 );
+
+                if (launched) return; // Success!
+              } catch (_) {
+                // Ignorar, pasamos al fallback
               }
+
+              // =============================================
+              // 2️⃣ FALLBACK: Abrir en Google Docs Viewer
+              // =============================================
+              final viewerUrl =
+                  "https://docs.google.com/viewer?url=${Uri.encodeComponent(url)}&embedded=true";
+
+              final viewerUri = Uri.parse(viewerUrl);
+
+              try {
+                final launched = await launchUrl(
+                  viewerUri,
+                  mode: LaunchMode.inAppWebView,
+                );
+
+                if (launched) return; // Success!
+              } catch (_) {
+                // ignorar y continuar al fallback final
+              }
+
+              // =============================================
+              // 3️⃣ Si todo falla → mostrar error
+              // =============================================
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Unable to open PDF:\n$url")),
+              );
             },
           ),
         ],

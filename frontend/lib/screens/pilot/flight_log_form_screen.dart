@@ -292,7 +292,7 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
         // FOOTER AUTOMÁTICO EN TODAS LAS PÁGINAS
         footer: (context) => pw.Center(
           child: pw.Text(
-            "Generated automatically by AeroRide ${DateTime.now().toLocal()}",
+            "Generated automatically by AeroCaribe ${DateTime.now().toLocal()}",
             style: pw.TextStyle(fontSize: 10, color: PdfColors.grey),
           ),
         ),
