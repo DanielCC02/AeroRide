@@ -58,6 +58,7 @@ builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IFlightService, FlightService>();
 builder.Services.AddScoped<IFlightLogService, FlightLogService>();
+builder.Services.AddScoped<IFileStorageService, AzureFileStorageService>();
 
 
 

@@ -1,24 +1,26 @@
 ﻿using AeroRide.API.Data;
-using AeroRide.API.Helpers;
+using AeroRide.API.Interfaces;
 using AeroRide.API.Models.Domain;
 using AeroRide.API.Models.DTOs.FlightLogs;
 using AeroRide.API.Services.Interfaces;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 
-
 namespace AeroRide.API.Services.Implementations
 {
     public class FlightLogService : IFlightLogService
     {
         private readonly AeroRideDbContext _db;
-        private readonly BlobStorageService _blob;
+        private readonly IFileStorageService _pdfService;
         private readonly IMapper _mapper;
 
-        public FlightLogService(AeroRideDbContext db, BlobStorageService blob, IMapper mapper)
+        public FlightLogService(
+            AeroRideDbContext db,
+            IFileStorageService pdfService,
+            IMapper mapper)
         {
             _db = db;
-            _blob = blob;
+            _pdfService = pdfService;
             _mapper = mapper;
         }
 
@@ -41,8 +43,8 @@ namespace AeroRide.API.Services.Implementations
             if (pilot == null)
                 throw new Exception("El piloto no existe.");
 
-            // Subir archivo PDF
-            var pdfUrl = await _blob.UploadFileAsync(dto.PdfFile);
+            // ===== Subir PDF al contenedor "flight-logs" =====
+            var pdfUrl = await _pdfService.UploadAsync(dto.PdfFile, "flight-logs");
 
             // Crear objeto FlightLog
             var log = new FlightLog
