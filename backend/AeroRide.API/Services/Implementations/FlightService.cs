@@ -122,8 +122,6 @@ namespace AeroRide.API.Services.Implementations
             await _db.SaveChangesAsync();
         }
 
-
-
         // ======================================================
         // 3) OBTENER TODOS LOS VUELOS DE UN PILOTO
         // ======================================================

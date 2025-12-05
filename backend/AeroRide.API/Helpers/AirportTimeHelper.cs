@@ -46,16 +46,58 @@ namespace AeroRide.API.Helpers
         /// <summary>
         /// Determina si se debe generar una pernocta automática con base en el horario de cierre.
         /// </summary>
-        public static bool ShouldOvernight(Airport destino, DateTime arrivalUtc)
+        public static bool ShouldOvernight(
+     Airport destino,
+     DateTime arrivalUtc,
+     Airport baseAirport,
+     double duracionRegresoMin)
         {
+            // 1️⃣ Si el aeropuerto destino es 24/7 → NO pernocta
             if (destino.OpeningTime == null || destino.ClosingTime == null)
                 return false;
 
+            // Convertir llegada a hora local del aeropuerto destino
             var arrivalLocal = TimeHelper.ToLocalTime(arrivalUtc, destino.TimeZone);
-            var cierre = destino.ClosingTime.Value;
 
-            // Si faltan 3 horas o menos para el cierre → pernocta
-            return (cierre - arrivalLocal.TimeOfDay) <= TimeSpan.FromHours(3);
+            var opening = destino.OpeningTime.Value;
+            var closing = destino.ClosingTime.Value;
+
+            // 2️⃣ Validar aterrizaje permitido (cierre - margen de aterrizaje)
+            var maxArrivalLocal =
+                closing - TimeSpan.FromMinutes(destino.ArrivalMarginMinutes);
+
+            if (arrivalLocal.TimeOfDay < opening || arrivalLocal.TimeOfDay > maxArrivalLocal)
+                return true;
+
+            // 3️⃣ Validar despegue permitido (cierre - margen para despegue)
+            var maxDepartureLocal =
+                closing - TimeSpan.FromMinutes(destino.DepartureMarginMinutes);
+
+            // tiempo mínimo después de aterrizar para despegar
+            var earliestPossibleDeparture =
+                arrivalLocal.AddMinutes(destino.ArrivalMarginMinutes);
+
+            if (earliestPossibleDeparture.TimeOfDay > maxDepartureLocal)
+                return true;
+
+            // 4️⃣ Validar llegada al aeropuerto base
+            // convertir hora de llegada a base (local destino → local base)
+            var arrivalBaseLocal = earliestPossibleDeparture.AddMinutes(duracionRegresoMin);
+
+            if (baseAirport.OpeningTime != null && baseAirport.ClosingTime != null)
+            {
+                var baseKOpening = baseAirport.OpeningTime.Value;
+                var baseKClosing = baseAirport.ClosingTime.Value;
+
+                var maxBaseArrival = baseKClosing
+                    - TimeSpan.FromMinutes(baseAirport.ArrivalMarginMinutes);
+
+                if (arrivalBaseLocal.TimeOfDay > maxBaseArrival)
+                    return true;
+            }
+
+            return false;
         }
+
     }
 }

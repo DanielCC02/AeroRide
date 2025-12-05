@@ -18,6 +18,9 @@ namespace AeroRide.API.Models.DTOs.Reservations
         [StringLength(100)]
         public string AircraftModel { get; set; } = null!;
 
+        // 🆕 Lista de aeronaves válidas para este modelo/compañía
+        public List<int> AircraftIds { get; set; } = new();
+
         [Range(0, 100)]
         public double PorcentPrice { get; set; }
 
