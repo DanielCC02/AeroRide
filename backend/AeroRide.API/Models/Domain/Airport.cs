@@ -54,6 +54,10 @@ namespace AeroRide.API.Models.Domain
         /// </summary>
         public TimeSpan? ClosingTime { get; set; }
 
+        public int DepartureMarginMinutes { get; set; } = 60;  // Tiempo mínimo antes del cierre para permitir despegues
+        public int ArrivalMarginMinutes { get; set; } = 30;    // Tiempo mínimo antes del cierre para permitir aterrizajes
+
+
         /// <summary>
         /// Latitud geográfica expresada en formato decimal.
         /// </summary>

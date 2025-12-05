@@ -122,8 +122,6 @@ namespace AeroRide.API.Services.Implementations
             await _db.SaveChangesAsync();
         }
 
-
-
         // ======================================================
         // 3) OBTENER TODOS LOS VUELOS DE UN PILOTO
         // ======================================================
@@ -205,7 +203,7 @@ namespace AeroRide.API.Services.Implementations
             // 🔹 Calcular precio final con descuento
             // ===============================
             double baseCost = flight.DurationMinutes * flight.Aircraft.MinuteCost;
-            double discountMultiplier = flight.Company.EmptyLegDiscount / 100.0;
+            double discountMultiplier = flight.Company.EmptyLegDiscount;
 
             dto.FinalPrice = Math.Round(baseCost * discountMultiplier, 2);
 
@@ -219,8 +217,6 @@ namespace AeroRide.API.Services.Implementations
 
             return dto;
         }
-
-
 
         public async Task<bool> UpdateFlightStatusAsync(int flightId, FlightStatus status)
         {
