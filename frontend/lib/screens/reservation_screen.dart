@@ -14,9 +14,7 @@ import '../services/reservation_service.dart' as rsvc;
 import '../services/aircraft_service.dart' as asvc;
 import '../models/aircraft_model.dart';
 
-// Usa ESTE form (retorna List<PassengerInfo>)
 import 'passengers_form_screen.dart';
-
 import 'reservation_route_map_screen.dart';
 import 'homepage_screen.dart';
 
@@ -30,6 +28,9 @@ class ReservationScreen extends StatefulWidget {
   final String? headerImage;
   final int? seats;
 
+  // id de la aeronave seleccionada en PlaneListScreen (puede ser null)
+  final int? aircraftId;
+
   const ReservationScreen({
     super.key,
     required this.criteria,
@@ -38,6 +39,7 @@ class ReservationScreen extends StatefulWidget {
     required this.aircraftModel,
     this.headerImage,
     this.seats,
+    this.aircraftId,
   });
 
   @override
@@ -66,9 +68,11 @@ class _ReservationScreenState extends State<ReservationScreen> {
   models.ReservationEstimateResponse? _estimateRaw;
 
   // Resoluciones
-  int? _effectiveCompanyId;
   String? _modelForApi; // exactamente el modelo que mandaremos
   AircraftModel? _assignedPreview;
+
+  // aircraftId efectivo usado para el estimate
+  int? _selectedAircraftId;
 
   // Aviso cuando el avión real pertenece a otra compañía
   String? _companyMismatchWarning;
@@ -77,6 +81,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
   void initState() {
     super.initState();
     _modelForApi = widget.aircraftModel; // exacto
+    _selectedAircraftId = widget.aircraftId; // viene de PlaneListScreen
     _refreshEstimate();
   }
 
@@ -129,7 +134,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
                 child: Material(
-                  color: Colors.amberAccent.withOpacity(0.2),
+                  color: Colors.amberAccent.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                   child: Padding(
                     padding: const EdgeInsets.all(8),
@@ -223,7 +228,8 @@ class _ReservationScreenState extends State<ReservationScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${widget.criteria.from.name}\n${widget.criteria.from.country}',
+                              '${widget.criteria.from.name}\n'
+                              '${widget.criteria.from.country}',
                               style: const TextStyle(
                                 color: Colors.black54,
                                 fontSize: 12,
@@ -246,7 +252,8 @@ class _ReservationScreenState extends State<ReservationScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${widget.criteria.to.name}\n${widget.criteria.to.country}',
+                              '${widget.criteria.to.name}\n'
+                              '${widget.criteria.to.country}',
                               textAlign: TextAlign.right,
                               style: const TextStyle(
                                 color: Colors.black54,
@@ -307,9 +314,9 @@ class _ReservationScreenState extends State<ReservationScreen> {
                   runSpacing: 8,
                   children: List.generate(_passengers.length, (i) {
                     final p = _passengers[i];
-                    final name =
-                        '${p.name ?? 'Passenger'} ${p.lastName ?? (i + 1)}'
-                            .trim();
+                    final defaultName = 'Passenger ${i + 1}';
+                    final name = '${p.name ?? defaultName} ${p.lastName ?? ''}'
+                        .trim();
                     return Chip(
                       avatar: Icon(
                         Icons.person,
@@ -416,7 +423,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
         color: Colors.grey.shade900,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 12,
             offset: const Offset(0, -4),
           ),
@@ -497,16 +504,17 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
   // ================== HEADER ==================
   Widget _buildHeader(Duration eft) {
-    final img = (_assignedPreview?.image.isNotEmpty == true)
-        ? _assignedPreview!.image
-        : (widget.headerImage ?? '');
+    // 1️⃣ Imagen: preferimos SIEMPRE la del card seleccionado
+    // y solo usamos la del preview si no hay headerImage.
+    final img = (widget.headerImage != null && widget.headerImage!.isNotEmpty)
+        ? widget.headerImage!
+        : (_assignedPreview?.image ?? '');
 
-    // Título: usamos el modelo EXACTO si no hay matrícula
-    final title = (_assignedPreview?.patent.isNotEmpty == true)
-        ? _assignedPreview!.patent.toUpperCase()
-        : (_modelForApi ?? widget.aircraftModel);
+    // 2️⃣ Título: SIEMPRE el modelo que venía del PlaneListScreen
+    final title = widget.aircraftModel;
 
-    final seats = _assignedPreview?.seats ?? widget.seats ?? 0;
+    // 3️⃣ Seats: primero lo que venía del card, si no, usamos preview
+    final seats = widget.seats ?? _assignedPreview?.seats ?? 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -517,7 +525,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
               ? Image.network(
                   img,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+                  errorBuilder: (context, error, stackTrace) => Container(
                     color: Colors.black12,
                     alignment: Alignment.center,
                     child: const Icon(Icons.broken_image, size: 48),
@@ -573,7 +581,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
     return 0;
   }
 
-  // ---- Timezone helpers (pulidos) ----
+  // ---- Timezone helpers ----
   DateTime _localAirportToUtc(DateTime localWallTime, String? timeZoneId) {
     final offset = _tzOffsetHours(timeZoneId, localWallTime);
     final naiveAsUtc = DateTime.utc(
@@ -613,6 +621,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
     return -6; // fallback Centroamérica
   }
 
+  // ---- Estimate refresh ----
   Future<void> _refreshEstimate() async {
     setState(() {
       _estimating = true;
@@ -623,9 +632,39 @@ class _ReservationScreenState extends State<ReservationScreen> {
     try {
       final c = widget.criteria;
       final resolvedCompanyId = await _resolveCompanyId();
-      _effectiveCompanyId = resolvedCompanyId;
 
       final modelForEstimate = (_modelForApi ?? widget.aircraftModel).trim();
+
+      // 1️⃣ Tomamos el aircraftId que viene desde PlaneList / initState
+      _selectedAircraftId ??= widget.aircraftId;
+      int? aircraftIdForEstimate = _selectedAircraftId;
+
+      // 2️⃣ Si por alguna razón viene null, intentamos buscar por compañía + modelo
+      if (aircraftIdForEstimate == null) {
+        try {
+          final fallback = await _airSvc.findFirstAircraftByCompanyAndModel(
+            companyId: resolvedCompanyId,
+            model: modelForEstimate,
+          );
+          if (fallback != null) {
+            aircraftIdForEstimate = fallback.id;
+            _selectedAircraftId = fallback.id;
+            _assignedPreview = fallback; // de paso llenamos preview
+          }
+        } catch (_) {
+          // Si falla, lo manejamos más abajo
+        }
+      }
+
+      // 3️⃣ Si seguimos sin aircraftId → no podemos llamar al estimate
+      if (aircraftIdForEstimate == null) {
+        if (!mounted) return;
+        setState(() {
+          _estimateError =
+              'No se encontró ninguna aeronave disponible para el modelo $modelForEstimate.';
+        });
+        return;
+      }
 
       // Usa hora local del aeropuerto (no del dispositivo)
       final depUtc = _localAirportToUtc(c.departure, c.from.timeZone);
@@ -654,9 +693,9 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
       final passengersTotal = c.passengers + (lapInfant ? 1 : 0);
 
+      // Request alineado con Swagger: aircraftIds + totalPassengers + segments
       final req = ReservationEstimateRequest(
-        companyId: resolvedCompanyId,
-        aircraftModel: modelForEstimate,
+        aircraftIds: [aircraftIdForEstimate],
         totalPassengers: passengersTotal,
         segments: segs,
       );
@@ -671,11 +710,27 @@ class _ReservationScreenState extends State<ReservationScreen> {
         _estimateRaw = est;
         _estimatedTotal = est.totalPrice;
         _estimateMinutes = est.totalMinutes.round();
+
+        // No dejamos que el back cambie el avión seleccionado.
+        _selectedAircraftId ??= aircraftIdForEstimate;
       });
 
-      // ===== Preview opcional + aviso si la compañía no coincide =====
+      // ========= Cargar avión "preview" y warning de compañía =========
       try {
-        final preview = await _airSvc.findFirstAircraftByCompanyAndModel(
+        AircraftModel? preview;
+
+        // 1) Siempre intentamos primero el avión que seleccionó el usuario
+        if (_selectedAircraftId != null) {
+          preview = await _airSvc.getAircraftById(_selectedAircraftId!);
+        }
+
+        // 2) Si por X razón no se pudo cargar, usamos el que devolvió el back
+        if (preview == null && est.aircraftId != null && est.aircraftId! > 0) {
+          preview = await _airSvc.getAircraftById(est.aircraftId!);
+        }
+
+        // 3) Último fallback: por compañía + modelo
+        preview ??= await _airSvc.findFirstAircraftByCompanyAndModel(
           companyId: resolvedCompanyId,
           model: modelForEstimate,
         );
@@ -688,6 +743,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
           final selectedName = widget.companyName.trim().toLowerCase();
           final previewName = preview.companyName.trim().toLowerCase();
 
+          // Si el avión que estamos mostrando es de otra compañía, dejamos el warning
           if (selectedName.isNotEmpty &&
               previewName.isNotEmpty &&
               selectedName != previewName) {
@@ -825,7 +881,9 @@ class _ReservationScreenState extends State<ReservationScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) setState(() => _booking = false);
     }
@@ -847,7 +905,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
     }
   }
 
-  // ---- Price breakdown sheet (FUNCIONA) ----
+  // ---- Price breakdown sheet ----
   void _showBreakdown() {
     if (_estimatedTotal == null) return;
 
@@ -981,7 +1039,6 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
   // ================== HELPERS ==================
   PassengerCreateRequest _mapPassenger(PassengerInfo p) {
-    // Aquí usamos directamente los campos del modelo ya alineados con la BD
     final firstName = (p.name ?? '').trim();
     final middleName = (p.middleName ?? '').trim();
     final lastName = (p.lastName ?? '').trim();
@@ -1012,18 +1069,21 @@ class _ReservationScreenState extends State<ReservationScreen> {
   int _estimateEteMinutes(double lat1, double lon1, double lat2, double lon2) {
     const R = 6371.0;
     double deg2rad(double d) => d * math.pi / 180.0;
+
     final dLat = deg2rad(lat2 - lat1);
-    final dLon = deg2rad(lat2 - lat1);
-    final dLon2 = deg2rad(lon2 - lon1);
+    final dLon = deg2rad(lon2 - lon1);
+
     final a =
         math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(deg2rad(lat1)) *
             math.cos(deg2rad(lat2)) *
-            math.sin(dLon2 / 2) *
-            math.sin(dLon2 / 2);
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
+
     final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
     final distanceKm = R * c;
-    final speedKmh = 300.0;
+
+    const speedKmh = 300.0;
     final minutes = ((distanceKm / speedKmh) * 60).ceil() + 10;
     final rem = minutes % 5;
     return rem == 0 ? minutes : (minutes + (5 - rem));

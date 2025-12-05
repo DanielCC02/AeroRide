@@ -14,7 +14,7 @@ class HomePageAdminCompany extends StatelessWidget {
     final companyId = Provider.of<CompanyIdProvider>(context).companyId;
 
     // Agregamos un print para verificar el valor de companyId
-    print('HomePageAdminCompany - companyId: $companyId');
+    debugPrint('HomePageAdminCompany - companyId: $companyId');
 
     if (companyId == null) {
       // Si no se encuentra el companyId, redirigir al usuario a la pantalla de bienvenida

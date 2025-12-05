@@ -58,6 +58,7 @@ namespace AeroRide.API.Services.Implementations
         public async Task<AuthResponseDto> LoginAsync(UserLoginDto dto)
         {
             var user = await _db.Users
+               .IgnoreQueryFilters()
                .Include(u => u.Role)
                .Include(u => u.Company)
                .FirstOrDefaultAsync(u => u.Email == dto.Email);

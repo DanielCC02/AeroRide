@@ -33,18 +33,18 @@ class _PassengerDetailsScreenState extends State<PassengerDetailsScreen> {
   Future<bool> _onWillPop() async {
     final discard = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('Discard passengers?'),
         content: const Text(
           'If you go back now, your reservation will be cancelled.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
             child: const Text('Stay'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
             child: const Text('Discard'),
           ),
         ],
@@ -55,8 +55,31 @@ class _PassengerDetailsScreenState extends State<PassengerDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    // Cacheamos el navigator para no usar context después de async gaps
+    final navigator = Navigator.of(context);
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        // Si ya se hizo pop por otra razón, no hacemos nada
+        if (didPop) {
+          return;
+        }
+
+        // Reutilizamos tu lógica existente de _onWillPop()
+        _onWillPop().then((shouldPop) {
+          if (!mounted) {
+            return;
+          }
+
+          // Si el usuario confirma "Discard", hacemos el pop manualmente
+          if (shouldPop) {
+            // Usamos pop() sin resultado explícito para mantener el mismo comportamiento
+            // que con WillPopScope (el caller recibe null, y solo trata true como éxito).
+            navigator.pop();
+          }
+        });
+      },
       child: Scaffold(
         appBar: AppBar(title: const Text('Passengers'), centerTitle: true),
         body: ListView.builder(
@@ -139,7 +162,9 @@ class _PassengerDetailsScreenState extends State<PassengerDetailsScreen> {
                                 ),
                                 initialDate: f.dateOfBirth,
                               );
-                              if (d != null) setState(() => f.dateOfBirth = d);
+                              if (d != null) {
+                                setState(() => f.dateOfBirth = d);
+                              }
                             },
                             child: InputDecorator(
                               decoration: const InputDecoration(
@@ -206,12 +231,16 @@ class _PassengerDetailsScreenState extends State<PassengerDetailsScreen> {
   }
 
   Future<void> _save() async {
+    // Cacheamos el messenger y navigator ANTES de cualquier await
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     for (final f in _forms) {
       if (f.name.trim().isEmpty ||
           f.lastName.trim().isEmpty ||
           f.passport.trim().isEmpty ||
           f.nationality.trim().isEmpty) {
-        _snack('Please fill in all required fields.');
+        _snack(messenger, 'Please fill in all required fields.');
         return;
       }
     }
@@ -243,13 +272,19 @@ class _PassengerDetailsScreenState extends State<PassengerDetailsScreen> {
         widget.reservationId,
         payload,
       );
-      if (!mounted) return;
-      Navigator.of(context).pop<bool>(true);
+      if (!mounted) {
+        return;
+      }
+      navigator.pop<bool>(true);
     } catch (_) {
-      if (!mounted) return;
-      _snack('Could not save passengers. Please try again.');
+      if (!mounted) {
+        return;
+      }
+      _snack(messenger, 'Could not save passengers. Please try again.');
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) {
+        setState(() => _saving = false);
+      }
     }
   }
 
@@ -262,8 +297,8 @@ class _PassengerDetailsScreenState extends State<PassengerDetailsScreen> {
     );
   }
 
-  void _snack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  void _snack(ScaffoldMessengerState messenger, String msg) {
+    messenger.showSnackBar(SnackBar(content: Text(msg)));
   }
 }
 

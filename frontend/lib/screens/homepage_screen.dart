@@ -1,10 +1,14 @@
+// lib/screens/homepage_screen.dart
+
 import 'package:flutter/material.dart';
+
 import '../widgets/search_form.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../screens/trips_screen.dart';
 import '../screens/map_screen.dart';
 import '../services/token_storage.dart';
 import '../screens/welcome_screen.dart';
+import '../widgets/todays_deals_section.dart';
 
 class HomePageScreen extends StatefulWidget {
   const HomePageScreen({super.key});
@@ -17,10 +21,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _screens = const [
-    Padding(
-      padding: EdgeInsets.all(16.0),
-      child: SearchForm(), // Book
-    ),
+    _BookTab(), // Book (search + today's deals)
     TripsScreen(), // Trips
     MapScreen(), // Map
     Center(child: Text("Profile screen placeholder")), // Profile
@@ -67,8 +68,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
         ),
         centerTitle: true,
         elevation: 0,
-
-        // 👇 Agregamos este bloque
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.red),
@@ -79,7 +78,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                  (route) => false, // 🔹 borra todo el stack anterior
+                  (route) => false,
                 );
               }
             },
@@ -90,6 +89,26 @@ class _HomePageScreenState extends State<HomePageScreen> {
       bottomNavigationBar: CustomBottomNav(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
+      ),
+    );
+  }
+}
+
+/// Tab principal de "Book": SearchForm + Today's Deals
+class _BookTab extends StatelessWidget {
+  const _BookTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: const [
+          SearchForm(),
+          SizedBox(height: 16),
+          TodaysDealsSection(),
+        ],
       ),
     );
   }

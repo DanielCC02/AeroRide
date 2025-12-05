@@ -27,7 +27,7 @@ class _CompanyPilotsScreenState extends State<CompanyPilotsScreen> {
     ).companyId;
 
     // Agregar un print para verificar el companyId que estamos recibiendo
-    print('CompanyPilotsScreen - companyId: $companyId');
+    debugPrint('CompanyPilotsScreen - companyId: $companyId');
 
     if (companyId != null) {
       _pilotsFuture = _userService.getPilotsByCompany(
@@ -47,7 +47,7 @@ class _CompanyPilotsScreenState extends State<CompanyPilotsScreen> {
     ).companyId;
 
     // Agregar un print para verificar el companyId en el refresh
-    print('CompanyPilotsScreen - Refresh - companyId: $companyId');
+    debugPrint('CompanyPilotsScreen - Refresh - companyId: $companyId');
 
     if (companyId != null) {
       setState(() {
@@ -65,7 +65,7 @@ class _CompanyPilotsScreenState extends State<CompanyPilotsScreen> {
     ).companyId;
 
     // Agregar un print para verificar el companyId antes de crear un piloto
-    print('CompanyPilotsScreen - Go to Create Pilot - companyId: $companyId');
+    debugPrint('CompanyPilotsScreen - Go to Create Pilot - companyId: $companyId');
 
     if (companyId != null) {
       await Navigator.push(
@@ -165,9 +165,9 @@ class _CompanyPilotsScreenState extends State<CompanyPilotsScreen> {
                         ),
                       );
 
-                      // ✅ Si desde el detalle o edición se devolvió "true", refrescamos la lista
+                      // Si desde el detalle o edición se devolvió "true", refrescamos la lista
                       if (refresh == true && context.mounted) {
-                        print(
+                        debugPrint(
                           '🔁 Refrescando lista de pilotos tras edición...',
                         );
                         await _refreshPilots();

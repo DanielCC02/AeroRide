@@ -139,7 +139,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
 
                 const SizedBox(height: 30),
 
-                // 🔹 Botón para desactivar usuario
+                // Botón para desactivar usuario
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: user.isActive
@@ -152,6 +152,10 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                     user.isActive ? 'Deactivate User' : 'Reactivate User',
                   ),
                   onPressed: () async {
+                    // 👇 Cacheamos helpers ANTES de cualquier await
+                    final messenger = ScaffoldMessenger.of(context);
+                    final navigator = Navigator.of(context);
+
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (ctx) => AlertDialog(
@@ -183,11 +187,15 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                       ),
                     );
 
-                    if (confirm == true && context.mounted) {
+                    if (confirm == true) {
+                      if (!mounted) {
+                        return;
+                      }
+
                       try {
                         if (user.isActive) {
                           await _userService.deactivateUser(user.id);
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             const SnackBar(
                               content: Text(
                                 '✅ Usuario desactivado correctamente',
@@ -197,7 +205,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                         } else {
                           // ♻️ Reactivar usuario
                           await _userService.reactivateUser(user.id);
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             const SnackBar(
                               content: Text(
                                 '✅ Usuario reactivado correctamente',
@@ -205,12 +213,15 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                             ),
                           );
                         }
-                        // Regresar al listado y actualizar
-                        Navigator.pop(context, true);
+
+                        navigator.pop(true); // Regresar al listado y actualizar
                       } catch (e) {
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(SnackBar(content: Text('⚠️ Error: $e')));
+                        if (!mounted) {
+                          return;
+                        }
+                        messenger.showSnackBar(
+                          SnackBar(content: Text('⚠️ Error: $e')),
+                        );
                       }
                     }
                   },
@@ -223,7 +234,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     );
   }
 
-  /// 🔹 Widget auxiliar para mostrar cada fila de detalle (campo: valor)
+  /// Widget auxiliar para mostrar cada fila de detalle (campo: valor)
   Widget _buildDetailRow(String title, String value, {Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),

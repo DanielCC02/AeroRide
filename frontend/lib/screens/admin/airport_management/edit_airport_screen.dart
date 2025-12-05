@@ -50,8 +50,9 @@ class _EditAirportScreenState extends State<EditAirportScreen> {
     _timeZone = TextEditingController(text: airport.timeZone);
     _openingTime = TextEditingController(text: airport.openingTime ?? '');
     _closingTime = TextEditingController(text: airport.closingTime ?? '');
-    _maxAllowedWeight =
-        TextEditingController(text: airport.maxAllowedWeight?.toString() ?? '');
+    _maxAllowedWeight = TextEditingController(
+      text: airport.maxAllowedWeight?.toString() ?? '',
+    );
     _imageUrl = airport.image;
   }
 
@@ -72,30 +73,40 @@ class _EditAirportScreenState extends State<EditAirportScreen> {
   }
 
   // ======================================================
-  // 📸 Seleccionar y subir nueva imagen
+  // Seleccionar y subir nueva imagen
   // ======================================================
   Future<void> _pickImage() async {
+    // Usamos context ANTES de cualquier await
+    final messenger = ScaffoldMessenger.of(context);
+
     final picked = await _picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      try {
+    if (picked == null) return;
+
+    try {
+      if (mounted) {
         setState(() => _isLoading = true);
+      }
 
-        final file = File(picked.path);
-        final uploadedUrl = await _airportService.uploadAirportImage(file);
+      final file = File(picked.path);
+      final uploadedUrl = await _airportService.uploadAirportImage(file);
 
+      if (mounted) {
         setState(() => _imageUrl = uploadedUrl);
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('⚠️ Error al subir imagen: $e')),
-        );
-      } finally {
+      }
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('⚠️ Error al subir imagen: $e')),
+      );
+    } finally {
+      if (mounted) {
         setState(() => _isLoading = false);
       }
     }
   }
 
   // ======================================================
-  // 💾 Guardar cambios
+  // Guardar cambios
   // ======================================================
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -125,15 +136,17 @@ class _EditAirportScreenState extends State<EditAirportScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Aeropuerto actualizado correctamente')),
+          const SnackBar(
+            content: Text('✅ Aeropuerto actualizado correctamente'),
+          ),
         );
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('⚠️ Error al actualizar: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('⚠️ Error al actualizar: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -141,7 +154,7 @@ class _EditAirportScreenState extends State<EditAirportScreen> {
   }
 
   // ======================================================
-  // 🧱 UI
+  // UI
   // ======================================================
   @override
   Widget build(BuildContext context) {
@@ -156,7 +169,7 @@ class _EditAirportScreenState extends State<EditAirportScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 📸 Imagen editable
+                // Imagen editable
                 GestureDetector(
                   onTap: _isLoading ? null : _pickImage,
                   child: Stack(
@@ -189,7 +202,7 @@ class _EditAirportScreenState extends State<EditAirportScreen> {
                         height: 200,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withValues(alpha: 0.3),
                         ),
                         alignment: Alignment.center,
                         child: const Column(
@@ -213,7 +226,7 @@ class _EditAirportScreenState extends State<EditAirportScreen> {
                           height: 200,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
-                            color: Colors.black.withOpacity(0.4),
+                            color: Colors.black.withValues(alpha: 0.4),
                           ),
                           alignment: Alignment.center,
                           child: const CircularProgressIndicator(
@@ -225,25 +238,45 @@ class _EditAirportScreenState extends State<EditAirportScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // 🧾 Campos editables
+                // Campos editables
                 _buildField(_name, 'Name', 'Enter name'),
                 _buildField(_codeIATA, 'Code IATA', 'Enter IATA code'),
                 _buildField(_codeOACI, 'Code OACI', 'Enter OACI code'),
                 _buildField(_city, 'City', 'Enter city'),
                 _buildField(_country, 'Country', 'Enter country'),
-                _buildField(_latitude, 'Latitude', 'Enter latitude',
-                    isNumeric: true),
-                _buildField(_longitude, 'Longitude', 'Enter longitude',
-                    isNumeric: true),
+                _buildField(
+                  _latitude,
+                  'Latitude',
+                  'Enter latitude',
+                  isNumeric: true,
+                ),
+                _buildField(
+                  _longitude,
+                  'Longitude',
+                  'Enter longitude',
+                  isNumeric: true,
+                ),
                 _buildField(_timeZone, 'Time Zone', 'Enter timezone'),
-                _buildField(_openingTime, 'Opening Time (HH:mm:ss)', 'Optional'),
-                _buildField(_closingTime, 'Closing Time (HH:mm:ss)', 'Optional'),
-                _buildField(_maxAllowedWeight, 'Max Allowed Weight (kg)', 'Optional',
-                    isNumeric: true),
+                _buildField(
+                  _openingTime,
+                  'Opening Time (HH:mm:ss)',
+                  'Optional',
+                ),
+                _buildField(
+                  _closingTime,
+                  'Closing Time (HH:mm:ss)',
+                  'Optional',
+                ),
+                _buildField(
+                  _maxAllowedWeight,
+                  'Max Allowed Weight (kg)',
+                  'Optional',
+                  isNumeric: true,
+                ),
 
                 const SizedBox(height: 24),
 
-                // 💾 Botón Guardar
+                // Botón Guardar
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -269,9 +302,13 @@ class _EditAirportScreenState extends State<EditAirportScreen> {
     );
   }
 
-  // 🔹 Widget de campo reutilizable
-  Widget _buildField(TextEditingController controller, String label, String hint,
-      {bool isNumeric = false}) {
+  // Widget de campo reutilizable
+  Widget _buildField(
+    TextEditingController controller,
+    String label,
+    String hint, {
+    bool isNumeric = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: TextFormField(

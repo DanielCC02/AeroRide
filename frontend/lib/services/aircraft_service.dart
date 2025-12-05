@@ -1,6 +1,7 @@
 // lib/services/aircraft_service.dart
 import 'dart:convert';
 import 'dart:io';
+import 'package:frontend/models/company_flight_model.dart';
 import 'package:http/http.dart' as http;
 
 import 'api_config.dart';
@@ -67,15 +68,16 @@ class AircraftService {
     final uri = _uri('/api/Aircrafts/grouped');
     final hdrs = await _headers(jsonBody: true);
 
-    // body según swagger (companyId es opcional; lo omitimos para listar todo)
+    // ✅ Hora local del aeropuerto de salida convertida a UTC
+    final depUtc = _localAirportToUtc(c.departure, c.from.timeZone);
+
     final body = <String, dynamic>{
       'minSeats': c.passengers,
       'departureAirportId': c.from.id,
       'arrivalAirportId': c.to.id,
-      'departureTime': c.departure.toUtc().toIso8601String(),
+      'departureTime': depUtc.toIso8601String(),
     };
 
-    // GET con body ⇒ usar http.Request
     final req = http.Request('GET', uri)
       ..headers.addAll(hdrs)
       ..body = jsonEncode(body);
@@ -83,7 +85,6 @@ class AircraftService {
     final streamed = await http.Client().send(req);
     final text = await streamed.stream.bytesToString();
 
-    // 204 → vacío
     if (streamed.statusCode == 204) return <AvailableAircraftModel>[];
 
     if (streamed.statusCode >= 200 && streamed.statusCode < 300) {
@@ -99,6 +100,46 @@ class AircraftService {
     throw HttpException(
       'GET /api/Aircrafts/grouped -> ${streamed.statusCode}: $text',
     );
+  }
+
+  // Helpers copiados de ReservationScreen para mantener misma lógica
+  DateTime _localAirportToUtc(DateTime localWallTime, String? timeZoneId) {
+    final offset = _tzOffsetHours(timeZoneId, localWallTime);
+    final naiveAsUtc = DateTime.utc(
+      localWallTime.year,
+      localWallTime.month,
+      localWallTime.day,
+      localWallTime.hour,
+      localWallTime.minute,
+    );
+    return naiveAsUtc.subtract(Duration(hours: offset));
+  }
+
+  int _tzOffsetHours(String? tz, DateTime at) {
+    final id = (tz ?? '').trim();
+    if (id.isEmpty || id == 'America/Costa_Rica') return -6;
+    if (id == 'America/Guatemala') return -6;
+    if (id == 'America/Mexico_City') {
+      final m = at.month;
+      final isDST = (m >= 4 && m <= 10);
+      return isDST ? -5 : -6;
+    }
+    if (id == 'America/Los_Angeles' || id == 'US/Pacific' || id == 'PST8PDT') {
+      final m = at.month;
+      final isDST = (m >= 3 && m <= 11);
+      return isDST ? -7 : -8;
+    }
+    final match = RegExp(
+      r'([+-])(\d{1,2})(?::?(\d{2}))?',
+    ).firstMatch(id.replaceAll(' ', ''));
+    if (match != null) {
+      final sign = match.group(1) == '-' ? -1 : 1;
+      final h = int.tryParse(match.group(2) ?? '0') ?? 0;
+      final mm = int.tryParse(match.group(3) ?? '0') ?? 0;
+      final total = sign * (h + (mm >= 30 ? 1 : 0));
+      return total;
+    }
+    return -6;
   }
 
   // =========================
@@ -393,7 +434,7 @@ class AircraftService {
     return null;
   }
 
-// MÉTODOS DE TOMÁS
+  // MÉTODOS DE TOMÁS
 
   Future<List<AircraftModel>> getAircraftsByCompany(int companyId) async {
     final hdrs = await _headers();
@@ -584,6 +625,44 @@ class AircraftService {
 
     throw HttpException('Failed to upload aircraft image (${resp.statusCode})');
   }
+
+  // Obtener los vuelos de una avioneta
+  Future<List<CompanyFlightModel>> getFlightsByAircraft(int aircraftId) async {
+  final token = await TokenStorage.getAccessToken();
+  if (token == null) throw Exception("Token no disponible");
+
+  final url = Uri.parse("${ApiConfig.baseUrl}/api/flights/aircraft/$aircraftId");
+
+  final response = await http.get(
+    url,
+    headers: {
+      "Authorization": "Bearer $token",
+      "Content-Type": "application/json",
+    },
+  );
+
+  if (response.statusCode == 200) {
+    final List<dynamic> jsonData = jsonDecode(response.body);
+    return jsonData.map((e) => CompanyFlightModel.fromJson(e)).toList();
+  }
+
+  throw Exception("Error loading aircraft flights (${response.statusCode}): ${response.body}");
+}
+
+Future<bool> hasFutureFlights(int aircraftId) async {
+  try {
+    final flights = await getFlightsByAircraft(aircraftId);
+
+    final now = DateTime.now();
+
+    final upcoming = flights.where((f) => f.departureTime.isAfter(now));
+
+    return upcoming.isNotEmpty;
+  } catch (e) {
+    print("Error checking future flights for aircraft: $e");
+    return false;
+  }
+}
 
   /*Future<AircraftModel> updateAircraft(
     int id, {

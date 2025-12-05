@@ -69,7 +69,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: users.length,
-            separatorBuilder: (_, __) => const Divider(),
+            separatorBuilder: (_, _) => const Divider(),
             itemBuilder: (context, index) {
               final user = users[index];
               return ListTile(

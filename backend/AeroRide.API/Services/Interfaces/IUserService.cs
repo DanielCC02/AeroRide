@@ -104,6 +104,8 @@ namespace AeroRide.API.Services.Interfaces
         /// <returns>Una lista de pilotos asociados a la compañía indicada.</returns>
         Task<IEnumerable<UserListDto>> GetPilotsByCompanyAsync(int companyId);
 
+        Task<IEnumerable<UserListDto>> GetActivePilotsByCompanyAsync(int companyId);
+
         /// <summary>
         /// Obtiene todos los usuarios con rol "Pilot" o "CompanyAdmin"
         /// pertenecientes a una compañía específica.

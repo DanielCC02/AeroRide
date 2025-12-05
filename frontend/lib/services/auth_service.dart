@@ -18,15 +18,21 @@ import 'api_config.dart';
 import 'token_storage.dart';
 
 extension _JsonSafe on http.Response {
+  /// Intenta extraer un mensaje estándar (`message`, `detail` o `error`)
+  /// desde un body JSON.
   String? tryMessage() {
     try {
-      final body = bodyBytes.isEmpty ? '' : utf8.decode(bodyBytes);
-      if (body.isEmpty) return null;
-      final d = jsonDecode(body);
-      if (d is Map) {
-        return (d['message'] ?? d['detail'] ?? d['error'])?.toString();
+      final raw = bodyBytes.isEmpty ? '' : utf8.decode(bodyBytes);
+      if (raw.isEmpty) return null;
+
+      final decoded = jsonDecode(raw);
+      if (decoded is Map) {
+        return (decoded['message'] ?? decoded['detail'] ?? decoded['error'])
+            ?.toString();
       }
-    } catch (_) {}
+    } catch (_) {
+      // Silencioso: si el body no es JSON, simplemente devolvemos null.
+    }
     return null;
   }
 }
@@ -35,7 +41,9 @@ extension _JsonSafe on http.Response {
 class AuthServiceException implements Exception {
   final String message;
   final Map<String, List<String>>? fieldErrors; // Para ASP.NET ModelState
+
   AuthServiceException(this.message, {this.fieldErrors});
+
   @override
   String toString() => 'AuthServiceException: $message';
 }
@@ -47,9 +55,6 @@ class AuthService {
   // ------------------------------------------------------------
   // LOGIN
   // POST /auth/login  { email, password }
-  //
-  // Si tu back devuelve token en el body y querés guardarlo acá,
-  // descomentá el bloque indicado y AJUSTÁ el método de TokenStorage.
   // ------------------------------------------------------------
   Future<void> login(String email, String password) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}$_authBase/login');
@@ -81,10 +86,6 @@ class AuthService {
   // ------------------------------------------------------------
   // REGISTRO
   // POST /auth/register
-  //
-  // Adjunta Authorization si existe un JWT (no estorba).
-  // Devuelve mensaje del backend o uno por defecto.
-  // Parsea ModelState y mapea errores por campo.
   // ------------------------------------------------------------
   Future<String> register({
     required String name,
@@ -149,11 +150,6 @@ class AuthService {
   // ------------------------------------------------------------
   // FORGOT PASSWORD
   // POST /auth/forgot-password  { email }
-  //
-  // - Retorna true si el correo fue enviado (2xx, text/plain)
-  // - Si el correo NO existe, lanza:
-  //     AuthServiceException('This email is not registered')
-  // - Otros errores: AuthServiceException con mensaje del backend o genérico
   // ------------------------------------------------------------
   Future<bool> requestPasswordReset(String email) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}$_authBase/forgot-password');
@@ -168,24 +164,17 @@ class AuthService {
       return true; // OK (text/plain)
     }
 
-    // Intentar extraer mensaje del backend (ProblemDetails o {message})
-    try {
-      final body = jsonDecode(res.body);
-      if (body is Map) {
-        final msg = (body['detail'] ?? body['message'])?.toString() ?? '';
-        if (msg.isNotEmpty) {
-          final low = msg.toLowerCase();
-          if (low.contains('not registered') ||
-              low.contains('not found') ||
-              low.contains('no existe') ||
-              low.contains('no registrado')) {
-            throw AuthServiceException('This email is not registered');
-          }
-          throw AuthServiceException(msg);
-        }
+    // Intentar extraer mensaje del backend
+    final msg = res.tryMessage();
+    if (msg != null && msg.isNotEmpty) {
+      final low = msg.toLowerCase();
+      if (low.contains('not registered') ||
+          low.contains('not found') ||
+          low.contains('no existe') ||
+          low.contains('no registrado')) {
+        throw AuthServiceException('This email is not registered');
       }
-    } catch (_) {
-      // si no es JSON, seguimos con manejo por código
+      throw AuthServiceException(msg);
     }
 
     if (res.statusCode == 400 || res.statusCode == 404) {
@@ -200,9 +189,6 @@ class AuthService {
   // ------------------------------------------------------------
   // RESET PASSWORD
   // PUT /auth/reset-password  { token, newPassword }
-  //
-  // - 2xx: OK (text/plain), no retorna nada
-  // - Errores: lanza AuthServiceException con mensaje del backend o genérico
   // ------------------------------------------------------------
   Future<void> resetPassword({
     required String token,
@@ -218,15 +204,10 @@ class AuthService {
 
     if (res.statusCode >= 200 && res.statusCode < 300) return;
 
-    try {
-      final body = jsonDecode(res.body);
-      if (body is Map) {
-        final msg = (body['detail'] ?? body['message'])?.toString();
-        if (msg != null && msg.isNotEmpty) {
-          throw AuthServiceException(msg);
-        }
-      }
-    } catch (_) {}
+    final msg = res.tryMessage();
+    if (msg != null && msg.isNotEmpty) {
+      throw AuthServiceException(msg);
+    }
 
     throw AuthServiceException(
       'Could not reset password (HTTP ${res.statusCode}).',
@@ -267,12 +248,10 @@ class AuthService {
       if (res2.statusCode >= 200 && res2.statusCode < 300) {
         return _okMessage(res2.body);
       }
-      _throwKnown(res2); // lanza
+      _throwKnown(res2); // lanza siempre (Never)
     } else {
-      _throwKnown(res); // lanza
+      _throwKnown(res); // lanza siempre (Never)
     }
-
-    // No llega aquí.
   }
 
   // ======================== Helpers =========================
@@ -322,20 +301,12 @@ class AuthService {
     return 'Operación realizada correctamente.';
   }
 
-  /// Lanza con mensaje conocido ({error}|{message}) o genérico con código.
+  /// Lanza con mensaje conocido ({error}|{message}|{detail}) o genérico con código.
   Never _throwKnown(http.Response res) {
-    try {
-      final data = jsonDecode(res.body);
-      if (data is Map && data['error'] is String) {
-        throw AuthServiceException(data['error'] as String);
-      }
-      if (data is Map && data['message'] is String) {
-        throw AuthServiceException(data['message'] as String);
-      }
-      if (data is Map && data['detail'] is String) {
-        throw AuthServiceException(data['detail'] as String);
-      }
-    } catch (_) {}
+    final msg = res.tryMessage();
+    if (msg != null && msg.isNotEmpty) {
+      throw AuthServiceException(msg);
+    }
     throw AuthServiceException('Error del servidor (HTTP ${res.statusCode}).');
   }
 

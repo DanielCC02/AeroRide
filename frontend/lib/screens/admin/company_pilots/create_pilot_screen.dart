@@ -21,49 +21,58 @@ class _CreatePilotScreenState extends State<CreatePilotScreen> {
   final UserService _userService = UserService();
 
   Future<void> _createUser() async {
-    if (_formKey.currentState!.validate()) {
-      try {
-        // Acceder al companyId desde el provider
-        final companyId = Provider.of<CompanyIdProvider>(
-          context,
-          listen: false,
-        ).companyId;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
-        // Agregar un print para verificar el companyId que estamos recibiendo
-        print('CreatePilotScreen - companyId: $companyId');
+    // Acceder al companyId desde el provider ANTES de cualquier await
+    final companyId = Provider.of<CompanyIdProvider>(
+      context,
+      listen: false,
+    ).companyId;
 
-        if (companyId == null) {
-          // Si no hay companyId, mostramos un error
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No se encontró el companyId')),
-          );
-          return;
-        }
+    debugPrint('CreatePilotScreen - companyId: $companyId');
 
-        // Aseguramos que se pase el companyId al crear el piloto
-        await _userService.createUser(
-          name: _nameController.text,
-          lastName: _lastNameController.text,
-          email: _emailController.text,
-          phoneNumber: _phoneController.text,
-          password: _passwordController.text,
-          roleId: 3, // Rol Pilot
-          companyId: companyId, // Se pasa el companyId del provider
-        );
+    // Cachear helpers basados en context ANTES del await
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
 
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Piloto creado exitosamente')),
-          );
-          Navigator.pop(context);
-        }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('❌ Error al crear el piloto: $e')),
-          );
-        }
+    if (companyId == null) {
+      // Si no hay companyId, mostramos un error
+      messenger.showSnackBar(
+        const SnackBar(content: Text('No se encontró el companyId')),
+      );
+      return;
+    }
+
+    try {
+      // Aseguramos que se pase el companyId al crear el piloto
+      await _userService.createUser(
+        name: _nameController.text,
+        lastName: _lastNameController.text,
+        email: _emailController.text,
+        phoneNumber: _phoneController.text,
+        password: _passwordController.text,
+        roleId: 3, // Rol Pilot
+        companyId: companyId, // Se pasa el companyId del provider
+      );
+
+      if (!mounted) {
+        return;
       }
+
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Piloto creado exitosamente')),
+      );
+      navigator.pop();
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      messenger.showSnackBar(
+        SnackBar(content: Text('❌ Error al crear el piloto: $e')),
+      );
     }
   }
 

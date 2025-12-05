@@ -133,9 +133,7 @@ class PilotFlightService {
 
     final response = await http.get(
       url,
-      headers: {
-        "Authorization": "Bearer $token",
-      },
+      headers: {"Authorization": "Bearer $token"},
     );
 
     // 204 = NoContent → NO hay bitácora
@@ -157,5 +155,37 @@ class PilotFlightService {
     throw Exception(
       "Error checking log (${response.statusCode}): ${response.body}",
     );
+  }
+
+  // ======================================================
+  // PUT: Actualizar estado del vuelo
+  // ======================================================
+  Future<void> updateFlightStatus({
+    required int flightId,
+    required String newStatus, // Debe coincidir con el enum del backend
+  }) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception("Token not available");
+
+    final url = Uri.parse("$_baseUrl/api/flights/$flightId/status");
+
+    final body = jsonEncode({
+      "status": newStatus, // Ej: "EnRoute", "Completed"
+    });
+
+    final response = await http.put(
+      url,
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+      body: body,
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        "Error updating flight status (${response.statusCode}): ${response.body}",
+      );
+    }
   }
 }

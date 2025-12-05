@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart'; 
 import 'package:http/http.dart' as http;
 import 'package:frontend/models/company_flight_model.dart';
 import 'package:frontend/services/token_storage.dart';
@@ -13,10 +14,11 @@ class CompanyFlightService {
     final token = await TokenStorage.getAccessToken();
     if (token == null) throw Exception('Token no disponible');
 
-    // 🔹 Usamos la URL base centralizada (igual que los otros servicios)
-    final url = Uri.parse('${ApiConfig.baseUrl}/api/flights/company/$companyId');
+    // Usamos la URL base centralizada (igual que los otros servicios)
+    final url =
+        Uri.parse('${ApiConfig.baseUrl}/api/flights/company/$companyId');
 
-    print('📡 GET $url');
+    debugPrint('GET $url');
     final response = await http.get(
       url,
       headers: {
@@ -25,32 +27,37 @@ class CompanyFlightService {
       },
     );
 
-    print('📥 Status: ${response.statusCode}');
-    print('📥 Body: ${response.body}');
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Body: ${response.body}');
 
     if (response.statusCode == 200) {
       try {
         final List<dynamic> data = jsonDecode(response.body);
         return data
-            .map((item) => CompanyFlightModel.fromJson(item as Map<String, dynamic>))
+            .map(
+              (item) =>
+                  CompanyFlightModel.fromJson(item as Map<String, dynamic>),
+            )
             .toList();
       } catch (e) {
-        print('❌ Error al parsear vuelos: $e');
+        debugPrint('❌ Error al parsear vuelos: $e');
         throw Exception('Error al procesar los datos del servidor');
       }
     } else if (response.statusCode == 204) {
-      print('No hay vuelos registrados para esta compañía.');
+      debugPrint('No hay vuelos registrados para esta compañía.');
       return [];
     } else if (response.statusCode == 401) {
       throw Exception('No autorizado. Verifica tu sesión.');
     } else if (response.statusCode == 403) {
       throw Exception('Acceso denegado. No tienes permisos para esta acción.');
     } else {
-      print('⚠️ Error al obtener vuelos: ${response.body}');
+      debugPrint('⚠️ Error al obtener vuelos: ${response.body}');
       throw Exception(
-          'Error al obtener vuelos (${response.statusCode}): ${response.body}');
+        'Error al obtener vuelos (${response.statusCode}): ${response.body}',
+      );
     }
   }
+
   // ======================================================
   // POST: Asignar piloto y copiloto a un vuelo
   // ======================================================
@@ -69,8 +76,8 @@ class CompanyFlightService {
       if (coPilotId != null) 'coPilotId': coPilotId,
     };
 
-    print('🛫 POST $url');
-    print('📤 Body: $body');
+    debugPrint('POST $url');
+    debugPrint('Body: $body');
 
     final response = await http.post(
       url,
@@ -81,15 +88,15 @@ class CompanyFlightService {
       body: jsonEncode(body),
     );
 
-    print('📥 Status: ${response.statusCode}');
-    print('📥 Body: ${response.body}');
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Body: ${response.body}');
 
     if (response.statusCode == 200) {
-      print('✅ Pilotos asignados correctamente.');
+      debugPrint('✅ Pilotos asignados correctamente.');
     } else {
-      final msg = response.body.isNotEmpty ? response.body : 'Error desconocido';
+      final msg =
+          response.body.isNotEmpty ? response.body : 'Error desconocido';
       throw Exception('❌ Error al asignar pilotos: $msg');
     }
   }
 }
-
