@@ -19,12 +19,14 @@ namespace AeroRide.API.Mappings
             // 🏗️ CREATE → DOMAIN
             // ======================================================
             CreateMap<AirportCreateDto, Airport>()
-                // 🔹 Genera la ubicación geoespacial (Point) con SRID 4326
                 .ForMember(dest => dest.Ubication, opt => opt.MapFrom(src =>
                     new Point((double)src.Longitude, (double)src.Latitude) { SRID = 4326 }))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true))
                 .ForMember(dest => dest.TimeZone, opt => opt.MapFrom(src => src.TimeZone))
-                .ForMember(dest => dest.MaxAllowedWeight, opt => opt.MapFrom(src => src.MaxAllowedWeight));
+                .ForMember(dest => dest.MaxAllowedWeight, opt => opt.MapFrom(src => src.MaxAllowedWeight))
+                .ForMember(dest => dest.DepartureMarginMinutes, opt => opt.MapFrom(src => src.DepartureMarginMinutes))
+                .ForMember(dest => dest.ArrivalMarginMinutes, opt => opt.MapFrom(src => src.ArrivalMarginMinutes));
+
 
             // ======================================================
             // ✏️ UPDATE → DOMAIN

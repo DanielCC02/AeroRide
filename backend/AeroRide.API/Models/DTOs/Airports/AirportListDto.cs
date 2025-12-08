@@ -31,6 +31,8 @@
 
         /// <summary>Longitud geográfica (decimal).</summary>
         public decimal Longitude { get; set; }
+        public int DepartureMarginMinutes { get; set; }
+        public int ArrivalMarginMinutes { get; set; }
 
         /// <summary>URL de la imagen principal del aeropuerto.</summary>
         public string Image { get; set; } = null!;

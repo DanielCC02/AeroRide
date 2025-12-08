@@ -29,6 +29,12 @@
         /// <summary>Hora de cierre actualizada (opcional).</summary>
         public TimeSpan? ClosingTime { get; set; }
 
+        /// <summary>Actualiza el margen de despegue antes del cierre (en minutos).</summary>
+        public int? DepartureMarginMinutes { get; set; }
+
+        /// <summary>Actualiza el margen de aterrizaje antes del cierre (en minutos).</summary>
+        public int? ArrivalMarginMinutes { get; set; }
+
         /// <summary>Nueva latitud geográfica (opcional).</summary>
         public decimal? Latitude { get; set; }
 

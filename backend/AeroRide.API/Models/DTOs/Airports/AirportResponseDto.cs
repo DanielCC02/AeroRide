@@ -31,6 +31,8 @@
 
         /// <summary>Hora de cierre (puede ser nula si opera 24/7).</summary>
         public TimeSpan? ClosingTime { get; set; }
+        public int DepartureMarginMinutes { get; set; }
+        public int ArrivalMarginMinutes { get; set; }
 
         /// <summary>Latitud geográfica en formato decimal.</summary>
         public decimal Latitude { get; set; }
