@@ -88,7 +88,7 @@ class _ViewFlightLogScreenState extends State<ViewFlightLogScreen> {
               final uri = Uri.parse(url);
 
               // =============================================
-              // 1️⃣ Intentar abrir con un navegador externo
+              // Intentar abrir con un navegador externo
               // =============================================
               try {
                 final launched = await launchUrl(
@@ -102,7 +102,7 @@ class _ViewFlightLogScreenState extends State<ViewFlightLogScreen> {
               }
 
               // =============================================
-              // 2️⃣ FALLBACK: Abrir en Google Docs Viewer
+              // FALLBACK: Abrir en Google Docs Viewer
               // =============================================
               final viewerUrl =
                   "https://docs.google.com/viewer?url=${Uri.encodeComponent(url)}&embedded=true";
@@ -121,7 +121,7 @@ class _ViewFlightLogScreenState extends State<ViewFlightLogScreen> {
               }
 
               // =============================================
-              // 3️⃣ Si todo falla → mostrar error
+              // Si todo falla → mostrar error
               // =============================================
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(

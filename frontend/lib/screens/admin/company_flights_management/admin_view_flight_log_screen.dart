@@ -74,7 +74,7 @@ class _AdminViewFlightLogScreenState extends State<AdminViewFlightLogScreen> {
     final url = _normalizeUrl(rawUrl);
     final uri = Uri.parse(url);
 
-    // -------- 1️⃣ Intento abrir navegador externo ----------
+    // -------- Intento abrir navegador externo ----------
     try {
       final launched = await launchUrl(
         uri,
@@ -86,7 +86,7 @@ class _AdminViewFlightLogScreenState extends State<AdminViewFlightLogScreen> {
       // Ignorar, pasamos al fallback
     }
 
-    // -------- 2️⃣ Google Docs Viewer (fallback universal) --------
+    // -------- Google Docs Viewer (fallback universal) --------
     final viewerUrl =
         "https://docs.google.com/viewer?url=${Uri.encodeComponent(url)}&embedded=true";
 
@@ -103,7 +103,7 @@ class _AdminViewFlightLogScreenState extends State<AdminViewFlightLogScreen> {
       // Continuar al fallback final
     }
 
-    // -------- 3️⃣ Error final --------
+    // -------- Error final --------
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Unable to open PDF:\n$url")),
