@@ -35,6 +35,12 @@ namespace AeroRide.API.Models.DTOs.Airports
         /// <summary>Hora de cierre (opcional).</summary>
         public TimeSpan? ClosingTime { get; set; }
 
+        /// <summary>Minutos antes del cierre en los que aún se permite despegar.</summary>
+        public int DepartureMarginMinutes { get; set; } = 60;
+
+        /// <summary>Minutos antes del cierre en los que aún se permite aterrizar.</summary>
+        public int ArrivalMarginMinutes { get; set; } = 30;
+
         [Required(ErrorMessage = "La zona horaria es obligatoria.")]
         public string TimeZone { get; set; } = null!;
 

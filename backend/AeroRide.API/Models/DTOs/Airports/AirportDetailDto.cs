@@ -31,6 +31,9 @@
         /// <summary>Hora de cierre del aeropuerto (opcional).</summary>
         public TimeSpan? ClosingTime { get; set; }
 
+        public int DepartureMarginMinutes { get; set; }
+        public int ArrivalMarginMinutes { get; set; }
+
         /// <summary>Latitud geográfica (decimal).</summary>
         public decimal Latitude { get; set; }
 
