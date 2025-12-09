@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using AeroRide.API.Data;
+﻿using AeroRide.API.Data;
 using AeroRide.API.Helpers;
 using AeroRide.API.Helpers.Templates;
 using AeroRide.API.Models.Domain;
 using AeroRide.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.Text;
 
 public class EmptyLegNotificationService : IEmptyLegNotificationService
 {
@@ -25,18 +21,27 @@ public class EmptyLegNotificationService : IEmptyLegNotificationService
 
     public async Task NotifyUsersForEmptyLegsAsync(IEnumerable<Flight> emptyLegs)
     {
+        Console.WriteLine("🟢 [EmptyLegNotification] Entrando a NotifyUsersForEmptyLegsAsync");
+
         var legs = emptyLegs
             .Where(f => f.IsEmptyLeg)
             .ToList();
 
+        Console.WriteLine($"🟢 [EmptyLegNotification] Empty legs recibidas: {legs.Count}");
+
         if (!legs.Any())
+        {
+            Console.WriteLine("ℹ️ [EmptyLegNotification] No hay empty legs, no se notifica nada.");
             return;
+        }
 
         // Ids de aeropuertos involucrados en las empty legs
         var airportIds = legs
             .SelectMany(f => new[] { f.DepartureAirportId, f.ArrivalAirportId })
             .Distinct()
             .ToList();
+
+        Console.WriteLine($"🟢 [EmptyLegNotification] Aeropuertos involucrados: {string.Join(",", airportIds)}");
 
         var airports = await _db.Airports
             .Where(a => airportIds.Contains(a.Id))
@@ -59,33 +64,24 @@ public class EmptyLegNotificationService : IEmptyLegNotificationService
         foreach (var group in legsByCountry)
         {
             var country = group.Key;
+            Console.WriteLine($"🟢 [EmptyLegNotification] Grupo país: {country}, legs: {group.Count()}");
 
-            // Base query de usuarios candidatos de ese país
-            var baseQuery = _db.Users
+            // Usuarios candidatos de ese país (💯 100% de los elegibles)
+            var users = await _db.Users
                 .Where(u =>
                     u.IsActive &&
                     u.IsVerified &&
                     u.Country != null &&
-                    u.Country.Trim().ToLower() == country.ToLower());
-
-            // 1️⃣ Contar usuarios elegibles
-            var totalUsers = await baseQuery.CountAsync();
-            if (totalUsers == 0)
-                continue;
-
-            // 2️⃣ Calcular 20% (redondeo hacia arriba) y asegurar mínimo 1
-            var takeCount = (int)Math.Ceiling(totalUsers * 0.20);
-            if (takeCount < 1)
-                takeCount = 1;
-
-            // 3️⃣ Tomar ese porcentaje de forma aleatoria
-            var users = await baseQuery
-                .OrderBy(u => Guid.NewGuid())   // random
-                .Take(takeCount)
+                    u.Country.Trim().ToLower() == country.ToLower())
                 .ToListAsync();
 
+            Console.WriteLine($"🟢 [EmptyLegNotification] Usuarios elegibles en {country}: {users.Count}");
+
             if (!users.Any())
+            {
+                Console.WriteLine($"ℹ️ [EmptyLegNotification] No hay usuarios elegibles en {country}, se omite.");
                 continue;
+            }
 
             // 🔹 Armar el HTML de la lista <li>...</li> con las empty legs de ese país
             var listItemsBuilder = new StringBuilder();
@@ -109,11 +105,13 @@ public class EmptyLegNotificationService : IEmptyLegNotificationService
             var legsListItemsHtml = listItemsBuilder.ToString();
             var subject = $"Nuevas piernas vacías disponibles en {country}";
 
-            // 4️⃣ Enviar correo a cada usuario seleccionado
+            // Enviar correo a *todos* los usuarios seleccionados
             foreach (var user in users)
             {
                 try
                 {
+                    Console.WriteLine($"📨 [EmptyLegNotification] Enviando correo a {user.Email} ({user.Name})");
+
                     var htmlContent = EmptyLegsTemplate.Build(
                         user.Name,
                         country,
@@ -132,9 +130,11 @@ public class EmptyLegNotificationService : IEmptyLegNotificationService
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"⚠️ Error enviando empty legs a {user.Email}: {ex.Message}");
+                    Console.WriteLine($"⚠️ Error enviando empty legs a {user.Email}: {ex}");
                 }
             }
         }
+
+        Console.WriteLine("✅ [EmptyLegNotification] Proceso de notificación terminado.");
     }
 }

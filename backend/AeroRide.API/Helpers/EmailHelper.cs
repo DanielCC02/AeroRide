@@ -29,8 +29,12 @@ namespace AeroRide.API.Helpers
             var msg = MailHelper.CreateSingleEmail(from, to, subject, "", htmlContent);
             var response = await client.SendEmailAsync(msg);
 
-            Console.WriteLine($"📤 Email enviado a {toEmail}, estado: {response.StatusCode}");
+            var responseBody = await response.Body.ReadAsStringAsync();
+
+            Console.WriteLine($"📤 Email enviado a {toEmail}, status: {(int)response.StatusCode} {response.StatusCode}");
+            Console.WriteLine($"📨 SendGrid Response Body: {responseBody}");
         }
+
 
         // ======================================================
         // ✈️ ENVÍO DE CORREO DE VERIFICACIÓN DE CUENTA
