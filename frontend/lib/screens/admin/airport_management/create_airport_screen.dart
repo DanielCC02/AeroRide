@@ -26,6 +26,8 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
   final _maxWeight = TextEditingController();
   final _openingTime = TextEditingController();
   final _closingTime = TextEditingController();
+  final _departureMargin = TextEditingController(text: "60");
+  final _arrivalMargin = TextEditingController(text: "30");
 
   bool _isLoading = false;
   File? _selectedImage;
@@ -45,7 +47,7 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
   }
 
   // ======================================================
-  // Crear aeropuerto (con subida de imagen)
+  // Crear aeropuerto
   // ======================================================
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -60,12 +62,10 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Subir imagen primero
-      debugPrint('📤 Subiendo imagen de aeropuerto...');
+      debugPrint('Subiendo imagen...');
       final imageUrl = await _airportService.uploadAirportImage(_selectedImage!);
-      debugPrint('✅ Imagen subida con URL: $imageUrl');
 
-      // 🔹 Crear aeropuerto
+      // Llamada al servicio actualizado
       await _airportService.createAirport(
         name: _name.text.trim(),
         codeIATA: _codeIATA.text.trim().toUpperCase(),
@@ -76,25 +76,27 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
         latitude: double.parse(_latitude.text.trim()),
         longitude: double.parse(_longitude.text.trim()),
         imageUrl: imageUrl,
+
         maxAllowedWeight: _maxWeight.text.isNotEmpty
-            ? int.parse(_maxWeight.text.trim())
+            ? int.parse(_maxWeight.text)
             : null,
-        openingTime: _openingTime.text.isNotEmpty
-            ? _openingTime.text.trim()
-            : null,
-        closingTime: _closingTime.text.isNotEmpty
-            ? _closingTime.text.trim()
-            : null,
+        openingTime:
+            _openingTime.text.isNotEmpty ? _openingTime.text.trim() : null,
+        closingTime:
+            _closingTime.text.isNotEmpty ? _closingTime.text.trim() : null,
+
+        departureMarginMinutes: int.tryParse(_departureMargin.text) ?? 60,
+        arrivalMarginMinutes: int.tryParse(_arrivalMargin.text) ?? 30,
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('✅ Aeropuerto creado correctamente')),
         );
-        Navigator.pop(context, true); // Regresa y refresca la lista
+        Navigator.pop(context, true);
       }
     } catch (e) {
-      debugPrint('❌ Error al crear aeropuerto: $e');
+      debugPrint('❌ Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('⚠️ Error: $e')),
@@ -105,9 +107,6 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
     }
   }
 
-  // ======================================================
-  // Dispose controladores
-  // ======================================================
   @override
   void dispose() {
     _name.dispose();
@@ -121,6 +120,8 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
     _maxWeight.dispose();
     _openingTime.dispose();
     _closingTime.dispose();
+    _departureMargin.dispose();
+    _arrivalMargin.dispose();
     super.dispose();
   }
 
@@ -139,30 +140,56 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
             children: [
               _buildTextField(_name, 'Airport Name', 'Enter airport name'),
               const SizedBox(height: 12),
-              _buildTextField(_codeIATA, 'Code IATA (3 letters)', 'Enter IATA code',
-                  textCapitalization: TextCapitalization.characters),
+              _buildTextField(
+                _codeIATA,
+                'Code IATA (3 letters)',
+                'Enter IATA code',
+                textCapitalization: TextCapitalization.characters,
+              ),
               const SizedBox(height: 12),
-              _buildTextField(_codeOACI, 'Code OACI (4 letters)', 'Enter OACI code',
-                  textCapitalization: TextCapitalization.characters),
+              _buildTextField(
+                _codeOACI,
+                'Code OACI (4 letters)',
+                'Enter OACI code',
+                textCapitalization: TextCapitalization.characters,
+              ),
               const SizedBox(height: 12),
               _buildTextField(_city, 'City', 'Enter city'),
               const SizedBox(height: 12),
               _buildTextField(_country, 'Country', 'Enter country'),
               const SizedBox(height: 12),
-              _buildTextField(_timeZone, 'Time Zone (e.g., America/Costa_Rica)', 'Enter time zone'),
+              _buildTextField(
+                  _timeZone, 'Time Zone (America/*)', 'Enter time zone'),
               const SizedBox(height: 12),
-              _buildNumberField(_latitude, 'Latitude', 'Enter latitude (-90 to 90)'),
+              _buildNumberField(_latitude, 'Latitude', 'Enter latitude'),
               const SizedBox(height: 12),
-              _buildNumberField(_longitude, 'Longitude', 'Enter longitude (-180 to 180)'),
+              _buildNumberField(_longitude, 'Longitude', 'Enter longitude'),
               const SizedBox(height: 12),
+
+              // Peso máximo opcional
               _buildOptionalNumberField(_maxWeight, 'Max Allowed Weight (kg)'),
               const SizedBox(height: 12),
+
+              // Tiempos opcionales
               _buildOptionalTextField(_openingTime, 'Opening Time (HH:mm:ss)'),
               const SizedBox(height: 12),
               _buildOptionalTextField(_closingTime, 'Closing Time (HH:mm:ss)'),
+              const SizedBox(height: 12),
+
+              _buildNumberField(
+                _departureMargin,
+                'Departure Margin (minutes)',
+                'Enter valid number',
+              ),
+              const SizedBox(height: 12),
+
+              _buildNumberField(
+                _arrivalMargin,
+                'Arrival Margin (minutes)',
+                'Enter valid number',
+              ),
               const SizedBox(height: 20),
 
-              // Imagen seleccionada (preview)
               if (_selectedImage != null)
                 Column(
                   children: [
@@ -171,7 +198,6 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
                   ],
                 ),
 
-              // Botón para seleccionar imagen
               ElevatedButton.icon(
                 onPressed: _pickImage,
                 icon: const Icon(Icons.image),
@@ -183,7 +209,6 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Botón para crear aeropuerto
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -209,7 +234,7 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
   }
 
   // ======================================================
-  // Campos reutilizables
+  // Componentes reutilizables
   // ======================================================
   Widget _buildTextField(
     TextEditingController controller,
@@ -231,14 +256,15 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
       controller: controller,
       decoration: InputDecoration(labelText: label),
       keyboardType: TextInputType.number,
-      validator: (v) => v == null || double.tryParse(v) == null
-          ? validatorMsg
-          : null,
+      validator: (v) =>
+          v == null || double.tryParse(v) == null ? validatorMsg : null,
     );
   }
 
   Widget _buildOptionalNumberField(
-      TextEditingController controller, String label) {
+    TextEditingController controller,
+    String label,
+  ) {
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(labelText: '$label (optional)'),
@@ -252,7 +278,10 @@ class _CreateAirportScreenState extends State<CreateAirportScreen> {
     );
   }
 
-  Widget _buildOptionalTextField(TextEditingController controller, String label) {
+  Widget _buildOptionalTextField(
+    TextEditingController controller,
+    String label,
+  ) {
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(labelText: '$label (optional)'),

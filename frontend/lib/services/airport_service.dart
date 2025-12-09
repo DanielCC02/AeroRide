@@ -226,14 +226,13 @@ class AirportService {
           return f.contains(q) ||
               _fold(a.name).startsWith(q) ||
               _fold(a.city).startsWith(q);
-        }).toList()
-          ..sort((a, b) {
-            final sb = score(b);
-            final sa = score(a);
-            if (sb != sa) return sb.compareTo(sa);
-            // desempate alfabético por nombre
-            return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-          });
+        }).toList()..sort((a, b) {
+          final sb = score(b);
+          final sa = score(a);
+          if (sb != sa) return sb.compareTo(sa);
+          // desempate alfabético por nombre
+          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        });
 
     return filtered;
   }
@@ -283,9 +282,7 @@ class AirportService {
           .map((e) => Airport.fromJson(e as Map<String, dynamic>))
           .toList();
     } else {
-      debugPrint(
-        '⚠️ Error al obtener aeropuertos: ${response.statusCode}',
-      );
+      debugPrint('⚠️ Error al obtener aeropuertos: ${response.statusCode}');
       throw Exception('Error al obtener la lista de aeropuertos');
     }
   }
@@ -367,8 +364,10 @@ class AirportService {
     required double longitude,
     required String imageUrl,
     int? maxAllowedWeight,
-    String? openingTime, // formato "HH:mm:ss"
-    String? closingTime, // formato "HH:mm:ss"
+    String? openingTime, // "HH:mm:ss"
+    String? closingTime, // "HH:mm:ss"
+    int departureMarginMinutes = 60,
+    int arrivalMarginMinutes = 30,
   }) async {
     final token = await TokenStorage.getAccessToken();
     if (token == null) throw Exception('Token no disponible');
@@ -385,11 +384,14 @@ class AirportService {
       'latitude': latitude,
       'longitude': longitude,
       'image': imageUrl,
+
       if (maxAllowedWeight != null) 'maxAllowedWeight': maxAllowedWeight,
       if (openingTime != null && openingTime.isNotEmpty)
         'openingTime': openingTime,
       if (closingTime != null && closingTime.isNotEmpty)
         'closingTime': closingTime,
+      'departureMarginMinutes': departureMarginMinutes,
+      'arrivalMarginMinutes': arrivalMarginMinutes,
     };
 
     debugPrint('POST $url');
@@ -460,14 +462,15 @@ class AirportService {
     String? openingTime, // formato HH:mm:ss opcional
     String? closingTime, // formato HH:mm:ss opcional
     int? maxAllowedWeight,
-    String? imageUrl, // puede actualizarse o mantenerse igual
+    String? imageUrl,
+    int? departureMarginMinutes,
+    int? arrivalMarginMinutes,
   }) async {
     final token = await TokenStorage.getAccessToken();
     if (token == null) throw Exception('Token no disponible');
 
     final url = Uri.parse('${ApiConfig.baseUrl}/api/airports/$id');
 
-    // Construimos el cuerpo del request con datos opcionales manejados correctamente
     final body = {
       'name': name,
       'codeIATA': codeIATA,
@@ -477,6 +480,7 @@ class AirportService {
       'latitude': latitude,
       'longitude': longitude,
       'timeZone': timeZone,
+
       if (openingTime != null && openingTime.isNotEmpty)
         'openingTime': openingTime,
       if (closingTime != null && closingTime.isNotEmpty)
@@ -484,6 +488,10 @@ class AirportService {
       if (maxAllowedWeight != null && maxAllowedWeight > 0)
         'maxAllowedWeight': maxAllowedWeight,
       if (imageUrl != null && imageUrl.isNotEmpty) 'image': imageUrl,
+      if (departureMarginMinutes != null)
+        'departureMarginMinutes': departureMarginMinutes,
+      if (arrivalMarginMinutes != null)
+        'arrivalMarginMinutes': arrivalMarginMinutes,
     };
 
     debugPrint('PUT $url');

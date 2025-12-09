@@ -1,11 +1,10 @@
 // lib/models/airport_model.dart
-// Modelo actualizado para reflejar los nuevos campos del backend.
 
 class Airport {
   final int id;
-  final String name; // Nombre del aeropuerto
-  final String codeIATA; // IATA (3 letras)
-  final String codeOACI; // OACI (4 letras)
+  final String name;
+  final String codeIATA;
+  final String codeOACI;
   final String city;
   final String country;
   final double latitude;
@@ -13,10 +12,12 @@ class Airport {
   final double tax;
   final String image;
   final bool isActive;
-  final String? openingTime; // "08:00:00"
-  final String? closingTime; // "18:00:00"
-  final String timeZone; // Ejemplo: "America/Costa_Rica"
-  final int? maxAllowedWeight; // Peso máximo permitido (kg)
+  final String? openingTime; 
+  final String? closingTime; 
+  final String timeZone;
+  final int? maxAllowedWeight;
+  final int departureMarginMinutes;
+  final int arrivalMarginMinutes;
 
   const Airport({
     required this.id,
@@ -34,6 +35,8 @@ class Airport {
     this.closingTime,
     required this.timeZone,
     this.maxAllowedWeight,
+    this.departureMarginMinutes = 60,
+    this.arrivalMarginMinutes = 30,
   });
 
   factory Airport.fromJson(Map<String, dynamic> json) {
@@ -57,14 +60,17 @@ class Airport {
       return def;
     }
 
-    int? pickInt(List<String> keys) {
+    int pickInt(List<String> keys, {int def = 0}) {
       for (final k in keys) {
         final v = json[k];
         if (v is int) return v;
         if (v is num) return v.toInt();
-        if (v is String) return int.tryParse(v);
+        if (v is String) {
+          final parsed = int.tryParse(v);
+          if (parsed != null) return parsed;
+        }
       }
-      return null;
+      return def;
     }
 
     return Airport(
@@ -82,27 +88,33 @@ class Airport {
       openingTime: pick<String>(['openingTime', 'OpeningTime'], def: ''),
       closingTime: pick<String>(['closingTime', 'ClosingTime'], def: ''),
       timeZone: pick<String>(['timeZone', 'TimeZone'], def: 'UTC'),
-      maxAllowedWeight: pickInt(['maxAllowedWeight', 'MaxAllowedWeight']),
+      maxAllowedWeight: pickInt(['maxAllowedWeight', 'MaxAllowedWeight'], def: 5000),
+      departureMarginMinutes:
+          pickInt(['departureMarginMinutes', 'DepartureMarginMinutes'], def: 60),
+      arrivalMarginMinutes:
+          pickInt(['arrivalMarginMinutes', 'ArrivalMarginMinutes'], def: 30),
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'codeIATA': codeIATA,
-    'codeOACI': codeOACI,
-    'city': city,
-    'country': country,
-    'latitude': latitude,
-    'longitude': longitude,
-    'tax': tax,
-    'image': image,
-    'isActive': isActive,
-    'openingTime': openingTime,
-    'closingTime': closingTime,
-    'timeZone': timeZone,
-    'maxAllowedWeight': maxAllowedWeight,
-  };
+        'id': id,
+        'name': name,
+        'codeIATA': codeIATA,
+        'codeOACI': codeOACI,
+        'city': city,
+        'country': country,
+        'latitude': latitude,
+        'longitude': longitude,
+        'tax': tax,
+        'image': image,
+        'isActive': isActive,
+        'openingTime': openingTime,
+        'closingTime': closingTime,
+        'timeZone': timeZone,
+        'maxAllowedWeight': maxAllowedWeight,
+        'departureMarginMinutes': departureMarginMinutes,
+        'arrivalMarginMinutes': arrivalMarginMinutes,
+      };
 
   String get oneLine => '$name - $codeIATA';
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
@@ -15,16 +16,19 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   GoogleMapController? _mapController;
 
+  // Cámara inicial (Costa Rica)
   static const CameraPosition _kInitial = CameraPosition(
-    target: LatLng(9.7489, -83.7534), // CR
+    target: LatLng(9.7489, -83.7534),
     zoom: 6.8,
   );
 
   bool _hasLocationPermission = false;
   Position? _currentPosition;
 
-  final Set<Marker> _markers = {};
-  final List<Airport> _airports = []; // lista completa para los marcadores
+  late final AirportService _airportService;
+
+  Set<Marker> _markers = {};
+  final List<Airport> _airports = []; // lista completa para búsqueda local
   final TextEditingController _searchController = TextEditingController();
 
   List<Airport> _searchResults = [];
@@ -33,9 +37,20 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
+    _airportService = AirportService();
     _initLocationFlow();
   }
 
+  @override
+  void dispose() {
+    _mapController?.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // PERMISOS + UBICACIÓN
+  // ─────────────────────────────────────────────────────────────
   Future<void> _initLocationFlow() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -48,11 +63,13 @@ class _MapScreenState extends State<MapScreen> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
+
     if (permission == LocationPermission.denied) {
       if (!mounted) return;
       _showSnack('Location permission denied.');
       return;
     }
+
     if (permission == LocationPermission.deniedForever) {
       if (!mounted) return;
       _showSnack('Location permission permanently denied.');
@@ -65,12 +82,26 @@ class _MapScreenState extends State<MapScreen> {
       desiredAccuracy: LocationAccuracy.high,
     );
     _currentPosition = pos;
+
+    // Si el mapController ya existe, centramos de una vez
+    if (_mapController != null) {
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLngZoom(
+          LatLng(pos.latitude, pos.longitude),
+          14,
+        ),
+      );
+    }
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // CARGA DE AEROPUERTOS + MARKERS (una vez)
+  // ─────────────────────────────────────────────────────────────
   Future<void> _loadAirportsMarkers() async {
     try {
-      // Traemos “muchos” para poblar el mapa (si tu API pagina, aquí puedes iterar).
-      final airports = await AirportService.searchAirports('', limit: 400);
+      final airports = await _airportService.getActiveAirports();
+
+      if (!mounted) return;
 
       _airports
         ..clear()
@@ -87,11 +118,8 @@ class _MapScreenState extends State<MapScreen> {
         );
       }).toSet();
 
-      if (!mounted) return;
       setState(() {
-        _markers
-          ..clear()
-          ..addAll(newMarkers);
+        _markers = newMarkers;
       });
     } catch (e) {
       if (!mounted) return;
@@ -99,8 +127,11 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  Future<void> _searchAirport(String query) async {
-    final q = query.trim();
+  // ─────────────────────────────────────────────────────────────
+  // BÚSQUEDA LOCAL (SIN LLAMAR AL BACKEND)
+  // ─────────────────────────────────────────────────────────────
+  void _searchAirport(String query) {
+    final q = query.trim().toLowerCase();
     if (q.isEmpty) {
       setState(() {
         _showResults = false;
@@ -109,10 +140,13 @@ class _MapScreenState extends State<MapScreen> {
       return;
     }
 
-    // Búsqueda dinámica al backend (en vez de filtrar local).
-    final results = await AirportService.searchAirports(q, limit: 8);
+    final results = _airports.where((a) {
+      return a.name.toLowerCase().contains(q) ||
+          a.codeIATA.toLowerCase().contains(q) ||
+          a.city.toLowerCase().contains(q) ||
+          a.country.toLowerCase().contains(q);
+    }).toList();
 
-    if (!mounted) return;
     setState(() {
       _showResults = results.isNotEmpty;
       _searchResults = results;
@@ -134,46 +168,54 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _showSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
   }
 
-  @override
-  void dispose() {
-    _mapController?.dispose();
-    _searchController.dispose();
-    super.dispose();
-  }
-
+  // ─────────────────────────────────────────────────────────────
+  // BUILD
+  // ─────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Map'), centerTitle: true),
       body: Stack(
         children: [
-          GoogleMap(
-            initialCameraPosition: _kInitial,
-            myLocationEnabled: _hasLocationPermission,
-            myLocationButtonEnabled: true,
-            compassEnabled: true,
-            zoomControlsEnabled: false,
-            markers: _markers,
-            onMapCreated: (controller) async {
-              _mapController = controller;
-              await _loadAirportsMarkers();
+          // Mapa ocupando toda la pantalla
+          Positioned.fill(
+            child: RepaintBoundary(
+              child: GoogleMap(
+                initialCameraPosition: _kInitial,
+                myLocationEnabled: _hasLocationPermission,
+                myLocationButtonEnabled: true,
+                compassEnabled: true,
+                zoomControlsEnabled: false,
+                markers: _markers,
+                onMapCreated: (controller) {
+                  _mapController = controller;
 
-              final pos = _currentPosition;
-              if (pos != null) {
-                await controller.animateCamera(
-                  CameraUpdate.newLatLngZoom(
-                    LatLng(pos.latitude, pos.longitude),
-                    14,
-                  ),
-                );
-              }
-            },
+                  // Diferimos la carga pesada para no pelear con la init de Google Maps
+                  Future.microtask(() async {
+                    await _loadAirportsMarkers();
+
+                    // Si ya tenemos ubicación, centramos
+                    final pos = _currentPosition;
+                    if (pos != null) {
+                      await _mapController?.animateCamera(
+                        CameraUpdate.newLatLngZoom(
+                          LatLng(pos.latitude, pos.longitude),
+                          14,
+                        ),
+                      );
+                    }
+                  });
+                },
+              ),
+            ),
           ),
 
-          // --- 🔍 Barra de búsqueda ------------------------------------------
+          // 🔍 Barra de búsqueda + resultados
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(12.0),
