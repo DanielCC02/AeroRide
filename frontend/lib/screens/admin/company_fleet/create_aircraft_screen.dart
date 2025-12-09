@@ -172,34 +172,54 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
                   _buildTextField(_model, 'Model', 'Enter model'),
                   const SizedBox(height: 12),
                   _buildNumberField(
-                      _minuteCost, 'Minute Cost', 'Enter minute cost'),
+                    _minuteCost,
+                    'Minute Cost',
+                    'Enter minute cost',
+                  ),
                   const SizedBox(height: 12),
                   _buildNumberField(_seats, 'Seats', 'Enter seats'),
                   const SizedBox(height: 12),
                   _buildNumberField(
-                      _emptyWeight, 'Empty Weight (kg)', 'Enter empty weight'),
+                    _emptyWeight,
+                    'Empty Weight (kg)',
+                    'Enter empty weight',
+                  ),
                   const SizedBox(height: 12),
                   _buildNumberField(
-                      _maxWeight, 'Max Weight (kg)', 'Enter max weight'),
+                    _maxWeight,
+                    'Max Weight (kg)',
+                    'Enter max weight',
+                  ),
                   const SizedBox(height: 12),
-                  _buildNumberField(_cruisingSpeed, 'Cruise Speed (km/h)',
-                      'Enter cruise speed'),
+                  _buildNumberField(
+                    _cruisingSpeed,
+                    'Cruise Speed (km/h)',
+                    'Enter cruise speed',
+                  ),
                   const SizedBox(height: 16),
 
+                  // Switch alineado
                   SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
                     title: const Text('Can Fly International'),
                     value: _canFlyInternational,
                     onChanged: (v) => setState(() => _canFlyInternational = v),
                   ),
                   const SizedBox(height: 12),
 
+                  // Aeropuerto base
                   DropdownButtonFormField<Airport>(
-                    decoration: const InputDecoration(labelText: 'Base Airport'),
+                    isExpanded: true,
+                    decoration:
+                        const InputDecoration(labelText: 'Base Airport'),
                     items: airports
                         .map(
                           (a) => DropdownMenuItem(
                             value: a,
-                            child: Text('${a.name} (${a.codeIATA})'),
+                            child: Text(
+                              '${a.name} (${a.codeIATA})',
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         )
                         .toList(),
@@ -209,7 +229,9 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
                   ),
                   const SizedBox(height: 12),
 
+                  // Aeropuerto actual (opcional)
                   DropdownButtonFormField<Airport>(
+                    isExpanded: true,
                     decoration: const InputDecoration(
                       labelText: 'Current Airport (optional)',
                     ),
@@ -217,7 +239,10 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
                         .map(
                           (a) => DropdownMenuItem(
                             value: a,
-                            child: Text('${a.name} (${a.codeIATA})'),
+                            child: Text(
+                              '${a.name} (${a.codeIATA})',
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         )
                         .toList(),
@@ -226,18 +251,24 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
                   ),
                   const SizedBox(height: 12),
 
+                  // Estado
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
                     decoration: const InputDecoration(labelText: 'State'),
                     value: _state,
                     items: const [
                       DropdownMenuItem(
-                          value: 'Disponible', child: Text('Disponible')),
+                        value: 'Disponible',
+                        child: Text('Disponible'),
+                      ),
                       DropdownMenuItem(
-                          value: 'EnMantenimiento',
-                          child: Text('En mantenimiento')),
+                        value: 'EnMantenimiento',
+                        child: Text('En mantenimiento'),
+                      ),
                       DropdownMenuItem(
-                          value: 'FueraDeServicio',
-                          child: Text('Fuera de servicio')),
+                        value: 'FueraDeServicio',
+                        child: Text('Fuera de servicio'),
+                      ),
                     ],
                     onChanged: (v) => setState(() => _state = v ?? 'Disponible'),
                   ),
@@ -246,8 +277,11 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
                   if (_selectedImage != null)
                     Column(
                       children: [
-                        Image.file(_selectedImage!,
-                            height: 150, fit: BoxFit.cover),
+                        Image.file(
+                          _selectedImage!,
+                          height: 150,
+                          fit: BoxFit.cover,
+                        ),
                         const SizedBox(height: 8),
                       ],
                     ),
@@ -301,8 +335,7 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(labelText: label),
-      validator: (v) =>
-          v == null || v.isEmpty ? validatorMsg : null,
+      validator: (v) => v == null || v.isEmpty ? validatorMsg : null,
     );
   }
 
@@ -320,6 +353,7 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
     );
   }
 }
+
 
 /*import 'dart:io';
 import 'package:flutter/material.dart';

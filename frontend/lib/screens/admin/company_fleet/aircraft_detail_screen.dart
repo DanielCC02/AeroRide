@@ -111,7 +111,7 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
                 _buildDetailRow('Model', aircraft.model),
                 _buildDetailRow(
                   'Minute Cost',
-                  '₡${aircraft.minuteCost.toStringAsFixed(2)}',
+                  '\$${aircraft.minuteCost.toStringAsFixed(2)}',
                 ),
                 _buildDetailRow('Seats', '${aircraft.seats}'),
                 _buildDetailRow('Empty Weight', '${aircraft.emptyWeight} kg'),

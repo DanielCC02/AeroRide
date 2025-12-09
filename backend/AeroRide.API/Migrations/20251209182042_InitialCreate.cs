@@ -167,6 +167,7 @@ namespace AeroRide.API.Migrations
                     Email = table.Column<string>(type: "text", nullable: false),
                     Password = table.Column<string>(type: "text", nullable: false),
                     PhoneNumber = table.Column<string>(type: "text", nullable: false),
+                    Country = table.Column<string>(type: "text", nullable: true),
                     RegistrationDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     TermsOfUse = table.Column<bool>(type: "boolean", nullable: false),
                     PrivacyNotice = table.Column<bool>(type: "boolean", nullable: false),

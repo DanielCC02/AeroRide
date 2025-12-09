@@ -1,4 +1,6 @@
-﻿namespace AeroRide.API.Helpers.Templates
+﻿using System.Text;
+
+namespace AeroRide.API.Helpers.Templates
 {
     /// <summary>
     /// Plantilla HTML para el correo de verificación de cuenta.
@@ -7,73 +9,90 @@
     {
         public static string Build(string userName, string verificationLink)
         {
-            return $@"
-            <html>
+            var sb = new StringBuilder();
+
+            sb.Append($@"
+            <!DOCTYPE html>
+            <html lang=""es"">
             <head>
-                <meta charset='utf-8'>
-                <style>
-                    body {{
-                        font-family: 'Segoe UI', sans-serif;
-                        background-color: #f4f7fa;
-                        margin: 0;
-                        padding: 0;
-                    }}
-                    .container {{
-                        max-width: 600px;
-                        margin: 40px auto;
-                        background-color: #ffffff;
-                        border-radius: 10px;
-                        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-                        padding: 30px;
-                    }}
-                    .header {{
-                        text-align: center;
-                        color: #1a73e8;
-                        font-size: 22px;
-                        font-weight: bold;
-                    }}
-                    .content {{
-                        color: #333;
-                        font-size: 16px;
-                        line-height: 1.6;
-                        margin-top: 20px;
-                    }}
-                    .button {{
-                        display: inline-block;
-                        padding: 12px 25px;
-                        margin: 30px 0;
-                        background-color: #1a73e8;
-                        color: white;
-                        text-decoration: none;
-                        border-radius: 6px;
-                        font-weight: 600;
-                    }}
-                    .footer {{
-                        text-align: center;
-                        color: #777;
-                        font-size: 13px;
-                        margin-top: 30px;
-                    }}
-                </style>
+                <meta charset=""UTF-8"" />
+                <title>Verifica tu cuenta</title>
             </head>
-            <body>
-                <div class='container'>
-                    <div class='header'>Verifica tu cuenta AeroRide ✈️</div>
-                    <div class='content'>
-                        <p>Hola <strong>{userName}</strong>,</p>
-                        <p>Gracias por registrarte en <strong>AeroRide</strong>.  
-                        Antes de comenzar a disfrutar de nuestros vuelos, por favor verifica tu dirección de correo electrónico.</p>
-                        <p style='text-align:center;'>
-                            <a href='{verificationLink}' class='button'>Verificar mi cuenta</a>
-                        </p>
-                        <p>Si tú no creaste esta cuenta, puedes ignorar este correo.</p>
-                    </div>
-                    <div class='footer'>
-                        © {DateTime.UtcNow.Year} AeroRide. Todos los derechos reservados.
-                    </div>
-                </div>
+
+            <body style=""margin:0; padding:0; font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color:#f3f4f6;"">
+
+                <table width=""100%"" cellpadding=""0"" cellspacing=""0"">
+                    <tr>
+                        <td align=""center"" style=""padding:24px 12px;"">
+
+                            <!-- CARD -->
+                            <table width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""max-width:600px; background-color:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 10px 25px rgba(15,23,42,0.08);"">
+
+                                <!-- HEADER -->
+                                <tr>
+                                    <td style=""background:linear-gradient(135deg,#7f1d1d,#b91c1c); padding:20px 24px; color:#fef2f2;"">
+                                        <h1 style=""margin:0; font-size:20px; color:#fef2f2;"">
+                                            Verifica tu cuenta de AeroCaribe
+                                        </h1>
+                                        <p style=""margin:6px 0 0 0; font-size:13px; color:#fde2e2;"">
+                                            Activa tu acceso a la plataforma de vuelos privados.
+                                        </p>
+                                    </td>
+                                </tr>
+
+                                <!-- BODY -->
+                                <tr>
+                                    <td style=""padding:20px 24px 8px 24px; font-size:14px; color:#111827;"">
+
+                                        <p style=""margin:0 0 12px 0;"">
+                                            Hola <strong>{System.Net.WebUtility.HtmlEncode(userName)}</strong>,
+                                        </p>
+
+                                        <p style=""margin:0 0 12px 0; line-height:1.6;"">
+                                            Gracias por registrarte en <strong>AeroCaribe</strong>.  
+                                            Para comenzar a usar tu cuenta, por favor verifica tu correo electrónico haciendo clic en el siguiente botón.
+                                        </p>
+                                    </td>
+                                </tr>
+
+                                <!-- BUTTON -->
+                                <tr>
+                                    <td align=""center"" style=""padding: 0 0 20px 0;"">
+                                        <a href=""{verificationLink}""
+                                           style=""background-color:#b91c1c;
+                                                  color:#ffffff;
+                                                  padding:12px 24px;
+                                                  border-radius:999px;
+                                                  text-decoration:none;
+                                                  font-weight:600;
+                                                  font-size:14px;
+                                                  display:inline-block;"">
+                                            Verificar mi cuenta
+                                        </a>
+                                    </td>
+                                </tr>
+
+                                <!-- FOOTER -->
+                                <tr>
+                                    <td style=""padding:20px 24px 16px 24px; font-size:11px; color:#9ca3af; border-top:1px solid #e5e7eb;"">
+                                        <p style=""margin:0 0 4px 0;"">
+                                            Estás recibiendo este correo porque creaste una cuenta en <strong>AeroCaribe</strong>.
+                                        </p>
+                                        <p style=""margin:0;"">
+                                            Si no realizaste este registro, puedes ignorar este mensaje.
+                                        </p>
+                                    </td>
+                                </tr>
+
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+
             </body>
-            </html>";
+            </html>");
+
+            return sb.ToString();
         }
     }
 }

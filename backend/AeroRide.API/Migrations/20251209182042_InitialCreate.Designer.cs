@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AeroRide.API.Migrations
 {
     [DbContext(typeof(AeroRideDbContext))]
-    [Migration("20251209074024_InitialCreate")]
+    [Migration("20251209182042_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -679,6 +679,9 @@ namespace AeroRide.API.Migrations
 
                     b.Property<int?>("CompanyId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Country")
+                        .HasColumnType("text");
 
                     b.Property<string>("Email")
                         .IsRequired()
