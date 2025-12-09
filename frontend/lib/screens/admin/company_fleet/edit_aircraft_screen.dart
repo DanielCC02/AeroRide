@@ -282,6 +282,7 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
                     const SizedBox(height: 16),
 
                     SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
                       title: const Text('Can Fly International'),
                       value: _canFlyInternational,
                       onChanged: (v) =>
@@ -290,6 +291,7 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
                     const SizedBox(height: 16),
 
                     DropdownButtonFormField<Airport>(
+                      isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Base Airport',
                       ),
@@ -301,7 +303,10 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
                           .map(
                             (a) => DropdownMenuItem(
                               value: a,
-                              child: Text('${a.name} (${a.codeIATA})'),
+                              child: Text(
+                                '${a.name} (${a.codeIATA})',
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           )
                           .toList(),
@@ -311,6 +316,7 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
                     const SizedBox(height: 12),
 
                     DropdownButtonFormField<Airport>(
+                      isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Current Airport (optional)',
                       ),
@@ -324,7 +330,10 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
                           .map(
                             (a) => DropdownMenuItem(
                               value: a,
-                              child: Text('${a.name} (${a.codeIATA})'),
+                              child: Text(
+                                '${a.name} (${a.codeIATA})',
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           )
                           .toList(),
@@ -334,6 +343,7 @@ class _EditAircraftScreenState extends State<EditAircraftScreen> {
                     const SizedBox(height: 12),
 
                     DropdownButtonFormField<String>(
+                      isExpanded: true,
                       decoration: const InputDecoration(labelText: 'State'),
                       initialValue: _state,
                       items: const [
