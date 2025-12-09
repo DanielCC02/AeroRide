@@ -1,10 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-
 namespace AeroRide.API.Models.DTOs.Authorization
 {
-
-
     /// <summary>
     /// Objeto de transferencia de datos utilizado para el registro
     /// de nuevos usuarios en la plataforma.
@@ -26,6 +23,12 @@ namespace AeroRide.API.Models.DTOs.Authorization
         public string LastName { get; set; } = null!;
 
         /// <summary>
+        /// País principal del usuario (ej: "Costa Rica", "Mexico").
+        /// Se usará para segmentar notificaciones de empty legs.
+        /// </summary>
+        public string? Country { get; set; }
+
+        /// <summary>
         /// Correo electrónico del usuario (debe ser único en el sistema).
         /// </summary>
         [Required(ErrorMessage = "El correo es obligatorio.")]
@@ -45,5 +48,15 @@ namespace AeroRide.API.Models.DTOs.Authorization
         [Required(ErrorMessage = "El número de teléfono es obligatorio.")]
         [Phone(ErrorMessage = "Debe ingresar un número de teléfono válido.")]
         public string PhoneNumber { get; set; } = null!;
+
+        /// <summary>
+        /// Indica si el usuario acepta los Términos de Uso.
+        /// </summary>
+        public bool TermsOfUse { get; set; }
+
+        /// <summary>
+        /// Indica si el usuario acepta el Aviso de Privacidad.
+        /// </summary>
+        public bool PrivacyNotice { get; set; }
     }
 }

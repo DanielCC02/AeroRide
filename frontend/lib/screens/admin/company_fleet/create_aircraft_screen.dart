@@ -228,7 +228,7 @@ class _CreateAircraftScreenState extends State<CreateAircraftScreen> {
 
                   DropdownButtonFormField<String>(
                     decoration: const InputDecoration(labelText: 'State'),
-                    value: _state,
+                    initialValue: _state,
                     items: const [
                       DropdownMenuItem(
                           value: 'Disponible', child: Text('Disponible')),

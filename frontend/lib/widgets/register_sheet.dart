@@ -19,9 +19,10 @@ class _RegisterSheetState extends State<RegisterSheet> {
   final _password = TextEditingController();
   final _confirm = TextEditingController();
 
-  // NEW — nationality
+  // Nacionalidad
   String? _nationalityCode;
   String? _nationalityName;
+  bool _showNationalityError = false;
 
   bool _isLoading = false;
   bool _agreeTerms = false;
@@ -48,14 +49,13 @@ class _RegisterSheetState extends State<RegisterSheet> {
   }
 
   Future<void> _submit() async {
-    setState(() => _fieldErrors = {});
-    if (!_formKey.currentState!.validate()) return;
+    setState(() {
+      _fieldErrors = {};
+      _showNationalityError = _nationalityName == null;
+    });
 
-    // NEW: nationality required
-    if (_nationalityName == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select a nationality.")),
-      );
+    // valida todos los TextFormField + nacionalidad
+    if (!_formKey.currentState!.validate() || _nationalityName == null) {
       return;
     }
 
@@ -74,14 +74,13 @@ class _RegisterSheetState extends State<RegisterSheet> {
     setState(() => _isLoading = true);
 
     try {
-      // 🔴 Registration call including nationality
       await _auth.register(
         name: _firstName.text.trim(),
         lastName: _lastName.text.trim(),
         email: _email.text.trim(),
         password: _password.text,
         phoneNumber: _phone.text.trim(),
-        nationality: _nationalityName!, // 👈 NEW FIELD
+        country: _nationalityName!, // 👈 se manda al backend
       );
 
       if (!mounted) return;
@@ -100,8 +99,8 @@ class _RegisterSheetState extends State<RegisterSheet> {
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(ctx).pop();
-                Navigator.of(context).pop();
+                Navigator.of(ctx).pop(); // dialog
+                Navigator.of(context).pop(); // bottom sheet
               },
               child: const Text('Go to Home'),
             ),
@@ -207,7 +206,7 @@ class _RegisterSheetState extends State<RegisterSheet> {
                     ),
                     const SizedBox(height: 12),
 
-                    // 🇺🇳 NATIONALITY SELECTOR (NEW)
+                    // NATIONALITY SELECTOR
                     GestureDetector(
                       onTap: () {
                         showCountryPicker(
@@ -218,6 +217,7 @@ class _RegisterSheetState extends State<RegisterSheet> {
                             setState(() {
                               _nationalityCode = c.countryCode;
                               _nationalityName = c.name;
+                              _showNationalityError = false;
                             });
                           },
                         );
@@ -229,18 +229,22 @@ class _RegisterSheetState extends State<RegisterSheet> {
                         ),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.shade400),
+                          border: Border.all(
+                            color: _showNationalityError
+                                ? Colors.red
+                                : Colors.grey.shade400,
+                          ),
                         ),
                         child: Row(
                           children: [
                             if (_nationalityName != null)
                               Text(
-                                "$_nationalityName ($_nationalityCode)",
+                                '$_nationalityName ($_nationalityCode)',
                                 style: const TextStyle(fontSize: 16),
                               )
                             else
                               const Text(
-                                "Select nationality",
+                                'Select nationality',
                                 style: TextStyle(
                                   color: Colors.grey,
                                   fontSize: 16,
@@ -253,7 +257,7 @@ class _RegisterSheetState extends State<RegisterSheet> {
                       ),
                     ),
 
-                    if (_nationalityName == null)
+                    if (_showNationalityError)
                       const Padding(
                         padding: EdgeInsets.only(top: 4, left: 4),
                         child: Align(
