@@ -18,11 +18,16 @@ namespace AeroRide.API.Services.Implementations
     {
         private readonly AeroRideDbContext _db;
         private readonly IMapper _mapper;
+        private readonly IEmptyLegNotificationService _emptyLegNotificationService;
 
-        public ReservationService(AeroRideDbContext db, IMapper mapper)
+        public ReservationService(
+        AeroRideDbContext db,
+        IMapper mapper,
+        IEmptyLegNotificationService emptyLegNotificationService)
         {
             _db = db;
             _mapper = mapper;
+            _emptyLegNotificationService = emptyLegNotificationService;
         }
 
         // ======================================================
@@ -504,6 +509,17 @@ namespace AeroRide.API.Services.Implementations
                 await _db.SaveChangesAsync();
 
                 await transaction.CommitAsync();
+
+                // ======================================================
+                // 🔔 11️⃣ NOTIFICAR EMPTY LEGS (fuera de la transacción)
+                // ======================================================
+                var emptyLegsToNotify = allFlights
+                    .Where(f => f.IsEmptyLeg)
+                    .ToList();
+
+                if (emptyLegsToNotify.Any())
+                {
+                    await _emptyLegNotificationService.NotifyUsersForEmptyLegsAsync(emptyLegsToNotify);                }
 
 
                 // ======================================================

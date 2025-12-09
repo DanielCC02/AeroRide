@@ -45,5 +45,8 @@
         /// Indica a que empresa pertence el usuario.
         /// </summary>
         public string? CompanyName { get; set; }
+
+        public string Country { get; set; } = null!;
+
     }
 }
