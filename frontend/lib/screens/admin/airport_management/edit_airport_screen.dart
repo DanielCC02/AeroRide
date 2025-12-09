@@ -21,7 +21,7 @@ class _EditAirportScreenState extends State<EditAirportScreen> {
 
   bool _isLoading = false;
 
-  // Controladores
+  // Controladores normales
   late TextEditingController _name;
   late TextEditingController _codeIATA;
   late TextEditingController _codeOACI;
@@ -33,6 +33,8 @@ class _EditAirportScreenState extends State<EditAirportScreen> {
   late TextEditingController _openingTime;
   late TextEditingController _closingTime;
   late TextEditingController _maxAllowedWeight;
+  late TextEditingController _departureMargin;
+  late TextEditingController _arrivalMargin;
 
   String? _imageUrl;
 
@@ -40,6 +42,7 @@ class _EditAirportScreenState extends State<EditAirportScreen> {
   void initState() {
     super.initState();
     final airport = widget.airport;
+
     _name = TextEditingController(text: airport.name);
     _codeIATA = TextEditingController(text: airport.codeIATA);
     _codeOACI = TextEditingController(text: airport.codeOACI);
@@ -50,9 +53,13 @@ class _EditAirportScreenState extends State<EditAirportScreen> {
     _timeZone = TextEditingController(text: airport.timeZone);
     _openingTime = TextEditingController(text: airport.openingTime ?? '');
     _closingTime = TextEditingController(text: airport.closingTime ?? '');
-    _maxAllowedWeight = TextEditingController(
-      text: airport.maxAllowedWeight?.toString() ?? '',
-    );
+    _maxAllowedWeight =
+        TextEditingController(text: airport.maxAllowedWeight?.toString() ?? '');
+    _departureMargin = TextEditingController(
+        text: airport.departureMarginMinutes.toString());
+    _arrivalMargin =
+        TextEditingController(text: airport.arrivalMarginMinutes.toString());
+
     _imageUrl = airport.image;
   }
 
@@ -69,6 +76,8 @@ class _EditAirportScreenState extends State<EditAirportScreen> {
     _openingTime.dispose();
     _closingTime.dispose();
     _maxAllowedWeight.dispose();
+    _departureMargin.dispose();
+    _arrivalMargin.dispose();
     super.dispose();
   }
 
@@ -76,32 +85,25 @@ class _EditAirportScreenState extends State<EditAirportScreen> {
   // Seleccionar y subir nueva imagen
   // ======================================================
   Future<void> _pickImage() async {
-    // Usamos context ANTES de cualquier await
     final messenger = ScaffoldMessenger.of(context);
 
     final picked = await _picker.pickImage(source: ImageSource.gallery);
     if (picked == null) return;
 
     try {
-      if (mounted) {
-        setState(() => _isLoading = true);
-      }
+      if (mounted) setState(() => _isLoading = true);
 
       final file = File(picked.path);
       final uploadedUrl = await _airportService.uploadAirportImage(file);
 
-      if (mounted) {
-        setState(() => _imageUrl = uploadedUrl);
-      }
+      if (mounted) setState(() => _imageUrl = uploadedUrl);
     } catch (e) {
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(content: Text('⚠️ Error al subir imagen: $e')),
       );
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -132,21 +134,22 @@ class _EditAirportScreenState extends State<EditAirportScreen> {
             : _closingTime.text.trim(),
         maxAllowedWeight: int.tryParse(_maxAllowedWeight.text.trim()),
         imageUrl: _imageUrl,
+
+        departureMarginMinutes: int.tryParse(_departureMargin.text.trim()),
+        arrivalMarginMinutes: int.tryParse(_arrivalMargin.text.trim()),
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Aeropuerto actualizado correctamente'),
-          ),
+          const SnackBar(content: Text('✅ Aeropuerto actualizado correctamente')),
         );
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('⚠️ Error al actualizar: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('⚠️ Error al actualizar: $e')),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -191,18 +194,14 @@ class _EditAirportScreenState extends State<EditAirportScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 alignment: Alignment.center,
-                                child: const Icon(
-                                  Icons.camera_alt,
-                                  size: 50,
-                                  color: Colors.grey,
-                                ),
+                                child: const Icon(Icons.camera_alt, size: 50),
                               ),
                       ),
                       Container(
                         height: 200,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
-                          color: Colors.black.withValues(alpha: 0.3),
+                          color: Colors.black.withOpacity(0.3),
                         ),
                         alignment: Alignment.center,
                         child: const Column(
@@ -226,7 +225,7 @@ class _EditAirportScreenState extends State<EditAirportScreen> {
                           height: 200,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
-                            color: Colors.black.withValues(alpha: 0.4),
+                            color: Colors.black.withOpacity(0.4),
                           ),
                           alignment: Alignment.center,
                           child: const CircularProgressIndicator(
@@ -244,35 +243,23 @@ class _EditAirportScreenState extends State<EditAirportScreen> {
                 _buildField(_codeOACI, 'Code OACI', 'Enter OACI code'),
                 _buildField(_city, 'City', 'Enter city'),
                 _buildField(_country, 'Country', 'Enter country'),
-                _buildField(
-                  _latitude,
-                  'Latitude',
-                  'Enter latitude',
-                  isNumeric: true,
-                ),
-                _buildField(
-                  _longitude,
-                  'Longitude',
-                  'Enter longitude',
-                  isNumeric: true,
-                ),
+                _buildField(_latitude, 'Latitude', 'Enter latitude',
+                    isNumeric: true),
+                _buildField(_longitude, 'Longitude', 'Enter longitude',
+                    isNumeric: true),
                 _buildField(_timeZone, 'Time Zone', 'Enter timezone'),
-                _buildField(
-                  _openingTime,
-                  'Opening Time (HH:mm:ss)',
-                  'Optional',
-                ),
-                _buildField(
-                  _closingTime,
-                  'Closing Time (HH:mm:ss)',
-                  'Optional',
-                ),
-                _buildField(
-                  _maxAllowedWeight,
-                  'Max Allowed Weight (kg)',
-                  'Optional',
-                  isNumeric: true,
-                ),
+                _buildField(_openingTime, 'Opening Time (HH:mm:ss)', 'Optional'),
+                _buildField(_closingTime, 'Closing Time (HH:mm:ss)', 'Optional'),
+                _buildField(_maxAllowedWeight, 'Max Allowed Weight (kg)',
+                    'Optional',
+                    isNumeric: true),
+
+                _buildField(_departureMargin, 'Departure Margin (minutes)',
+                    'Enter minutes',
+                    isNumeric: true),
+                _buildField(_arrivalMargin, 'Arrival Margin (minutes)',
+                    'Enter minutes',
+                    isNumeric: true),
 
                 const SizedBox(height: 24),
 
@@ -302,7 +289,7 @@ class _EditAirportScreenState extends State<EditAirportScreen> {
     );
   }
 
-  // Widget de campo reutilizable
+  // Campo reutilizable
   Widget _buildField(
     TextEditingController controller,
     String label,
