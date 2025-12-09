@@ -34,6 +34,10 @@ class PassengerCreateRequest {
 class ReservationCreateRequest {
   final int companyId;
   final String aircraftModel;
+
+  /// REQUIRED BY BACKEND — list of real aircraft available
+  final List<int> aircraftIds;
+
   final int porcentPrice;
   final int totalPrice;
   final bool isRoundTrip;
@@ -46,6 +50,7 @@ class ReservationCreateRequest {
   ReservationCreateRequest({
     required this.companyId,
     required this.aircraftModel,
+    required this.aircraftIds,
     required this.porcentPrice,
     required this.totalPrice,
     required this.isRoundTrip,
@@ -58,42 +63,47 @@ class ReservationCreateRequest {
 
   void validate() {
     if (companyId <= 0) {
-      throw ArgumentError('companyId inválido.');
+      throw ArgumentError('Invalid companyId.');
     }
     if (aircraftModel.trim().isEmpty) {
-      throw ArgumentError('Debe indicar el modelo de aeronave.');
+      throw ArgumentError('Aircraft model is required.');
+    }
+    if (aircraftIds.isEmpty) {
+      throw ArgumentError('aircraftIds cannot be empty.');
     }
     if (passengers.isEmpty) {
-      throw ArgumentError('Debe agregar al menos 1 pasajero.');
+      throw ArgumentError('At least one passenger is required.');
     }
     if (segments.isEmpty) {
-      throw ArgumentError('Debe definir al menos 1 segmento.');
+      throw ArgumentError('At least one segment is required.');
     }
     for (final s in segments) {
       final dep = s.departureTime.toUtc();
       final arr = s.arrivalTime?.toUtc();
       if (arr == null) {
-        throw ArgumentError('Falta arrivalTime en un segmento.');
+        throw ArgumentError('Missing arrivalTime in a segment.');
       }
       if (!arr.isAfter(dep)) {
         throw ArgumentError(
-          'arrivalTime debe ser estrictamente mayor a departureTime.',
+          'arrivalTime must be strictly after departureTime.',
         );
       }
     }
   }
 
-  Map<String, dynamic> toJson() => {
-    'companyId': companyId,
-    'aircraftModel': aircraftModel,
-    'porcentPrice': porcentPrice,
-    'totalPrice': totalPrice,
-    'isRoundTrip': isRoundTrip,
-    'assistanceAnimal': assistanceAnimal,
-    'lapChild': lapChild,
-    'notes': notes,
-    'passengers': passengers.map((p) => p.toJson()).toList(),
-    // ⬇️ En CREATE sí enviamos arrivalTime
-    'segments': segments.map((s) => s.toJson(includeArrival: true)).toList(),
-  };
+  Map<String, dynamic> toJson() {
+    return {
+      'companyId': companyId,
+      'aircraftModel': aircraftModel,
+      'aircraftIds': aircraftIds,
+      'porcentPrice': porcentPrice,
+      'totalPrice': totalPrice,
+      'isRoundTrip': isRoundTrip,
+      'assistanceAnimal': assistanceAnimal,
+      'lapChild': lapChild,
+      'notes': notes,
+      'passengers': passengers.map((p) => p.toJson()).toList(),
+      'segments': segments.map((s) => s.toJson(includeArrival: true)).toList(),
+    };
+  }
 }

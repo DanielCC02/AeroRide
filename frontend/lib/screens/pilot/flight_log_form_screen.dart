@@ -272,7 +272,7 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
     );
 
     Uint8List? copilotSignatureBytes;
-    if (!_copilotSignatureController.isEmpty) {
+    if (_copilotSignatureController.isNotEmpty) {
       copilotSignatureBytes = await _exportSignature(
         _copilotSignatureController,
       );
@@ -298,9 +298,7 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
         ),
 
         build: (pw.Context context) => [
-          // ───────────────────────────────────────────────
           // TITLE
-          // ───────────────────────────────────────────────
           pw.Center(
             child: pw.Text(
               "AeroCaribe Flight Log",
@@ -310,9 +308,7 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
           pw.SizedBox(height: 16),
           pw.Divider(),
 
-          // ───────────────────────────────────────────────
           // FLIGHT INFORMATION
-          // ───────────────────────────────────────────────
           pw.SizedBox(height: 12),
           pw.Text(
             "Flight Information",
@@ -338,9 +334,7 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
 
           pw.SizedBox(height: 25),
 
-          // ───────────────────────────────────────────────
-          // TIMES + FUEL + WEATHER — SIDE BY SIDE LAYOUT
-          // ───────────────────────────────────────────────
+          // TIMES + FUEL + WEATHER
           pw.Row(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
@@ -419,9 +413,7 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
 
           pw.SizedBox(height: 30),
 
-          // ───────────────────────────────────────────────
           // REMARKS
-          // ───────────────────────────────────────────────
           pw.Text(
             "Remarks",
             style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
@@ -430,9 +422,7 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
           pw.Text(_remarks.text),
           pw.SizedBox(height: 30),
 
-          // ───────────────────────────────────────────────
-          // SIGNATURES — always at the end, paginated safely
-          // ───────────────────────────────────────────────
+          // SIGNATURES
           pw.Text(
             "Signatures",
             style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),

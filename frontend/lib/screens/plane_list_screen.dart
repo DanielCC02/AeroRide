@@ -20,9 +20,8 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
   final _svc = AircraftService();
   late Future<List<AvailableAircraftModel>> _future;
 
-  // Filtros dinámicos
-  String? _selectedCompany; // null = todas
-  String? _selectedModel; // null = todos
+  String? _selectedCompany; // null = all
+  String? _selectedModel; // null = all
   PlaneSortOption _sortOption = PlaneSortOption.companyThenModel;
 
   @override
@@ -44,7 +43,6 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          // 👇 Solo "Select Aircraft"
           title: const Text('Select Aircraft'),
           titleTextStyle: const TextStyle(
             color: Color(0xFFFF0000),
@@ -82,7 +80,7 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
               );
             }
 
-            // ==== Construir listas dinámicas de compañías y modelos ====
+            // Build dynamic lists of companies and models
             final companySet = <String>{};
             final modelSet = <String>{};
 
@@ -98,7 +96,7 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
             final companies = companySet.toList()..sort();
             final models = modelSet.toList()..sort();
 
-            // ==== Aplicar filtros ====
+            // Apply filters
             var filtered = allItems;
 
             if (_selectedCompany != null && _selectedCompany!.isNotEmpty) {
@@ -124,7 +122,6 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
             if (filtered.isEmpty) {
               return Column(
                 children: [
-                  // Aún mostramos los filtros para que pueda cambiar
                   _FilterBar(
                     totalFound: 0,
                     companies: companies,
@@ -152,7 +149,7 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
               );
             }
 
-            // ==== Orden base por compañía/modelo ====
+            // Sort base list
             filtered.sort((a, b) {
               switch (_sortOption) {
                 case PlaneSortOption.modelAZ:
@@ -174,7 +171,7 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
               }
             });
 
-            // ==== Agrupar por compañía y deduplicar (companyId + modelo) ====
+            // Group by companyId and deduplicate (companyId + model)
             final grouped = <int, _CompanyGroup>{};
             for (final m in filtered) {
               final companyId = m.companyId;
@@ -197,7 +194,6 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
             final groups = grouped.values.toList()
               ..sort((a, b) => a.companyName.compareTo(b.companyName));
 
-            // Dentro de cada grupo, ordenar según sortOption
             for (final g in groups) {
               g.models.sort((a, b) {
                 switch (_sortOption) {
@@ -231,7 +227,6 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
                     const SizedBox(height: 14),
                 itemBuilder: (context, gi) {
                   if (gi == 0) {
-                    // 👇 Nueva barra de filtros
                     return _FilterBar(
                       totalFound: foundCount,
                       companies: companies,
@@ -263,7 +258,6 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
                           child: _ModelCard(
                             model: m,
                             onTap: () async {
-                              // Resolver companyId por nombre si viene 0 (fallback)
                               int cid = m.companyId;
                               final cname = m.companyName;
                               final criteria = widget.criteria;
@@ -277,6 +271,17 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
                                 } catch (_) {}
                               }
 
+                              final List<int> ids = m.aircraftIds
+                                  .where((id) => id > 0)
+                                  .toList();
+
+                              int? primaryId = ids.isNotEmpty
+                                  ? ids.first
+                                  : null;
+                              if (primaryId == null && m.id != null) {
+                                if (m.id! > 0) primaryId = m.id!;
+                              }
+
                               navigator.push(
                                 MaterialPageRoute(
                                   builder: (_) => ReservationScreen(
@@ -286,7 +291,16 @@ class _PlaneListScreenState extends State<PlaneListScreen> {
                                     aircraftModel: m.model,
                                     headerImage: m.image,
                                     seats: m.seats,
-                                    aircraftId: m.id,
+
+                                    /// For preview only (NOT sent to backend)
+                                    aircraftId: primaryId,
+
+                                    /// REQUIRED BY BACKEND
+                                    aircraftIds: ids.isNotEmpty
+                                        ? ids
+                                        : (primaryId != null
+                                              ? <int>[primaryId]
+                                              : []),
                                   ),
                                 ),
                               );
@@ -353,7 +367,7 @@ class _FilterBar extends StatelessWidget {
             children: [
               // Filter by company
               Expanded(
-                child: DropdownButtonFormField<String>(
+                child: DropdownButtonFormField<String?>(
                   initialValue: selectedCompany,
                   isExpanded: true,
                   decoration: const InputDecoration(
@@ -362,12 +376,13 @@ class _FilterBar extends StatelessWidget {
                     isDense: true,
                   ),
                   items: [
-                    const DropdownMenuItem<String>(
+                    const DropdownMenuItem<String?>(
                       value: null,
                       child: Text('All companies'),
                     ),
                     ...companies.map(
-                      (c) => DropdownMenuItem<String>(value: c, child: Text(c)),
+                      (c) =>
+                          DropdownMenuItem<String?>(value: c, child: Text(c)),
                     ),
                   ],
                   onChanged: onCompanyChanged,
@@ -377,7 +392,7 @@ class _FilterBar extends StatelessWidget {
 
               // Filter by model
               Expanded(
-                child: DropdownButtonFormField<String>(
+                child: DropdownButtonFormField<String?>(
                   initialValue: selectedModel,
                   isExpanded: true,
                   decoration: const InputDecoration(
@@ -386,12 +401,13 @@ class _FilterBar extends StatelessWidget {
                     isDense: true,
                   ),
                   items: [
-                    const DropdownMenuItem<String>(
+                    const DropdownMenuItem<String?>(
                       value: null,
                       child: Text('All models'),
                     ),
                     ...models.map(
-                      (m) => DropdownMenuItem<String>(value: m, child: Text(m)),
+                      (m) =>
+                          DropdownMenuItem<String?>(value: m, child: Text(m)),
                     ),
                   ],
                   onChanged: onModelChanged,
@@ -524,19 +540,34 @@ class _ModelCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _InfoChip(icon: Icons.apartment, label: companyLabel),
-                      const SizedBox(width: 10),
-                      _InfoChip(
-                        icon: Icons.event_seat,
-                        label: '${m.seats} SEATS',
+                      // Chips inside an Expanded + Wrap to avoid overflow
+                      Expanded(
+                        child: Wrap(
+                          spacing: 10,
+                          runSpacing: 6,
+                          children: [
+                            _InfoChip(
+                              icon: Icons.apartment,
+                              label: companyLabel,
+                            ),
+                            _InfoChip(
+                              icon: Icons.event_seat,
+                              label: '${m.seats} SEATS',
+                            ),
+                            if (m.baseCountry.isNotEmpty)
+                              _InfoChip(
+                                icon: Icons.public,
+                                label: m.baseCountry,
+                              ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(width: 10),
-                      if (m.baseCountry.isNotEmpty)
-                        _InfoChip(icon: Icons.public, label: m.baseCountry),
-                      const Spacer(),
+                      const SizedBox(width: 8),
                       if (m.estimatedPrice != null)
                         Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(Icons.attach_money, size: 18),
                             Text(
@@ -573,11 +604,13 @@ class _InfoChip extends StatelessWidget {
         color: Colors.black12,
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 16),
           const SizedBox(width: 6),
           Text(
             label,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ],
