@@ -56,12 +56,7 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
             centerTitle: true,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
-              onPressed: () {
-                Navigator.pop(
-                  context,
-                  true,
-                ); // indica a la pantalla anterior que recargue
-              },
+              onPressed: () => Navigator.pop(context, true),
             ),
             actions: [
               IconButton(
@@ -102,18 +97,12 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
                         fit: BoxFit.cover,
                         loadingBuilder: (context, child, loadingProgress) {
                           if (loadingProgress == null) return child;
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
+                          return const Center(child: CircularProgressIndicator());
                         },
-                        errorBuilder: (context, error, stackTrace) => Container(
+                        errorBuilder: (_, __, ___) => Container(
                           color: Colors.grey.shade200,
                           alignment: Alignment.center,
-                          child: const Icon(
-                            Icons.broken_image,
-                            size: 48,
-                            color: Colors.grey,
-                          ),
+                          child: const Icon(Icons.broken_image, size: 48),
                         ),
                       ),
                     ),
@@ -138,10 +127,22 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
                 _buildDetailRow('Time Zone', airport.timeZone),
                 const SizedBox(height: 20),
 
-                // Horarios y restricciones
+                // Horarios
                 _buildSectionTitle('Operating Hours'),
                 _buildDetailRow('Opening Time', airport.openingTime ?? '—'),
                 _buildDetailRow('Closing Time', airport.closingTime ?? '—'),
+                const SizedBox(height: 20),
+
+                // Márgenes operativos
+                _buildSectionTitle('Operational Margins'),
+                _buildDetailRow(
+                  'Departure Margin',
+                  '${airport.departureMarginMinutes} min',
+                ),
+                _buildDetailRow(
+                  'Arrival Margin',
+                  '${airport.arrivalMarginMinutes} min',
+                ),
                 const SizedBox(height: 20),
 
                 // Configuración técnica
@@ -152,7 +153,7 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Estado actual
+                // Estado del aeropuerto
                 _buildSectionTitle('Status'),
                 _buildDetailRow(
                   'Active',
@@ -161,23 +162,20 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Botón Activar / Desactivar
+                // Botón activar/desactivar
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: airport.isActive
-                          ? Colors.redAccent
-                          : Colors.green,
+                      backgroundColor:
+                          airport.isActive ? Colors.redAccent : Colors.green,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     icon: Icon(
-                      airport.isActive
-                          ? Icons.delete_forever
-                          : Icons.restart_alt,
+                      airport.isActive ? Icons.delete_forever : Icons.restart_alt,
                       color: Colors.white,
                     ),
                     label: Text(
@@ -187,7 +185,6 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
                       style: const TextStyle(color: Colors.white, fontSize: 16),
                     ),
                     onPressed: () async {
-                      // Guardamos helpers ANTES de los awaits
                       final messenger = ScaffoldMessenger.of(context);
                       final navigator = Navigator.of(context);
 
@@ -228,19 +225,16 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
                             await _airportService.deactivateAirport(airport.id);
                             messenger.showSnackBar(
                               const SnackBar(
-                                content: Text('🛑 Airport deactivated'),
-                              ),
+                                  content: Text('🛑 Airport deactivated')),
                             );
                           } else {
                             await _airportService.reactivateAirport(airport.id);
                             messenger.showSnackBar(
                               const SnackBar(
-                                content: Text('♻️ Airport reactivated'),
-                              ),
+                                  content: Text('♻️ Airport reactivated')),
                             );
                           }
 
-                          if (!mounted) return;
                           navigator.pop(true);
                         } catch (e) {
                           messenger.showSnackBar(
@@ -274,7 +268,7 @@ class _AirportDetailScreenState extends State<AirportDetailScreen> {
     );
   }
 
-  // Reutilizable: campo-valor
+  // Reutilizable para mostrar un campo-valor
   Widget _buildDetailRow(String title, String value, {Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),

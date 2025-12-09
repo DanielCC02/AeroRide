@@ -10,7 +10,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AeroRide.API.Migrations
 {
     /// <inheritdoc />
-    public partial class UpdateFlightStatusEnum : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -32,6 +32,8 @@ namespace AeroRide.API.Migrations
                     TimeZone = table.Column<string>(type: "text", nullable: false),
                     OpeningTime = table.Column<TimeSpan>(type: "interval", nullable: true),
                     ClosingTime = table.Column<TimeSpan>(type: "interval", nullable: true),
+                    DepartureMarginMinutes = table.Column<int>(type: "integer", nullable: false),
+                    ArrivalMarginMinutes = table.Column<int>(type: "integer", nullable: false),
                     Latitude = table.Column<decimal>(type: "numeric", nullable: false),
                     Longitude = table.Column<decimal>(type: "numeric", nullable: false),
                     Ubication = table.Column<Point>(type: "geometry(Point,4326)", nullable: false),

@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AeroRide.API.Migrations
 {
     [DbContext(typeof(AeroRideDbContext))]
-    [Migration("20251120200025_UpdateFlightStatusEnum")]
-    partial class UpdateFlightStatusEnum
+    [Migration("20251208202451_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -140,6 +140,9 @@ namespace AeroRide.API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("ArrivalMarginMinutes")
+                        .HasColumnType("integer");
+
                     b.Property<string>("City")
                         .IsRequired()
                         .HasColumnType("text");
@@ -158,6 +161,9 @@ namespace AeroRide.API.Migrations
                     b.Property<string>("Country")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("DepartureMarginMinutes")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Image")
                         .IsRequired()
