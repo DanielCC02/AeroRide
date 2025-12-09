@@ -137,6 +137,9 @@ namespace AeroRide.API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("ArrivalMarginMinutes")
+                        .HasColumnType("integer");
+
                     b.Property<string>("City")
                         .IsRequired()
                         .HasColumnType("text");
@@ -155,6 +158,9 @@ namespace AeroRide.API.Migrations
                     b.Property<string>("Country")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("DepartureMarginMinutes")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Image")
                         .IsRequired()
@@ -670,6 +676,9 @@ namespace AeroRide.API.Migrations
 
                     b.Property<int?>("CompanyId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Country")
+                        .HasColumnType("text");
 
                     b.Property<string>("Email")
                         .IsRequired()

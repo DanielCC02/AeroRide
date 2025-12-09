@@ -48,6 +48,11 @@
         /// </summary>
         public string PhoneNumber { get; set; } = null!;
 
+        /// <summary>
+        /// País principal del usuario (ej: "Costa Rica", "Mexico").
+        /// </summary>
+        public string? Country { get; set; }
+
         // ======================================================
         // 🕒 INFORMACIÓN DE REGISTRO
         // ======================================================

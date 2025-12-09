@@ -49,4 +49,7 @@ public class UserProfileDto
     /// Fecha de registro en la plataforma.
     /// </summary>
     public DateTime RegistrationDate { get; set; }
+
+    public string Country { get; set; } = null!;
+
 }

@@ -16,6 +16,9 @@ public class UserUpdateAdminDto
     /// <summary>Nuevo número de teléfono del usuario (opcional).</summary>
     public string? PhoneNumber { get; set; }
 
+    public string? Country { get; set; }
+
+
     /// <summary>
     /// Identificador del nuevo rol asignado (opcional).
     /// </summary>
