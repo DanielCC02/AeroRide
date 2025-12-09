@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:country_picker/country_picker.dart';
 import '../services/auth_service.dart';
 
 class RegisterSheet extends StatefulWidget {
@@ -17,6 +18,10 @@ class _RegisterSheetState extends State<RegisterSheet> {
   final _phone = TextEditingController(text: '+506 ');
   final _password = TextEditingController();
   final _confirm = TextEditingController();
+
+  // NEW — nationality
+  String? _nationalityCode;
+  String? _nationalityName;
 
   bool _isLoading = false;
   bool _agreeTerms = false;
@@ -46,6 +51,14 @@ class _RegisterSheetState extends State<RegisterSheet> {
     setState(() => _fieldErrors = {});
     if (!_formKey.currentState!.validate()) return;
 
+    // NEW: nationality required
+    if (_nationalityName == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select a nationality.")),
+      );
+      return;
+    }
+
     if (!_agreeTerms || !_agreePrivacy) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -61,17 +74,18 @@ class _RegisterSheetState extends State<RegisterSheet> {
     setState(() => _isLoading = true);
 
     try {
-      // Registro (no usamos el mensaje retornado)
+      // 🔴 Registration call including nationality
       await _auth.register(
         name: _firstName.text.trim(),
         lastName: _lastName.text.trim(),
         email: _email.text.trim(),
         password: _password.text,
         phoneNumber: _phone.text.trim(),
+        nationality: _nationalityName!, // 👈 NEW FIELD
       );
 
       if (!mounted) return;
-      // ✅ Diálogo corto en inglés con botones
+
       await showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -80,25 +94,20 @@ class _RegisterSheetState extends State<RegisterSheet> {
             'Check your email to verify your account. It may be in your spam folder.',
           ),
           actions: [
-            // Cierra solo el diálogo
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('OK'),
             ),
-            // Cierra diálogo + sheet → vuelve al Welcome
             TextButton(
               onPressed: () {
-                Navigator.of(ctx).pop(); // close dialog
-                Navigator.of(context).pop(); // close bottom sheet
+                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
               },
               child: const Text('Go to Home'),
             ),
           ],
         ),
       );
-
-      // Nota: ya no hacemos pop() aquí porque el botón "Go to Home"
-      // lo maneja dentro del diálogo para evitar doble-pop.
     } on AuthServiceException catch (e) {
       setState(() => _fieldErrors = e.fieldErrors ?? {});
       if (!mounted) return;
@@ -141,6 +150,7 @@ class _RegisterSheetState extends State<RegisterSheet> {
             ),
           ),
           const Divider(height: 1),
+
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -148,6 +158,7 @@ class _RegisterSheetState extends State<RegisterSheet> {
                 key: _formKey,
                 child: Column(
                   children: [
+                    // FIRST NAME
                     TextFormField(
                       controller: _firstName,
                       decoration: InputDecoration(
@@ -158,6 +169,8 @@ class _RegisterSheetState extends State<RegisterSheet> {
                           (v == null || v.trim().isEmpty) ? 'Required' : null,
                     ),
                     const SizedBox(height: 12),
+
+                    // LAST NAME
                     TextFormField(
                       controller: _lastName,
                       decoration: InputDecoration(
@@ -168,6 +181,8 @@ class _RegisterSheetState extends State<RegisterSheet> {
                           (v == null || v.trim().isEmpty) ? 'Required' : null,
                     ),
                     const SizedBox(height: 12),
+
+                    // EMAIL
                     TextFormField(
                       controller: _email,
                       decoration: InputDecoration(
@@ -179,6 +194,8 @@ class _RegisterSheetState extends State<RegisterSheet> {
                           : null,
                     ),
                     const SizedBox(height: 12),
+
+                    // PHONE
                     TextFormField(
                       controller: _phone,
                       decoration: InputDecoration(
@@ -189,6 +206,68 @@ class _RegisterSheetState extends State<RegisterSheet> {
                           (v == null || v.trim().isEmpty) ? 'Required' : null,
                     ),
                     const SizedBox(height: 12),
+
+                    // 🇺🇳 NATIONALITY SELECTOR (NEW)
+                    GestureDetector(
+                      onTap: () {
+                        showCountryPicker(
+                          context: context,
+                          showPhoneCode: false,
+                          showWorldWide: false,
+                          onSelect: (Country c) {
+                            setState(() {
+                              _nationalityCode = c.countryCode;
+                              _nationalityName = c.name;
+                            });
+                          },
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 18,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.shade400),
+                        ),
+                        child: Row(
+                          children: [
+                            if (_nationalityName != null)
+                              Text(
+                                "$_nationalityName ($_nationalityCode)",
+                                style: const TextStyle(fontSize: 16),
+                              )
+                            else
+                              const Text(
+                                "Select nationality",
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            const Spacer(),
+                            const Icon(Icons.flag),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    if (_nationalityName == null)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 4, left: 4),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Required',
+                            style: TextStyle(color: Colors.red, fontSize: 12),
+                          ),
+                        ),
+                      ),
+
+                    const SizedBox(height: 12),
+
+                    // PASSWORD
                     TextFormField(
                       controller: _password,
                       decoration: InputDecoration(
@@ -209,6 +288,7 @@ class _RegisterSheetState extends State<RegisterSheet> {
                       },
                     ),
                     const SizedBox(height: 12),
+
                     TextFormField(
                       controller: _confirm,
                       decoration: const InputDecoration(
@@ -221,7 +301,10 @@ class _RegisterSheetState extends State<RegisterSheet> {
                                 ? 'Passwords do not match'
                                 : null),
                     ),
+
                     const SizedBox(height: 16),
+
+                    // AGREEMENTS
                     Row(
                       children: [
                         Checkbox(
@@ -246,7 +329,10 @@ class _RegisterSheetState extends State<RegisterSheet> {
                         ),
                       ],
                     ),
+
                     const SizedBox(height: 20),
+
+                    // SUBMIT BUTTON
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(

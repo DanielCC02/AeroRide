@@ -93,6 +93,10 @@ class AuthService {
     required String email,
     required String password,
     required String phoneNumber,
+
+    // NEW FIELD — REQUIRED by your updated UI
+    required String nationality,
+
     bool termsOfUse = true,
     bool privacyNotice = true,
   }) async {
@@ -107,6 +111,7 @@ class AuthService {
         'email': email,
         'password': password,
         'phoneNumber': phoneNumber,
+        'nationality': nationality, // 👈 NEW FIELD SENT TO BACKEND
         'termsOfUse': termsOfUse,
         'privacyNotice': privacyNotice,
       }),
@@ -122,7 +127,7 @@ class AuthService {
       return 'Registro exitoso. Revisa tu correo para verificar la cuenta.';
     }
 
-    // ModelState / message del backend
+    // Manejar ASP.NET ModelState Errors
     try {
       final payload = jsonDecode(res.body);
       if (payload is Map && payload['errors'] is Map) {

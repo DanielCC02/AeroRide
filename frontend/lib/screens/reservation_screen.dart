@@ -21,15 +21,19 @@ import 'homepage_screen.dart';
 class ReservationScreen extends StatefulWidget {
   final SearchCriteria criteria;
 
-  final int companyId; // id final que viene del item (o 0 si no se pudo)
-  final String companyName; // solo para mostrar
-  final String aircraftModel; // EXACTO como BD
+  // Company + aircraft info coming from PlaneListScreen
+  final int companyId;
+  final String companyName;
+  final String aircraftModel;
 
   final String? headerImage;
   final int? seats;
 
-  // id de la aeronave seleccionada en PlaneListScreen (puede ser null)
+  /// Primary aircraft id chosen in PlaneListScreen (can be null).
   final int? aircraftId;
+
+  /// List of real aircraft ids returned by the backend for this card.
+  final List<int>? aircraftIds;
 
   const ReservationScreen({
     super.key,
@@ -40,6 +44,7 @@ class ReservationScreen extends StatefulWidget {
     this.headerImage,
     this.seats,
     this.aircraftId,
+    this.aircraftIds,
   });
 
   @override
@@ -50,38 +55,50 @@ class _ReservationScreenState extends State<ReservationScreen> {
   final _airSvc = asvc.AircraftService();
   final _resSvc = rsvc.ReservationService();
 
-  // Opciones
+  // Options
   bool lapInfant = false;
   bool dog = false;
 
-  // Pasajeros (del form)
+  // Passengers from form
   List<PassengerInfo> _passengers = [];
 
-  // Flujo
+  // Flow flags
   bool _booking = false;
   bool _estimating = false;
 
-  // Estimate
+  // Estimate data
   String? _estimateError;
   double? _estimatedTotal;
   int? _estimateMinutes;
   models.ReservationEstimateResponse? _estimateRaw;
 
-  // Resoluciones
-  String? _modelForApi; // exactamente el modelo que mandaremos
+  // Aircraft resolution / preview
+  String? _modelForApi;
   AircraftModel? _assignedPreview;
 
-  // aircraftId efectivo usado para el estimate
+  /// Effective aircraft id used for estimate/create.
   int? _selectedAircraftId;
-
-  // Aviso cuando el avión real pertenece a otra compañía
-  String? _companyMismatchWarning;
 
   @override
   void initState() {
     super.initState();
-    _modelForApi = widget.aircraftModel; // exacto
-    _selectedAircraftId = widget.aircraftId; // viene de PlaneListScreen
+
+    _modelForApi = widget.aircraftModel;
+
+    // Prefer the list of aircraftIds (real ids from backend)
+    final ids = (widget.aircraftIds ?? const <int>[])
+        .where((id) => id > 0)
+        .toList();
+
+    if (ids.isNotEmpty) {
+      _selectedAircraftId = ids.first;
+    } else {
+      _selectedAircraftId =
+          (widget.aircraftId != null && widget.aircraftId! > 0)
+          ? widget.aircraftId
+          : null;
+    }
+
     _refreshEstimate();
   }
 
@@ -129,38 +146,6 @@ class _ReservationScreenState extends State<ReservationScreen> {
         child: Column(
           children: [
             _buildHeader(eft),
-
-            if (_companyMismatchWarning != null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                child: Material(
-                  color: Colors.amberAccent.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.warning_amber_rounded,
-                          color: Colors.black87,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _companyMismatchWarning!,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
 
             // ===== Itinerary =====
             Padding(
@@ -504,16 +489,11 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
   // ================== HEADER ==================
   Widget _buildHeader(Duration eft) {
-    // 1️⃣ Imagen: preferimos SIEMPRE la del card seleccionado
-    // y solo usamos la del preview si no hay headerImage.
     final img = (widget.headerImage != null && widget.headerImage!.isNotEmpty)
         ? widget.headerImage!
         : (_assignedPreview?.image ?? '');
 
-    // 2️⃣ Título: SIEMPRE el modelo que venía del PlaneListScreen
     final title = widget.aircraftModel;
-
-    // 3️⃣ Seats: primero lo que venía del card, si no, usamos preview
     final seats = widget.seats ?? _assignedPreview?.seats ?? 0;
 
     return Column(
@@ -572,16 +552,16 @@ class _ReservationScreenState extends State<ReservationScreen> {
     );
   }
 
-  // ================== NETWORK ==================
+  // ================== NETWORK HELPERS ==================
+
   Future<int> _resolveCompanyId() async {
     if (widget.companyId != 0) return widget.companyId;
     final id = await _airSvc.getCompanyIdByName(widget.companyName);
     if (id != null && id != 0) return id;
-    // fallback no bloqueante: 0 → que el back decida
+    // Fallback (let backend decide)
     return 0;
   }
 
-  // ---- Timezone helpers ----
   DateTime _localAirportToUtc(DateTime localWallTime, String? timeZoneId) {
     final offset = _tzOffsetHours(timeZoneId, localWallTime);
     final naiveAsUtc = DateTime.utc(
@@ -596,7 +576,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
   int _tzOffsetHours(String? tz, DateTime at) {
     final id = (tz ?? '').trim();
-    if (id.isEmpty || id == 'America/Costa_Rica') return -6; // sin DST
+    if (id.isEmpty || id == 'America/Costa_Rica') return -6;
     if (id == 'America/Guatemala') return -6;
     if (id == 'America/Mexico_City') {
       final m = at.month;
@@ -618,7 +598,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
       final total = sign * (h + (mm >= 30 ? 1 : 0));
       return total;
     }
-    return -6; // fallback Centroamérica
+    return -6;
   }
 
   // ---- Estimate refresh ----
@@ -626,47 +606,32 @@ class _ReservationScreenState extends State<ReservationScreen> {
     setState(() {
       _estimating = true;
       _estimateError = null;
-      _companyMismatchWarning = null; // limpiamos aviso previo
     });
 
     try {
       final c = widget.criteria;
-      final resolvedCompanyId = await _resolveCompanyId();
 
-      final modelForEstimate = (_modelForApi ?? widget.aircraftModel).trim();
+      final List<int> aircraftIds = (widget.aircraftIds ?? const <int>[])
+          .where((id) => id > 0)
+          .toList();
 
-      // 1️⃣ Tomamos el aircraftId que viene desde PlaneList / initState
-      _selectedAircraftId ??= widget.aircraftId;
-      int? aircraftIdForEstimate = _selectedAircraftId;
-
-      // 2️⃣ Si por alguna razón viene null, intentamos buscar por compañía + modelo
-      if (aircraftIdForEstimate == null) {
-        try {
-          final fallback = await _airSvc.findFirstAircraftByCompanyAndModel(
-            companyId: resolvedCompanyId,
-            model: modelForEstimate,
-          );
-          if (fallback != null) {
-            aircraftIdForEstimate = fallback.id;
-            _selectedAircraftId = fallback.id;
-            _assignedPreview = fallback; // de paso llenamos preview
-          }
-        } catch (_) {
-          // Si falla, lo manejamos más abajo
+      if (aircraftIds.isEmpty && _selectedAircraftId != null) {
+        if (_selectedAircraftId! > 0) {
+          aircraftIds.add(_selectedAircraftId!);
         }
       }
 
-      // 3️⃣ Si seguimos sin aircraftId → no podemos llamar al estimate
-      if (aircraftIdForEstimate == null) {
+      if (aircraftIds.isEmpty) {
         if (!mounted) return;
         setState(() {
           _estimateError =
-              'No se encontró ninguna aeronave disponible para el modelo $modelForEstimate.';
+              'No aircraft was found for this model and search criteria.';
         });
         return;
       }
 
-      // Usa hora local del aeropuerto (no del dispositivo)
+      _selectedAircraftId ??= aircraftIds.first;
+
       final depUtc = _localAirportToUtc(c.departure, c.from.timeZone);
       final retUtc = (c.isRoundTrip && c.returnDateTime != null)
           ? _localAirportToUtc(c.returnDateTime!, c.to.timeZone)
@@ -677,7 +642,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
           departureAirportId: c.from.id,
           arrivalAirportId: c.to.id,
           departureTime: depUtc,
-          arrivalTime: depUtc, // el back recalcula con ETE
+          arrivalTime: depUtc,
         ),
       ];
       if (retUtc != null) {
@@ -693,9 +658,8 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
       final passengersTotal = c.passengers + (lapInfant ? 1 : 0);
 
-      // Request alineado con Swagger: aircraftIds + totalPassengers + segments
       final req = ReservationEstimateRequest(
-        aircraftIds: [aircraftIdForEstimate],
+        aircraftIds: aircraftIds,
         totalPassengers: passengersTotal,
         segments: segs,
       );
@@ -710,60 +674,26 @@ class _ReservationScreenState extends State<ReservationScreen> {
         _estimateRaw = est;
         _estimatedTotal = est.totalPrice;
         _estimateMinutes = est.totalMinutes.round();
-
-        // No dejamos que el back cambie el avión seleccionado.
-        _selectedAircraftId ??= aircraftIdForEstimate;
       });
 
-      // ========= Cargar avión "preview" y warning de compañía =========
+      // Load aircraft preview (minute cost, image, etc.)
       try {
-        AircraftModel? preview;
-
-        // 1) Siempre intentamos primero el avión que seleccionó el usuario
         if (_selectedAircraftId != null) {
-          preview = await _airSvc.getAircraftById(_selectedAircraftId!);
+          final preview = await _airSvc.getAircraftById(_selectedAircraftId!);
+          if (!mounted) return;
+          setState(() {
+            _assignedPreview = preview;
+          });
         }
-
-        // 2) Si por X razón no se pudo cargar, usamos el que devolvió el back
-        if (preview == null && est.aircraftId != null && est.aircraftId! > 0) {
-          preview = await _airSvc.getAircraftById(est.aircraftId!);
-        }
-
-        // 3) Último fallback: por compañía + modelo
-        preview ??= await _airSvc.findFirstAircraftByCompanyAndModel(
-          companyId: resolvedCompanyId,
-          model: modelForEstimate,
-        );
-
-        if (!mounted) return;
-
-        String? warning;
-
-        if (preview != null) {
-          final selectedName = widget.companyName.trim().toLowerCase();
-          final previewName = preview.companyName.trim().toLowerCase();
-
-          // Si el avión que estamos mostrando es de otra compañía, dejamos el warning
-          if (selectedName.isNotEmpty &&
-              previewName.isNotEmpty &&
-              selectedName != previewName) {
-            warning =
-                'Heads up: the available aircraft for this model belongs to a '
-                'different company (${preview.companyName}) than the one you '
-                'filtered (${widget.companyName}).';
-          }
-        }
-
-        setState(() {
-          _assignedPreview = preview;
-          _companyMismatchWarning = warning;
-        });
       } catch (_) {
-        // Si falla el preview, simplemente no mostramos matrícula ni warning
+        // If it fails, just skip preview details.
       }
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
-      setState(() => _estimateError = 'No fue posible estimar el precio: $e');
+      setState(
+        () => _estimateError =
+            'It was not possible to calculate the price estimate. Please try again.',
+      );
     } finally {
       if (mounted) setState(() => _estimating = false);
     }
@@ -777,15 +707,17 @@ class _ReservationScreenState extends State<ReservationScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Confirm reservation'),
-        content: const Text('¿Deseas continuar y crear la reserva?'),
+        content: const Text(
+          'Do you want to continue and create this reservation?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Continuar'),
+            child: const Text('Continue'),
           ),
         ],
       ),
@@ -801,7 +733,9 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
     if (_passengers.length != c.passengers) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add all passengers information.')),
+        const SnackBar(
+          content: Text('Please complete all passengers information first.'),
+        ),
       );
       return;
     }
@@ -821,7 +755,6 @@ class _ReservationScreenState extends State<ReservationScreen> {
               c.to.longitude,
             );
 
-      // Misma regla de zona horaria del aeropuerto
       final depUtc = _localAirportToUtc(
         _roundTo5(c.departure),
         c.from.timeZone,
@@ -858,6 +791,10 @@ class _ReservationScreenState extends State<ReservationScreen> {
       final req = ReservationCreateRequest(
         companyId: resolvedCompanyId,
         aircraftModel: modelForCreate,
+
+        /// REQUIRED BY BACKEND — send all real aircraft IDs
+        aircraftIds: (widget.aircraftIds ?? []).where((id) => id > 0).toList(),
+
         porcentPrice: 100,
         totalPrice: (_estimatedTotal ?? 0).round(),
         isRoundTrip: c.isRoundTrip,
@@ -881,9 +818,21 @@ class _ReservationScreenState extends State<ReservationScreen> {
       );
     } catch (e) {
       if (!mounted) return;
+
+      final raw = e.toString();
+      String friendly = 'Error while creating the reservation.';
+
+      if (raw.contains('No se enviaron aeronaves')) {
+        friendly =
+            'No valid aircraft were sent for this reservation. Please go back and select an aircraft again.';
+      } else if (raw.contains('Error al crear la reserva')) {
+        friendly =
+            'There was a problem while creating the reservation. Please try again or contact support.';
+      }
+
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ).showSnackBar(SnackBar(content: Text(friendly)));
     } finally {
       if (mounted) setState(() => _booking = false);
     }
@@ -905,7 +854,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
     }
   }
 
-  // ---- Price breakdown sheet ----
+  // ---- Price breakdown bottom sheet ----
   void _showBreakdown() {
     if (_estimatedTotal == null) return;
 
@@ -913,7 +862,6 @@ class _ReservationScreenState extends State<ReservationScreen> {
     final minutes = _estimateMinutes ?? 0;
     final minuteCost = _assignedPreview?.minuteCost;
 
-    // Intenta leer breakdown del API si existe
     Map<String, dynamic>? apiBk;
     try {
       final m = (_estimateRaw as dynamic).toJson() as Map<String, dynamic>;
@@ -925,7 +873,9 @@ class _ReservationScreenState extends State<ReservationScreen> {
       try {
         final b = (_estimateRaw as dynamic).breakdown;
         if (b is Map<String, dynamic>) apiBk = b;
-      } catch (_) {}
+      } catch (_) {
+        // ignore
+      }
     }
 
     double? baseFlight;
@@ -948,7 +898,15 @@ class _ReservationScreenState extends State<ReservationScreen> {
                 'Price breakdown',
                 style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Note: The selected aircraft may need to reposition from its base to your departure airport. Any repositioning cost is already included in this estimate.',
+                  style: TextStyle(fontSize: 11, color: Colors.black54),
+                ),
+              ),
+              const SizedBox(height: 10),
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1046,7 +1004,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
     final nationality = (p.nationality ?? '').trim();
     final dob = p.dateOfBirth ?? DateTime(2000, 1, 1);
 
-    final genderString = p.gender.apiValue; // 'Masculino' / 'Femenino'
+    final genderString = p.gender.apiValue; // backend enum value
 
     return PassengerCreateRequest(
       name: firstName,
@@ -1071,14 +1029,14 @@ class _ReservationScreenState extends State<ReservationScreen> {
     double deg2rad(double d) => d * math.pi / 180.0;
 
     final dLat = deg2rad(lat2 - lat1);
-    final dLon = deg2rad(lon2 - lon1);
+    final dLon2 = deg2rad(lon2 - lon1);
 
     final a =
         math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(deg2rad(lat1)) *
             math.cos(deg2rad(lat2)) *
-            math.sin(dLon / 2) *
-            math.sin(dLon / 2);
+            math.sin(dLon2 / 2) *
+            math.sin(dLon2 / 2);
 
     final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
     final distanceKm = R * c;
