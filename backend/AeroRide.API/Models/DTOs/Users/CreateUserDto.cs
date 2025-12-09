@@ -28,7 +28,6 @@ namespace AeroRide.API.Models.DTOs.Users
         /// País principal del usuario (ej: "Costa Rica", "Mexico").
         /// Se usará para segmentar notificaciones de empty legs.
         /// </summary>
-        [Required(ErrorMessage = "El pais es obligatorio.")]
         public string? Country { get; set; }
 
         /// <summary>
