@@ -12,6 +12,9 @@ class UserModel {
   final bool? termsOfUse;
   final bool? privacyNotice;
 
+  /// País principal del usuario (ej: "Costa Rica", "México").
+  final String? country;
+
   UserModel({
     required this.id,
     required this.name,
@@ -25,6 +28,7 @@ class UserModel {
     this.registrationDate,
     this.termsOfUse,
     this.privacyNotice,
+    this.country,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -37,14 +41,15 @@ class UserModel {
       role: json['role'] ?? '',
       isActive: json['isActive'] ?? false,
       companyName: json['companyName'],
-      fullName:
-          '${json['name'] ?? ''} ${json['lastName'] ?? ''}'.trim(),
+      fullName: '${json['name'] ?? ''} ${json['lastName'] ?? ''}'.trim(),
       registrationDate: json['registrationDate'],
       termsOfUse: json['termsOfUse'],
       privacyNotice: json['privacyNotice'],
+      country: json['country'], // 👈 lo leemos si viene en la respuesta
     );
   }
-  // Método toJson
+
+  // Método toJson (por si lo necesitás)
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -59,6 +64,7 @@ class UserModel {
       'registrationDate': registrationDate,
       'termsOfUse': termsOfUse,
       'privacyNotice': privacyNotice,
+      'country': country, // 👈 opcional
     };
   }
 }

@@ -37,16 +37,34 @@ namespace AeroRide.API.Services.Implementations
         // ======================================================
         public async Task<UserResponseDto> RegisterAsync(UserRegisterDto dto)
         {
+            // Validar correo único
             if (await _db.Users.AnyAsync(u => u.Email == dto.Email))
                 throw new Exception("El correo ya está registrado.");
 
+            // Mapear DTO → entidad User
             var user = _mapper.Map<User>(dto);
+
+            // Asegurar campos críticos
             user.Password = PasswordHelper.HashPassword(dto.Password);
             user.EmailVerificationToken = Guid.NewGuid().ToString();
+
+            // 🔴 IMPORTANTE: asegurar que Country / TermsOfUse / PrivacyNotice
+            // queden explícitamente seteados (por si el Profile de AutoMapper
+            // todavía no contemplaba estas propiedades).
+            user.Country = dto.Country;
+            user.TermsOfUse = dto.TermsOfUse;
+            user.PrivacyNotice = dto.PrivacyNotice;
+
+            // Opcional: si no se setea en otro lado, puedes fijar RegistrationDate
+            if (user.RegistrationDate == default)
+            {
+                user.RegistrationDate = DateTime.UtcNow;
+            }
 
             _db.Users.Add(user);
             await _db.SaveChangesAsync();
 
+            // Enviar correo de verificación
             await EmailHelper.SendVerificationEmailAsync(user, _config);
 
             return _mapper.Map<UserResponseDto>(user);
@@ -75,8 +93,13 @@ namespace AeroRide.API.Services.Implementations
             if (!user.IsActive)
                 throw new UnauthorizedAccessException("Esta cuenta está desactivada.");
 
-            string token = JwtHelper.GenerateToken(user,
-                _config["Jwt:Key"]!, _config["Jwt:Issuer"]!, _config["Jwt:Audience"]!, JwtExpirationMinutes);
+            string token = JwtHelper.GenerateToken(
+                user,
+                _config["Jwt:Key"]!,
+                _config["Jwt:Issuer"]!,
+                _config["Jwt:Audience"]!,
+                JwtExpirationMinutes
+            );
 
             var refreshToken = new RefreshToken
             {
@@ -114,8 +137,13 @@ namespace AeroRide.API.Services.Implementations
 
             var user = refreshToken.User;
 
-            string newJwt = JwtHelper.GenerateToken(user,
-                _config["Jwt:Key"]!, _config["Jwt:Issuer"]!, _config["Jwt:Audience"]!, JwtExpirationMinutes);
+            string newJwt = JwtHelper.GenerateToken(
+                user,
+                _config["Jwt:Key"]!,
+                _config["Jwt:Issuer"]!,
+                _config["Jwt:Audience"]!,
+                JwtExpirationMinutes
+            );
 
             refreshToken.IsRevoked = true;
 
@@ -202,8 +230,14 @@ namespace AeroRide.API.Services.Implementations
             string resetLink = $"{baseUrl}{user.PasswordResetToken}";
             string html = PasswordResetTemplate.Build(user.Name, resetLink);
 
-            await EmailHelper.SendEmailAsync(apiKey, fromEmail, fromName, user.Email,
-                "Restablecer tu contraseña AeroRide", html);
+            await EmailHelper.SendEmailAsync(
+                apiKey,
+                fromEmail,
+                fromName,
+                user.Email,
+                "Restablecer tu contraseña AeroRide",
+                html
+            );
 
             return "Correo de recuperación enviado correctamente. Verifica tu bandeja de entrada.";
         }

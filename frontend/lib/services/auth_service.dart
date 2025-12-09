@@ -4,10 +4,6 @@
 /// - Centraliza login / registro / (utilidad) verify-email.
 /// - Usa SOLO tu `TokenStorage` para LEER el JWT cuando se requiere.
 /// - Rutas por defecto: `/auth/login`, `/auth/register`, `/auth/verify-email`.
-///   (Si tu backend expone `/api/auth/...`, cambia `_authBase`.)
-///
-/// Nota: El backend ya verifica al pulsar el botón del correo; dejamos
-/// `verifyEmail(...)` solo para pruebas manuales (pegar token/URL).
 /// ===============================================================
 library;
 
@@ -69,12 +65,13 @@ class AuthService {
       _throwKnown(res);
     }
 
-    // === (Opcional) Guardar token si tu back lo retorna en el login ===
+    // Si tu backend retorna token aquí, podés guardarlo:
     /*
     try {
       final data = jsonDecode(res.body);
       if (data is Map) {
-        final token = (data['token'] ?? data['accessToken'] ?? data['jwt']) as String?;
+        final token =
+            (data['token'] ?? data['accessToken'] ?? data['jwt']) as String?;
         if (token != null && token.isNotEmpty) {
           await TokenStorage.saveAccessToken(token);
         }
@@ -86,6 +83,23 @@ class AuthService {
   // ------------------------------------------------------------
   // REGISTRO
   // POST /auth/register
+  //
+  // Swagger actual:
+  // {
+  //   "name": "string",
+  //   "lastName": "string",
+  //   "email": "user@example.com",
+  //   "password": "string",
+  //   "phoneNumber": "string"
+  // }
+  //
+  // Nosotros enviamos además:
+  //   - country
+  //   - termsOfUse
+  //   - privacyNotice
+  //
+  // ASP.NET ignorará los campos extra si no están en el DTO, y si
+  // agregaste Country / TermsOfUse / PrivacyNotice al DTO se mapearán.
   // ------------------------------------------------------------
   Future<String> register({
     required String name,
@@ -93,25 +107,24 @@ class AuthService {
     required String email,
     required String password,
     required String phoneNumber,
-
-    // NEW FIELD — REQUIRED by your updated UI
-    required String nationality,
+    required String country, // 👈 Nacionalidad
 
     bool termsOfUse = true,
     bool privacyNotice = true,
   }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}$_authBase/register');
 
+    // Registro NO requiere autenticación → headers simples
     final res = await http.post(
       uri,
-      headers: await _headers(withAuth: true),
+      headers: const {'Content-Type': 'application/json'},
       body: jsonEncode({
         'name': name,
         'lastName': lastName,
         'email': email,
         'password': password,
         'phoneNumber': phoneNumber,
-        'nationality': nationality, // 👈 NEW FIELD SENT TO BACKEND
+        'country': country, // 👈 se envía a la API
         'termsOfUse': termsOfUse,
         'privacyNotice': privacyNotice,
       }),
@@ -347,5 +360,76 @@ class AuthService {
     // Si falla, limpiar para evitar loops
     await TokenStorage.clearTokens();
     return false;
+  }
+}
+
+// ===============================================================
+// UserModel
+// ===============================================================
+class UserModel {
+  final int id;
+  final String name;
+  final String lastName;
+  final String email;
+  final String phoneNumber;
+  final String role;
+  final bool isActive;
+  final String fullName;
+  final String? companyName;
+  final String? registrationDate;
+  final bool? termsOfUse;
+  final bool? privacyNotice;
+  final String? country;
+
+  UserModel({
+    required this.id,
+    required this.name,
+    required this.lastName,
+    required this.email,
+    required this.phoneNumber,
+    required this.role,
+    required this.isActive,
+    required this.fullName,
+    this.companyName,
+    this.registrationDate,
+    this.termsOfUse,
+    this.privacyNotice,
+    this.country,
+  });
+
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    return UserModel(
+      id: json['id'] ?? 0,
+      name: json['name'] ?? '',
+      lastName: json['lastName'] ?? '',
+      email: json['email'] ?? '',
+      phoneNumber: json['phoneNumber'] ?? '',
+      role: json['role'] ?? '',
+      isActive: json['isActive'] ?? false,
+      companyName: json['companyName'],
+      fullName: '${json['name'] ?? ''} ${json['lastName'] ?? ''}'.trim(),
+      registrationDate: json['registrationDate'],
+      termsOfUse: json['termsOfUse'],
+      privacyNotice: json['privacyNotice'],
+      country: json['country'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'lastName': lastName,
+      'email': email,
+      'phoneNumber': phoneNumber,
+      'role': role,
+      'isActive': isActive,
+      'fullName': fullName,
+      'companyName': companyName,
+      'registrationDate': registrationDate,
+      'termsOfUse': termsOfUse,
+      'privacyNotice': privacyNotice,
+      'country': country,
+    };
   }
 }

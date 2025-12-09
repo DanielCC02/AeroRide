@@ -143,13 +143,13 @@ namespace AeroRide.API.Controllers
         /// <summary>
         /// Cierra sesión revocando el refresh token activo del usuario.
         /// </summary>
-        /// <param name="refreshToken">Refresh token actual.</param>
+        /// <param name="dto">Objeto con el refresh token actual.</param>
         /// <returns>Confirmación del cierre de sesión.</returns>
         [HttpPost("logout")]
         [Authorize]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> Logout(RefreshTokenRequestDto dto)
+        public async Task<IActionResult> Logout([FromBody] RefreshTokenRequestDto dto)
         {
             try
             {
