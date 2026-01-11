@@ -4,67 +4,70 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace AeroRide.API.Models.Domain
 {
     /// <summary>
-    /// Entidad que representa los datos personales de un pasajero asociado a una reserva.
-    /// Cada reserva (<see cref="Reservation"/>) puede incluir uno o varios pasajeros.
+    /// Entity that represents the personal information of a passenger
+    /// associated with a reservation.
+    /// Each reservation (<see cref="Reservation"/>) may include one or more passengers.
     /// </summary>
     public class PassengerDetail
     {
         /// <summary>
-        /// Identificador único del pasajero dentro del sistema.
+        /// Unique identifier of the passenger within the system.
         /// </summary>
         public int Id { get; set; }
 
         /// <summary>
-        /// Primer nombre del pasajero.
+        /// Passenger's first name.
         /// </summary>
         public string Name { get; set; } = null!;
 
         /// <summary>
-        /// Segundo nombre del pasajero (opcional).
+        /// Passenger's middle name (optional).
         /// </summary>
         public string? MiddleName { get; set; }
 
         /// <summary>
-        /// Apellido del pasajero.
+        /// Passenger's last name.
         /// </summary>
         public string LastName { get; set; } = null!;
 
         /// <summary>
-        /// Número de pasaporte o documento de identidad del pasajero.
+        /// Passenger's passport number or identification document.
         /// </summary>
         public string Passport { get; set; } = null!;
 
         /// <summary>
-        /// Nacionalidad del pasajero (por ejemplo: "Costa Rica", "Estados Unidos").
+        /// Passenger's nationality (e.g., "Costa Rica", "United States").
         /// </summary>
         public string Nationality { get; set; } = null!;
 
         /// <summary>
-        /// Fecha de nacimiento del pasajero (para verificaciones de edad o restricciones legales).
+        /// Passenger's date of birth, used for age verification
+        /// and legal or operational restrictions.
         /// </summary>
-        public DateTime DateOfBirth { get; set; }        
+        public DateTime DateOfBirth { get; set; }
 
         /// <summary>
-        /// Género del pasajero (almacenado como texto en la base de datos).
+        /// Passenger's gender.
         /// </summary>
         public GenderType Gender { get; set; }
 
         /// <summary>
-        /// Identificador de la reserva a la que pertenece el pasajero.
+        /// Identifier of the reservation to which the passenger belongs.
         /// </summary>
         public int ReservationId { get; set; }
 
         /// <summary>
-        /// Referencia a la reserva asociada a este pasajero.
+        /// Reference to the reservation associated with this passenger.
         /// </summary>
         public Reservation Reservation { get; set; } = null!;
 
         // ======================================================
-        // 🧮 PROPIEDADES DERIVADAS
+        // 🧮 DERIVED PROPERTIES
         // ======================================================
 
         /// <summary>
-        /// Edad calculada del pasajero (no se almacena en la base de datos).
+        /// Calculated age of the passenger.
+        /// This value is not stored in the database.
         /// </summary>
         [NotMapped]
         public int Age => (int)((DateTime.UtcNow - DateOfBirth).TotalDays / 365.25);

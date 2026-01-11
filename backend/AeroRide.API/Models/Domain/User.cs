@@ -1,156 +1,155 @@
 ﻿namespace AeroRide.API.Models.Domain
 {
     /// <summary>
-    /// Entidad que representa a un usuario registrado en el sistema AeroRide.
-    /// 
-    /// Un usuario puede ser cliente, piloto, administrador o broker según su rol.
-    /// Los usuarios pueden realizar reservas, registrar bitácoras de vuelo (si son pilotos)
-    /// y acceder a los servicios de la plataforma según sus permisos.
+    /// Entity that represents a registered user within the AeroRide system.
+    ///
+    /// A user may act as a customer, pilot, administrator, or broker depending on their role.
+    /// Users can create reservations, register flight logs (if they are pilots),
+    /// and access platform services according to their assigned permissions.
     /// </summary>
     public class User
     {
         /// <summary>
-        /// Identificador único del usuario.
+        /// Unique identifier of the user.
         /// </summary>
         public int Id { get; set; }
 
         // ======================================================
-        // 📋 DATOS PERSONALES
+        // 📋 PERSONAL INFORMATION
         // ======================================================
 
         /// <summary>
-        /// Nombre del usuario.
+        /// User's first name.
         /// </summary>
         public string Name { get; set; } = null!;
 
         /// <summary>
-        /// Apellido del usuario.
+        /// User's last name.
         /// </summary>
         public string LastName { get; set; } = null!;
 
         // ======================================================
-        // 📧 INFORMACIÓN DE CONTACTO Y SEGURIDAD
+        // 📧 CONTACT AND SECURITY INFORMATION
         // ======================================================
 
         /// <summary>
-        /// Correo electrónico del usuario (debe ser único en el sistema).
+        /// User's email address (must be unique within the system).
         /// </summary>
         public string Email { get; set; } = null!;
 
         /// <summary>
-        /// Contraseña del usuario, almacenada en formato hash seguro.
-        /// Nunca se guarda en texto plano.
+        /// User's password, stored as a secure hash.
+        /// It is never stored in plain text.
         /// </summary>
         public string Password { get; set; } = null!;
 
         /// <summary>
-        /// Número de teléfono asociado al usuario.
+        /// Phone number associated with the user.
         /// </summary>
         public string PhoneNumber { get; set; } = null!;
 
         /// <summary>
-        /// País principal del usuario (ej: "Costa Rica", "Mexico").
+        /// User's primary country of residence (e.g., "Costa Rica", "Mexico").
         /// </summary>
         public string? Country { get; set; }
 
         // ======================================================
-        // 🕒 INFORMACIÓN DE REGISTRO
+        // 🕒 REGISTRATION INFORMATION
         // ======================================================
 
         /// <summary>
-        /// Fecha y hora en que el usuario se registró en la plataforma.
+        /// Date and time when the user registered on the platform.
         /// </summary>
         public DateTime RegistrationDate { get; set; }
 
         // ======================================================
-        // ⚖️ CONSENTIMIENTOS LEGALES
+        // ⚖️ LEGAL CONSENTS
         // ======================================================
 
         /// <summary>
-        /// Indica si el usuario aceptó los Términos de Uso de la plataforma.
+        /// Indicates whether the user has accepted the platform's Terms of Use.
         /// </summary>
         public bool TermsOfUse { get; set; }
 
         /// <summary>
-        /// Indica si el usuario aceptó el Aviso de Privacidad.
+        /// Indicates whether the user has accepted the Privacy Notice.
         /// </summary>
         public bool PrivacyNotice { get; set; }
 
         // ======================================================
-        // 🔐 VERIFICACIÓN Y SEGURIDAD DE CUENTA
+        // 🔐 ACCOUNT VERIFICATION AND SECURITY
         // ======================================================
 
         /// <summary>
-        /// Identificador del rol asignado al usuario.
+        /// Identifier of the role assigned to the user.
         /// </summary>
         public int? RoleId { get; set; }
 
         /// <summary>
-        /// Token temporal generado al registrarse, utilizado para la verificación de correo electrónico.
+        /// Temporary token generated during registration and used for email verification.
         /// </summary>
         public string? EmailVerificationToken { get; set; }
 
         /// <summary>
-        /// Indica si el correo electrónico del usuario ha sido verificado.
+        /// Indicates whether the user's email address has been verified.
         /// </summary>
         public bool IsVerified { get; set; } = false;
 
         /// <summary>
-        /// Token temporal generado para el proceso de restablecimiento de contraseña.
+        /// Temporary token generated for the password reset process.
         /// </summary>
         public string? PasswordResetToken { get; set; }
 
         /// <summary>
-        /// Fecha de expiración del token de restablecimiento de contraseña.
+        /// Expiration date and time of the password reset token.
         /// </summary>
         public DateTime? PasswordResetTokenExpires { get; set; }
 
         /// <summary>
-        /// Indica si la cuenta del usuario está activa.
-        /// Los usuarios inactivos no pueden autenticarse ni aparecer en consultas públicas.
+        /// Indicates whether the user account is active.
+        /// Inactive users cannot authenticate or appear in public queries.
         /// </summary>
         public bool IsActive { get; set; } = true;
 
         // ======================================================
-        // 🔗 RELACIONES DE NAVEGACIÓN
+        // 🔗 NAVIGATION RELATIONSHIPS
         // ======================================================
 
         /// <summary>
-        /// Rol asignado al usuario (por ejemplo: Admin, Broker, Pilot o User).
+        /// Role assigned to the user (e.g., Admin, Broker, Pilot, or User).
         /// </summary>
         public Role? Role { get; set; }
 
         /// <summary>
-        /// (Opcional) Identificador de la empresa a la que pertenece el usuario.
-        /// Aplica solo para pilotos, administradores o brokers.
+        /// (Optional) Identifier of the company to which the user belongs.
+        /// Applies to pilots, administrators, and brokers.
         /// </summary>
         public int? CompanyId { get; set; }
 
         /// <summary>
-        /// (Opcional) Empresa o aerolínea asociada al usuario.
+        /// (Optional) Company or airline associated with the user.
         /// </summary>
         public Company? Company { get; set; }
 
         /// <summary>
-        /// Colección de reservas realizadas por el usuario.
+        /// Collection of reservations created by the user.
         /// </summary>
         public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
 
         /// <summary>
-        /// Colección de bitácoras de vuelo registradas por el usuario (solo si es piloto).
+        /// Collection of flight logs recorded by the user (pilot only).
         /// </summary>
         public ICollection<FlightLog> FlightLogs { get; set; } = new List<FlightLog>();
 
         /// <summary>
-        /// Colección de Refresh Tokens activos asociados al usuario.
-        /// Permite mantener sesiones seguras y múltiples dispositivos autenticados.
+        /// Collection of active refresh tokens associated with the user.
+        /// Allows secure sessions across multiple authenticated devices.
         /// </summary>
         public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 
         /// <summary>
-        /// Vuelos asignados al piloto.
+        /// Collection of flight assignments assigned to the pilot.
         /// </summary>
         public ICollection<FlightAssignment> FlightAssignments { get; set; } = new List<FlightAssignment>();
-
     }
 }

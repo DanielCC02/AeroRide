@@ -1,19 +1,25 @@
 ﻿namespace AeroRide.API.Models.Enums
 {
     /// <summary>
-    /// Representa los estados operativos posibles de una aeronave dentro del sistema AeroRide.
-    /// Este estado describe su condición técnica o administrativa,
-    /// no su disponibilidad temporal.
+    /// Represents the possible operational states of an aircraft within the AeroRide system.
+    /// This state describes the aircraft's technical or administrative condition,
+    /// not its temporal availability or scheduling.
     /// </summary>
     public enum AircraftState
     {
-        /// <summary>Aeronave operativa y lista para asignación de vuelos.</summary>
+        /// <summary>
+        /// Aircraft is operational and ready to be assigned to flights.
+        /// </summary>
         Disponible = 1,
 
-        /// <summary>Aeronave en mantenimiento o revisión técnica.</summary>
+        /// <summary>
+        /// Aircraft is currently under maintenance or technical inspection.
+        /// </summary>
         EnMantenimiento = 2,
 
-        /// <summary>Aeronave fuera de servicio (baja temporal o permanente).</summary>
+        /// <summary>
+        /// Aircraft is out of service, either temporarily or permanently.
+        /// </summary>
         FueraDeServicio = 3
     }
 }

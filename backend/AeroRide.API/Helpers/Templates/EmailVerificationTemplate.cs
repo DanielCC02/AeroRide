@@ -3,7 +3,7 @@
 namespace AeroRide.API.Helpers.Templates
 {
     /// <summary>
-    /// Plantilla HTML para el correo de verificación de cuenta.
+    /// HTML template for account email verification.
     /// </summary>
     public static class EmailVerificationTemplate
     {
@@ -13,10 +13,10 @@ namespace AeroRide.API.Helpers.Templates
 
             sb.Append($@"
             <!DOCTYPE html>
-            <html lang=""es"">
+            <html lang=""en"">
             <head>
                 <meta charset=""UTF-8"" />
-                <title>Verifica tu cuenta</title>
+                <title>Verify your account</title>
             </head>
 
             <body style=""margin:0; padding:0; font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color:#f3f4f6;"">
@@ -32,10 +32,10 @@ namespace AeroRide.API.Helpers.Templates
                                 <tr>
                                     <td style=""background:linear-gradient(135deg,#7f1d1d,#b91c1c); padding:20px 24px; color:#fef2f2;"">
                                         <h1 style=""margin:0; font-size:20px; color:#fef2f2;"">
-                                            Verifica tu cuenta de AeroCaribe
+                                            Verify your AeroCaribe account
                                         </h1>
                                         <p style=""margin:6px 0 0 0; font-size:13px; color:#fde2e2;"">
-                                            Activa tu acceso a la plataforma de vuelos privados.
+                                            Activate your access to the private flight platform.
                                         </p>
                                     </td>
                                 </tr>
@@ -45,12 +45,12 @@ namespace AeroRide.API.Helpers.Templates
                                     <td style=""padding:20px 24px 8px 24px; font-size:14px; color:#111827;"">
 
                                         <p style=""margin:0 0 12px 0;"">
-                                            Hola <strong>{System.Net.WebUtility.HtmlEncode(userName)}</strong>,
+                                            Hello <strong>{System.Net.WebUtility.HtmlEncode(userName)}</strong>,
                                         </p>
 
                                         <p style=""margin:0 0 12px 0; line-height:1.6;"">
-                                            Gracias por registrarte en <strong>AeroCaribe</strong>.  
-                                            Para comenzar a usar tu cuenta, por favor verifica tu correo electrónico haciendo clic en el siguiente botón.
+                                            Thank you for registering with <strong>AeroCaribe</strong>.
+                                            To start using your account, please verify your email address by clicking the button below.
                                         </p>
                                     </td>
                                 </tr>
@@ -67,7 +67,7 @@ namespace AeroRide.API.Helpers.Templates
                                                   font-weight:600;
                                                   font-size:14px;
                                                   display:inline-block;"">
-                                            Verificar mi cuenta
+                                            Verify my account
                                         </a>
                                     </td>
                                 </tr>
@@ -76,10 +76,10 @@ namespace AeroRide.API.Helpers.Templates
                                 <tr>
                                     <td style=""padding:20px 24px 16px 24px; font-size:11px; color:#9ca3af; border-top:1px solid #e5e7eb;"">
                                         <p style=""margin:0 0 4px 0;"">
-                                            Estás recibiendo este correo porque creaste una cuenta en <strong>AeroCaribe</strong>.
+                                            You are receiving this email because you created an account on <strong>AeroCaribe</strong>.
                                         </p>
                                         <p style=""margin:0;"">
-                                            Si no realizaste este registro, puedes ignorar este mensaje.
+                                            If you did not create this account, you can safely ignore this message.
                                         </p>
                                     </td>
                                 </tr>

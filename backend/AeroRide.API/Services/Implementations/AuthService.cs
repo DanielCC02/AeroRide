@@ -169,26 +169,30 @@ namespace AeroRide.API.Services.Implementations
         }
 
         // ======================================================
-        // 4️⃣ VERIFICACIÓN DE CORREO
+        // 4️⃣ EMAIL VERIFICATION
         // ======================================================
         public async Task<string> VerifyEmailAsync(string token)
         {
             if (string.IsNullOrEmpty(token))
-                throw new Exception("El token de verificación es requerido.");
+                throw new Exception("The email verification token is required.");
 
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.EmailVerificationToken == token);
+            var user = await _db.Users
+                .FirstOrDefaultAsync(u => u.EmailVerificationToken == token);
+
             if (user == null)
-                throw new Exception("Token inválido o usuario no encontrado.");
+                throw new Exception("Invalid or expired verification token.");
 
             if (user.IsVerified)
-                return "Tu correo ya había sido verificado previamente ✅.";
+                return "Your email address was already verified.";
 
             user.IsVerified = true;
             user.EmailVerificationToken = null;
+
             await _db.SaveChangesAsync();
 
-            return "¡Correo verificado exitosamente! 🎉";
+            return "Your email address has been successfully verified.";
         }
+
 
         private async Task ResendVerificationEmailAsync(User user)
         {
@@ -216,16 +220,19 @@ namespace AeroRide.API.Services.Implementations
         {
             var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
             if (user == null)
-                throw new Exception("No existe ninguna cuenta asociada a ese correo.");
+                throw new Exception("No account is associated with this email address.");
 
             user.PasswordResetToken = Guid.NewGuid().ToString();
             user.PasswordResetTokenExpires = DateTime.UtcNow.AddMinutes(PasswordResetMinutes);
             await _db.SaveChangesAsync();
 
-            string apiKey = _config["SendGrid:ApiKey"] ?? throw new Exception("Falta API Key de SendGrid");
+            string apiKey = _config["SendGrid:ApiKey"]
+                ?? throw new Exception("Missing SendGrid API key");
+
             string fromEmail = _config["SendGrid:FromEmail"]!;
             string fromName = _config["SendGrid:FromName"]!;
-            string baseUrl = _config["SendGrid:PasswordResetBaseUrl"] ?? "http://localhost:5192/api/auth/reset-password?token=";
+            string baseUrl = _config["SendGrid:PasswordResetBaseUrl"]
+                ?? "http://localhost:5192/auth/reset-password?token=";
 
             string resetLink = $"{baseUrl}{user.PasswordResetToken}";
             string html = PasswordResetTemplate.Build(user.Name, resetLink);
@@ -235,25 +242,53 @@ namespace AeroRide.API.Services.Implementations
                 fromEmail,
                 fromName,
                 user.Email,
-                "Restablecer tu contraseña AeroRide",
+                "Reset your AeroRide password",
                 html
             );
 
-            return "Correo de recuperación enviado correctamente. Verifica tu bandeja de entrada.";
+            return "A password reset email has been sent. Please check your inbox.";
         }
+
 
         public async Task<string> ResetPasswordAsync(string token, string newPassword)
         {
             var user = await _db.Users.FirstOrDefaultAsync(u => u.PasswordResetToken == token);
-            if (user == null || user.PasswordResetTokenExpires < DateTime.UtcNow)
-                throw new Exception("Token inválido o expirado.");
+
+            if (user == null ||
+                user.PasswordResetTokenExpires == null ||
+                user.PasswordResetTokenExpires < DateTime.UtcNow)
+            {
+                throw new Exception("Invalid or expired password reset token.");
+            }
+
+            if (!user.IsActive)
+                throw new Exception("This account is disabled.");
+
 
             user.Password = PasswordHelper.HashPassword(newPassword);
             user.PasswordResetToken = null;
             user.PasswordResetTokenExpires = null;
 
             await _db.SaveChangesAsync();
-            return "Tu contraseña ha sido restablecida exitosamente.";
+
+            return "Your password has been successfully reset.";
         }
+
+        public async Task ValidatePasswordResetTokenAsync(string token)
+        {
+            if (string.IsNullOrEmpty(token))
+                throw new Exception("Invalid password reset token.");
+
+            var user = await _db.Users
+                .FirstOrDefaultAsync(u => u.PasswordResetToken == token);
+
+            if (user == null ||
+                user.PasswordResetTokenExpires == null ||
+                user.PasswordResetTokenExpires < DateTime.UtcNow)
+            {
+                throw new Exception("This password reset link has already been used or has expired.");
+            }
+        }
+
     }
 }

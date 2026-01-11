@@ -1,11 +1,18 @@
 ﻿namespace AeroRide.API.Models.Enums
 {
     /// <summary>
-    /// Rol del piloto asignado dentro del vuelo.
+    /// Defines the role assigned to a pilot within a flight crew.
     /// </summary>
     public enum CrewRole
     {
-        Pilot = 1,     // Piloto principal
-        CoPilot = 2    // Copiloto
+        /// <summary>
+        /// Primary pilot responsible for operating the aircraft.
+        /// </summary>
+        Pilot = 1,
+
+        /// <summary>
+        /// Co-pilot who assists the primary pilot during the flight.
+        /// </summary>
+        CoPilot = 2
     }
 }

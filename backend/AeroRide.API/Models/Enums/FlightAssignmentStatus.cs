@@ -3,28 +3,28 @@
 namespace AeroRide.API.Models.Enums
 {
     /// <summary>
-    /// Representa el estado actual de una asignación de vuelo
-    /// asociada a un piloto dentro del sistema AeroRide.
+    /// Represents the current status of a flight assignment
+    /// associated with a pilot within the AeroRide system.
     /// </summary>
     public enum FlightAssignmentStatus
     {
         /// <summary>
-        /// El piloto ha sido asignado pero todavía no ha aceptado la asignación.
+        /// The pilot has been assigned to the flight but has not yet accepted the assignment.
         /// </summary>
         Assigned = 1,
 
         /// <summary>
-        /// El piloto aceptó el vuelo asignado.
+        /// The pilot has accepted the assigned flight.
         /// </summary>
         Accepted = 2,
 
         /// <summary>
-        /// El vuelo fue completado por el piloto asignado.
+        /// The assigned flight has been successfully completed by the pilot.
         /// </summary>
         Completed = 3,
 
         /// <summary>
-        /// La asignación fue cancelada por el piloto o por la empresa.
+        /// The assignment was cancelled either by the pilot or by the company.
         /// </summary>
         Cancelled = 4
     }

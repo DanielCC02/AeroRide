@@ -97,5 +97,8 @@ namespace AeroRide.API.Services.Interfaces
         /// Se lanza si el token es inválido o ha expirado.
         /// </exception>
         Task<string> ResetPasswordAsync(string token, string newPassword);
+
+        Task ValidatePasswordResetTokenAsync(string token);
+
     }
 }

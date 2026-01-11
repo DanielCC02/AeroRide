@@ -1,37 +1,37 @@
 ﻿namespace AeroRide.API.Models.Domain
 {
     /// <summary>
-    /// Entidad que representa un token JWT que ha sido invalidado manualmente.
-    /// 
-    /// Se utiliza como registro de seguridad para evitar el uso de tokens revocados,
-    /// por ejemplo, en casos de cierre de sesión (<c>logout</c>), cambio de credenciales
-    /// o suspensión del usuario.
+    /// Entity that represents a JWT token that has been manually invalidated.
+    ///
+    /// It is used as a security record to prevent the reuse of revoked tokens,
+    /// for example in cases of logout, credential changes,
+    /// or user suspension.
     /// </summary>
     public class RevokedToken
     {
         /// <summary>
-        /// Identificador único del registro de token revocado.
+        /// Unique identifier of the revoked token record.
         /// </summary>
         public int Id { get; set; }
 
         /// <summary>
-        /// Token JWT que fue revocado e invalidado.
+        /// JWT token that was revoked and invalidated.
         /// </summary>
         public string Token { get; set; } = null!;
 
         /// <summary>
-        /// Identificador del usuario al que pertenecía el token revocado.
+        /// Identifier of the user to whom the revoked token belonged.
         /// </summary>
         public int UserId { get; set; }
 
         /// <summary>
-        /// Fecha y hora en que el token fue revocado.
-        /// Se almacena en formato UTC para garantizar consistencia temporal.
+        /// UTC date and time when the token was revoked.
+        /// Stored in UTC to ensure temporal consistency.
         /// </summary>
         public DateTime RevokedAt { get; set; } = DateTime.UtcNow;
 
         /// <summary>
-        /// Referencia al usuario propietario del token revocado.
+        /// Reference to the user who owned the revoked token.
         /// </summary>
         public User User { get; set; } = null!;
     }
