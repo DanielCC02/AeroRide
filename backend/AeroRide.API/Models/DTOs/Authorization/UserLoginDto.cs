@@ -2,26 +2,25 @@
 
 namespace AeroRide.API.Models.DTOs.Authorization
 {
-
     /// <summary>
-    /// Objeto de transferencia utilizado para iniciar sesión.
-    /// Contiene las credenciales del usuario (correo y contraseña).
+    /// Data Transfer Object used to authenticate a user.
+    /// It contains the user's credentials (email and password).
     /// </summary>
     public class UserLoginDto
     {
         /// <summary>
-        /// Correo electrónico del usuario registrado.
+        /// Email address of the registered user.
         /// </summary>
-        [Required(ErrorMessage = "El correo es obligatorio.")]
-        [EmailAddress(ErrorMessage = "Debe ingresar un correo electrónico válido.")]
+        [Required(ErrorMessage = "The email address is required.")]
+        [EmailAddress(ErrorMessage = "A valid email address must be provided.")]
         public string Email { get; set; } = null!;
 
         /// <summary>
-        /// Contraseña del usuario en texto plano.
-        /// Se validará contra el hash almacenado en la base de datos.
+        /// User password in plain text.
+        /// It will be validated against the hashed password stored in the database.
         /// </summary>
-        [Required(ErrorMessage = "La contraseña es obligatoria.")]
-        [StringLength(100, MinimumLength = 6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres.")]
+        [Required(ErrorMessage = "The password is required.")]
+        [StringLength(100, MinimumLength = 6, ErrorMessage = "The password must be at least 6 characters long.")]
         public string Password { get; set; } = null!;
     }
 }

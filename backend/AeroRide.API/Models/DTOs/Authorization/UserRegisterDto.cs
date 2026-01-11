@@ -3,59 +3,59 @@
 namespace AeroRide.API.Models.DTOs.Authorization
 {
     /// <summary>
-    /// Objeto de transferencia de datos utilizado para el registro
-    /// de nuevos usuarios en la plataforma.
+    /// Data Transfer Object used for registering new users
+    /// on the platform.
     /// </summary>
     public class UserRegisterDto
     {
         /// <summary>
-        /// Nombre del usuario que desea registrarse.
+        /// First name of the user registering on the platform.
         /// </summary>
-        [Required(ErrorMessage = "El nombre es obligatorio.")]
-        [StringLength(50, ErrorMessage = "El nombre no debe exceder los 50 caracteres.")]
+        [Required(ErrorMessage = "The first name is required.")]
+        [StringLength(50, ErrorMessage = "The first name must not exceed 50 characters.")]
         public string Name { get; set; } = null!;
 
         /// <summary>
-        /// Apellido del usuario.
+        /// Last name of the user.
         /// </summary>
-        [Required(ErrorMessage = "El apellido es obligatorio.")]
-        [StringLength(50, ErrorMessage = "El apellido no debe exceder los 50 caracteres.")]
+        [Required(ErrorMessage = "The last name is required.")]
+        [StringLength(50, ErrorMessage = "The last name must not exceed 50 characters.")]
         public string LastName { get; set; } = null!;
 
         /// <summary>
-        /// País principal del usuario (ej: "Costa Rica", "Mexico").
-        /// Se usará para segmentar notificaciones de empty legs.
+        /// Primary country of the user (e.g., \"Costa Rica\", \"Mexico\").
+        /// Used to segment empty leg notifications.
         /// </summary>
         public string? Country { get; set; }
 
         /// <summary>
-        /// Correo electrónico del usuario (debe ser único en el sistema).
+        /// User's email address (must be unique in the system).
         /// </summary>
-        [Required(ErrorMessage = "El correo es obligatorio.")]
-        [EmailAddress(ErrorMessage = "Debe ingresar un correo electrónico válido.")]
+        [Required(ErrorMessage = "The email address is required.")]
+        [EmailAddress(ErrorMessage = "A valid email address must be provided.")]
         public string Email { get; set; } = null!;
 
         /// <summary>
-        /// Contraseña del usuario. Se almacenará en formato hash.
+        /// User password. It will be stored in hashed format.
         /// </summary>
-        [Required(ErrorMessage = "La contraseña es obligatoria.")]
-        [StringLength(100, MinimumLength = 6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres.")]
+        [Required(ErrorMessage = "The password is required.")]
+        [StringLength(100, MinimumLength = 6, ErrorMessage = "The password must be at least 6 characters long.")]
         public string Password { get; set; } = null!;
 
         /// <summary>
-        /// Número de teléfono del usuario.
+        /// User phone number.
         /// </summary>
-        [Required(ErrorMessage = "El número de teléfono es obligatorio.")]
-        [Phone(ErrorMessage = "Debe ingresar un número de teléfono válido.")]
+        [Required(ErrorMessage = "The phone number is required.")]
+        [Phone(ErrorMessage = "A valid phone number must be provided.")]
         public string PhoneNumber { get; set; } = null!;
 
         /// <summary>
-        /// Indica si el usuario acepta los Términos de Uso.
+        /// Indicates whether the user accepts the Terms of Use.
         /// </summary>
         public bool TermsOfUse { get; set; }
 
         /// <summary>
-        /// Indica si el usuario acepta el Aviso de Privacidad.
+        /// Indicates whether the user accepts the Privacy Notice.
         /// </summary>
         public bool PrivacyNotice { get; set; }
     }

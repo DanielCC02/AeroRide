@@ -1,89 +1,87 @@
-﻿using System;
-using System.Collections.Generic;
-using AeroRide.API.Models.DTOs.Flights;
+﻿using AeroRide.API.Models.DTOs.Flights;
 using AeroRide.API.Models.DTOs.Passengers;
 using AeroRide.API.Models.Enums;
 
 namespace AeroRide.API.Models.DTOs.Reservations
 {
     /// <summary>
-    /// Representa la información completa de una reserva registrada en el sistema.
-    /// Incluye vuelos, pasajeros, compañía y detalles de costos.
+    /// Represents the complete information of a reservation registered in the system.
+    /// Includes associated flights, passengers, operating company, and cost details.
     /// </summary>
     public class ReservationResponseDto
     {
         /// <summary>
-        /// Identificador único de la reserva.
+        /// Unique identifier of the reservation.
         /// </summary>
         public int Id { get; set; }
 
         /// <summary>
-        /// Código visible de la reserva (ejemplo: AERO-2025-00123).
+        /// Public reservation code (e.g., AERO-2025-00123).
         /// </summary>
         public string ReservationCode { get; set; } = null!;
 
         /// <summary>
-        /// Identificador del usuario que realizó la reserva.
+        /// Identifier of the user who created the reservation.
         /// </summary>
         public int UserId { get; set; }
 
         /// <summary>
-        /// Compañía operadora de los vuelos en esta reserva.
+        /// Name of the company operating the flights in this reservation.
         /// </summary>
         public string CompanyName { get; set; } = null!;
 
         /// <summary>
-        /// Porcentaje de ganancia que corresponde a la aplicación AeroRide.
+        /// Percentage of profit allocated to the AeroRide platform.
         /// </summary>
         public double PorcentPrice { get; set; }
 
         /// <summary>
-        /// Precio total de la reserva incluyendo tasas e impuestos.
+        /// Total reservation price, including taxes and fees.
         /// </summary>
         public double TotalPrice { get; set; }
 
         /// <summary>
-        /// Indica si la reserva es de ida y vuelta.
+        /// Indicates whether the reservation is a round trip.
         /// </summary>
         public bool IsRoundTrip { get; set; }
 
         /// <summary>
-        /// Indica si hay un infante en regazo (sin asiento asignado).
+        /// Indicates whether there is a lap infant (no assigned seat).
         /// </summary>
         public bool LapChild { get; set; }
 
         /// <summary>
-        /// Indica si se requiere asistencia de animal de apoyo.
+        /// Indicates whether assistance from a support animal is required.
         /// </summary>
         public bool AssistanceAnimal { get; set; }
 
         /// <summary>
-        /// Estado actual de la reserva (Pendiente, Confirmada, Cancelada).
+        /// Current status of the reservation (Pending, Confirmed, Cancelled).
         /// </summary>
         public ReservationStatus Status { get; set; }
 
         /// <summary>
-        /// Observaciones o comentarios asociados a la reserva.
+        /// Additional notes or comments associated with the reservation.
         /// </summary>
         public string? Notes { get; set; }
 
         /// <summary>
-        /// Fecha de creación de la reserva.
+        /// Date and time when the reservation was created (UTC).
         /// </summary>
         public DateTime CreatedAt { get; set; }
 
         /// <summary>
-        /// Fecha de última actualización (si aplica).
+        /// Date and time of the last update, if applicable (UTC).
         /// </summary>
         public DateTime? UpdatedAt { get; set; }
 
         /// <summary>
-        /// Lista de pasajeros incluidos en la reserva.
+        /// List of passengers included in the reservation.
         /// </summary>
         public List<PassengerDetailDto> Passengers { get; set; } = new();
 
         /// <summary>
-        /// Lista de vuelos asociados a esta reserva.
+        /// List of flights associated with this reservation.
         /// </summary>
         public List<FlightSummaryDto> Flights { get; set; } = new();
     }

@@ -1,55 +1,60 @@
-﻿/// <summary>
-/// Objeto que representa el perfil del usuario autenticado.
-/// Se utiliza para mostrar los datos personales del usuario
-/// actualmente logueado en la aplicación.
-/// </summary>
-public class UserProfileDto
+﻿namespace AeroRide.API.Models.DTOs.Users
 {
     /// <summary>
-    /// Identificador del usuario autenticado.
+    /// Object that represents the authenticated user's profile.
+    /// It is used to display the personal information of the
+    /// currently logged-in user within the application.
     /// </summary>
-    public int Id { get; set; }
+    public class UserProfileDto
+    {
+        /// <summary>
+        /// Identifier of the authenticated user.
+        /// </summary>
+        public int Id { get; set; }
 
-    /// <summary>
-    /// Nombre del usuario.
-    /// </summary>
-    public string Name { get; set; } = null!;
+        /// <summary>
+        /// User's first name.
+        /// </summary>
+        public string Name { get; set; } = null!;
 
-    /// <summary>
-    /// Apellido del usuario.
-    /// </summary>
-    public string LastName { get; set; } = null!;
+        /// <summary>
+        /// User's last name.
+        /// </summary>
+        public string LastName { get; set; } = null!;
 
-    /// <summary>
-    /// Correo electrónico asociado a la cuenta.
-    /// </summary>
-    public string Email { get; set; } = null!;
+        /// <summary>
+        /// Email address associated with the account.
+        /// </summary>
+        public string Email { get; set; } = null!;
 
-    /// <summary>
-    /// Número de teléfono del usuario.
-    /// </summary>
-    public string PhoneNumber { get; set; } = null!;
+        /// <summary>
+        /// User's phone number.
+        /// </summary>
+        public string PhoneNumber { get; set; } = null!;
 
-    /// <summary>
-    /// Rol actual asignado al usuario (Admin, Broker, Pilot o User).
-    /// </summary>
-    public string Role { get; set; } = null!;
+        /// <summary>
+        /// Current role assigned to the user (Admin, Broker, Pilot, or User).
+        /// </summary>
+        public string Role { get; set; } = null!;
 
-    /// <summary>
-    /// Identificador de la compañía a la que pertenece el usuario (si aplica).
-    /// </summary>
-    public int? CompanyId { get; set; }   // ✅ NUEVO
+        /// <summary>
+        /// Identifier of the company the user belongs to (if applicable).
+        /// </summary>
+        public int? CompanyId { get; set; }
 
-    /// <summary>
-    /// Nombre de la compañía asociada (AeroCaribe, etc.).
-    /// </summary>
-    public string? CompanyName { get; set; }
+        /// <summary>
+        /// Name of the associated company (e.g., AeroCaribe).
+        /// </summary>
+        public string? CompanyName { get; set; }
 
-    /// <summary>
-    /// Fecha de registro en la plataforma.
-    /// </summary>
-    public DateTime RegistrationDate { get; set; }
+        /// <summary>
+        /// Date when the user registered on the platform.
+        /// </summary>
+        public DateTime RegistrationDate { get; set; }
 
-    public string Country { get; set; } = null!;
-
+        /// <summary>
+        /// User's primary country.
+        /// </summary>
+        public string Country { get; set; } = null!;
+    }
 }

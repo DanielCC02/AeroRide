@@ -3,67 +3,93 @@
 namespace AeroRide.API.Models.DTOs.Airports
 {
     /// <summary>
-    /// DTO utilizado para registrar un nuevo aeropuerto en el sistema.
+    /// Data Transfer Object used to register a new airport in the system.
     /// </summary>
     public class AirportCreateDto
     {
-        /// <summary>Nombre del aeropuerto (por ejemplo: Aeropuerto Internacional Daniel Oduber Quirós).</summary>
-        [Required(ErrorMessage = "El nombre del aeropuerto es obligatorio.")]
+        /// <summary>
+        /// Official name of the airport
+        /// (e.g., Daniel Oduber Quirós International Airport).
+        /// </summary>
+        [Required(ErrorMessage = "The airport name is required.")]
         public string Name { get; set; } = null!;
 
-        /// <summary>Código IATA de tres letras (ejemplo: LIR).</summary>
-        [Required(ErrorMessage = "El código IATA es obligatorio.")]
-        [StringLength(3, MinimumLength = 3, ErrorMessage = "El código IATA debe tener exactamente 3 letras.")]
+        /// <summary>
+        /// Three-letter IATA code (e.g., LIR).
+        /// </summary>
+        [Required(ErrorMessage = "The IATA code is required.")]
+        [StringLength(3, MinimumLength = 3, ErrorMessage = "The IATA code must be exactly 3 letters long.")]
         public string CodeIATA { get; set; } = null!;
 
-        /// <summary>Código OACI de cuatro letras (ejemplo: MRLB).</summary>
-        [Required(ErrorMessage = "El código OACI es obligatorio.")]
-        [StringLength(4, MinimumLength = 4, ErrorMessage = "El código OACI debe tener exactamente 4 letras.")]
+        /// <summary>
+        /// Four-letter ICAO code (e.g., MRLB).
+        /// </summary>
+        [Required(ErrorMessage = "The ICAO code is required.")]
+        [StringLength(4, MinimumLength = 4, ErrorMessage = "The ICAO code must be exactly 4 letters long.")]
         public string CodeOACI { get; set; } = null!;
 
-        /// <summary>Ciudad donde se ubica el aeropuerto.</summary>
-        [Required(ErrorMessage = "La ciudad es obligatoria.")]
+        /// <summary>
+        /// City where the airport is located.
+        /// </summary>
+        [Required(ErrorMessage = "The city is required.")]
         public string City { get; set; } = null!;
 
-        /// <summary>País donde se localiza el aeropuerto.</summary>
-        [Required(ErrorMessage = "El país es obligatorio.")]
+        /// <summary>
+        /// Country where the airport is located.
+        /// </summary>
+        [Required(ErrorMessage = "The country is required.")]
         public string Country { get; set; } = null!;
 
-        /// <summary>Hora de apertura (opcional).</summary>
+        /// <summary>
+        /// Airport opening time (optional).
+        /// </summary>
         public TimeSpan? OpeningTime { get; set; }
 
-        /// <summary>Hora de cierre (opcional).</summary>
+        /// <summary>
+        /// Airport closing time (optional).
+        /// </summary>
         public TimeSpan? ClosingTime { get; set; }
 
-        /// <summary>Minutos antes del cierre en los que aún se permite despegar.</summary>
+        /// <summary>
+        /// Number of minutes before closing time during which departures are still allowed.
+        /// </summary>
         public int DepartureMarginMinutes { get; set; } = 60;
 
-        /// <summary>Minutos antes del cierre en los que aún se permite aterrizar.</summary>
+        /// <summary>
+        /// Number of minutes before closing time during which arrivals are still allowed.
+        /// </summary>
         public int ArrivalMarginMinutes { get; set; } = 30;
 
-        [Required(ErrorMessage = "La zona horaria es obligatoria.")]
+        /// <summary>
+        /// Time zone of the airport (e.g., "America/Costa_Rica").
+        /// </summary>
+        [Required(ErrorMessage = "The time zone is required.")]
         public string TimeZone { get; set; } = null!;
 
-        /// <summary>Latitud geográfica (decimal).</summary>
-        [Required(ErrorMessage = "La latitud es obligatoria.")]
+        /// <summary>
+        /// Geographic latitude expressed in decimal format.
+        /// </summary>
+        [Required(ErrorMessage = "Latitude is required.")]
         [Range(-90, 90)]
         public decimal Latitude { get; set; }
 
-        /// <summary>Longitud geográfica (decimal).</summary>
-        [Required(ErrorMessage = "La longitud es obligatoria.")]
+        /// <summary>
+        /// Geographic longitude expressed in decimal format.
+        /// </summary>
+        [Required(ErrorMessage = "Longitude is required.")]
         [Range(-180, 180)]
         public decimal Longitude { get; set; }
 
         /// <summary>
-        /// URL de la imagen representativa del aeropuerto (opcional).
-        /// Se espera que sea la dirección del blob en Azure Storage.
+        /// URL of the image representing the airport.
+        /// It is expected to be a blob URL from Azure Storage.
         /// </summary>
-        [Required(ErrorMessage = "Debe proporcionar una imagen.")]
+        [Required(ErrorMessage = "An image must be provided.")]
         public string Image { get; set; } = null!;
 
-        /// <summary>Peso máximo permitido en el aeropuerto (en kg).</summary>
+        /// <summary>
+        /// Maximum allowable aircraft weight at the airport, in kilograms.
+        /// </summary>
         public int MaxAllowedWeight { get; set; }
-
-
     }
 }

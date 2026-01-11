@@ -1,77 +1,78 @@
 ﻿namespace AeroRide.API.Models.DTOs.Users
 {
     /// <summary>
-    /// Objeto de transferencia de datos (DTO) que representa la información
-    /// detallada de un usuario dentro del sistema AeroRide.
-    /// 
-    /// Este modelo se utiliza principalmente para consultas administrativas
-    /// o para mostrar la información completa de un usuario autenticado,
-    /// sin incluir la contraseña ni tokens sensibles.
+    /// Data Transfer Object (DTO) that represents detailed user information
+    /// within the AeroRide system.
+    ///
+    /// This model is mainly used for administrative queries
+    /// or to display full information about an authenticated user,
+    /// excluding passwords and sensitive tokens.
     /// </summary>
     public class UserDetailDto
     {
         /// <summary>
-        /// Identificador único del usuario.
+        /// Unique identifier of the user.
         /// </summary>
         public int Id { get; set; }
 
         /// <summary>
-        /// Nombre del usuario.
+        /// User's first name.
         /// </summary>
         public string Name { get; set; } = null!;
 
         /// <summary>
-        /// Apellido del usuario.
+        /// User's last name.
         /// </summary>
         public string LastName { get; set; } = null!;
 
         /// <summary>
-        /// Correo electrónico del usuario.
+        /// User's email address.
         /// </summary>
         public string Email { get; set; } = null!;
 
         /// <summary>
-        /// Número de teléfono o contacto principal.
+        /// Primary phone number or contact information.
         /// </summary>
         public string PhoneNumber { get; set; } = null!;
 
         /// <summary>
-        /// Rol asignado al usuario (por ejemplo: Admin, Pilot, Broker, User).
+        /// Role assigned to the user (e.g., Admin, Pilot, Broker, User).
         /// </summary>
         public string Role { get; set; } = null!;
 
         /// <summary>
-        /// Fecha en la que el usuario se registró en la plataforma.
+        /// Date when the user registered on the platform.
         /// </summary>
         public DateTime RegistrationDate { get; set; }
 
         /// <summary>
-        /// Indica si el usuario aceptó los Términos de Uso al registrarse.
+        /// Indicates whether the user accepted the Terms of Use during registration.
         /// </summary>
         public bool TermsOfUse { get; set; }
 
         /// <summary>
-        /// Indica si el usuario aceptó el Aviso de Privacidad al registrarse.
+        /// Indicates whether the user accepted the Privacy Notice during registration.
         /// </summary>
         public bool PrivacyNotice { get; set; }
 
         /// <summary>
-        /// Indica si el usuario se encuentra verificado (true) o no (false).
+        /// Indicates whether the user is verified (true) or not (false).
         /// </summary>
         public bool IsVerified { get; set; }
 
         /// <summary>
-        /// Indica si el usuario se encuentra activo (true) o desactivado (false).
+        /// Indicates whether the user is active (true) or deactivated (false).
         /// </summary>
         public bool IsActive { get; set; }
 
         /// <summary>
-        /// Nombre de la empresa asociada (opcional).
+        /// Name of the associated company (optional).
         /// </summary>
         public string? CompanyName { get; set; }
 
+        /// <summary>
+        /// User's primary country.
+        /// </summary>
         public string Country { get; set; } = null!;
-
-
     }
 }
