@@ -116,7 +116,6 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _section("Flight Information"),
-
               Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
@@ -144,17 +143,13 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 20),
               _section("Runways"),
-
               _input("Departure Runway", _departureRunway),
               const SizedBox(height: 12),
               _input("Arrival Runway", _arrivalRunway),
-
               const SizedBox(height: 20),
               _section("Times"),
-
               _input("Hobbs Start", _hobbsStart, type: TextInputType.number),
               const SizedBox(height: 12),
               _input("Hobbs End", _hobbsEnd, type: TextInputType.number),
@@ -164,36 +159,26 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
               _input("Block On (HH:MM)", _blockOn),
               const SizedBox(height: 12),
               _input("Airborne Time (HH:MM)", _airborneTime),
-
               const SizedBox(height: 20),
               _section("Crew Times"),
-
               _input("PIC Time (HH:MM)", _picTime),
               const SizedBox(height: 12),
               _input("SIC Time (HH:MM)", _sicTime),
-
               const SizedBox(height: 20),
               _section("Fuel"),
-
               _input("Fuel Start", _fuelStart, type: TextInputType.number),
               const SizedBox(height: 12),
               _input("Fuel End", _fuelEnd, type: TextInputType.number),
-
               const SizedBox(height: 20),
               _section("Weather"),
-
               _input("METAR", _metar),
               const SizedBox(height: 12),
               _input("TAF", _taf),
-
               const SizedBox(height: 20),
               _section("Remarks"),
-
               _input("Remarks / Notes", _remarks),
-
               const SizedBox(height: 20),
               _section("Pilot Signature (Required)"),
-
               Container(
                 height: 200,
                 decoration: BoxDecoration(
@@ -209,10 +194,8 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
                 onPressed: () => _pilotSignatureController.clear(),
                 child: const Text("Clear Pilot Signature"),
               ),
-
               const SizedBox(height: 20),
               _section("Copilot Signature (Optional)"),
-
               Container(
                 height: 200,
                 decoration: BoxDecoration(
@@ -228,7 +211,6 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
                 onPressed: () => _copilotSignatureController.clear(),
                 child: const Text("Clear Copilot Signature"),
               ),
-
               const SizedBox(height: 25),
               SizedBox(
                 width: double.infinity,
@@ -292,7 +274,7 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
         // FOOTER AUTOMÁTICO EN TODAS LAS PÁGINAS
         footer: (context) => pw.Center(
           child: pw.Text(
-            "Generated automatically by AeroCaribe ${DateTime.now().toLocal()}",
+            "Generated automatically by AeroRide ${DateTime.now().toLocal()}",
             style: pw.TextStyle(fontSize: 10, color: PdfColors.grey),
           ),
         ),
@@ -301,7 +283,7 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
           // TITLE
           pw.Center(
             child: pw.Text(
-              "AeroCaribe Flight Log",
+              "AeroRide Flight Log",
               style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold),
             ),
           ),
@@ -351,7 +333,6 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
                       ),
                     ),
                     pw.SizedBox(height: 8),
-
                     pw.Table(
                       border: pw.TableBorder.all(),
                       children: [
@@ -383,7 +364,6 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
                       ),
                     ),
                     pw.SizedBox(height: 8),
-
                     pw.Table(
                       border: pw.TableBorder.all(),
                       children: [
@@ -391,9 +371,7 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
                         _infoRow("Fuel End", _fuelEnd.text),
                       ],
                     ),
-
                     pw.SizedBox(height: 25),
-
                     pw.Text(
                       "Weather",
                       style: pw.TextStyle(
@@ -402,7 +380,6 @@ class _FlightLogFormScreenState extends State<FlightLogFormScreen> {
                       ),
                     ),
                     pw.SizedBox(height: 8),
-
                     pw.Text("METAR: ${_metar.text}"),
                     pw.Text("TAF: ${_taf.text}"),
                   ],

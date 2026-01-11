@@ -119,85 +119,86 @@ class _HomePagePilotState extends State<HomePagePilot>
           ),
         ],
       ),
-
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-          ? Center(
-              child: Text(
-                "Error loading flights:\n$_error",
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.red),
-              ),
-            )
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                // ====================================================
-                // UPCOMING TAB
-                // ====================================================
-                _upcoming.isEmpty
-                    ? const PilotUpcomingEmpty()
-                    : ListView.separated(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _upcoming.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 16),
-                        itemBuilder: (context, index) {
-                          final flight = _upcoming[index];
-                          final hasLog = _logsMap[flight.id] ?? false;
+              ? Center(
+                  child: Text(
+                    "Error loading flights:\n$_error",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                )
+              : TabBarView(
+                  controller: _tabController,
+                  children: [
+                    // ====================================================
+                    // UPCOMING TAB
+                    // ====================================================
+                    _upcoming.isEmpty
+                        ? const PilotUpcomingEmpty()
+                        : ListView.separated(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _upcoming.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 16),
+                            itemBuilder: (context, index) {
+                              final flight = _upcoming[index];
+                              final hasLog = _logsMap[flight.id] ?? false;
 
-                          //  Si el vuelo ya está COMPLETED, mostrar versión past
-                          if (flight.status == "Completed") {
-                            return PilotFlightCardPast(
-                              flight: flight,
-                              onViewLog: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        ViewFlightLogScreen(flight: flight),
-                                  ),
+                              //  Si el vuelo ya está COMPLETED, mostrar versión past
+                              if (flight.status == "Completed") {
+                                return PilotFlightCardPast(
+                                  flight: flight,
+                                  onViewLog: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            ViewFlightLogScreen(flight: flight),
+                                      ),
+                                    );
+                                  },
                                 );
-                              },
-                            );
-                          }
+                              }
 
-                          // Si NO está completed → PilotFlightCard
-                          return PilotFlightCard(
-                            flight: flight,
-                            hasLog: hasLog,
-                            onReload: _loadFlights,
-                          );
-                        },
-                      ),
-
-                // ====================================================
-                // PAST TAB
-                // ====================================================
-                _past.isEmpty
-                    ? const PilotPastEmpty()
-                    : ListView.separated(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _past.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 16),
-                        itemBuilder: (context, index) {
-                          final flight = _past[index];
-                          return PilotFlightCardPast(
-                            flight: flight,
-                            onViewLog: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      ViewFlightLogScreen(flight: flight),
-                                ),
+                              // Si NO está completed → PilotFlightCard
+                              return PilotFlightCard(
+                                flight: flight,
+                                hasLog: hasLog,
+                                onReload: _loadFlights,
                               );
                             },
-                          );
-                        },
-                      ),
-              ],
-            ),
+                          ),
+
+                    // ====================================================
+                    // PAST TAB
+                    // ====================================================
+                    _past.isEmpty
+                        ? const PilotPastEmpty()
+                        : ListView.separated(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _past.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 16),
+                            itemBuilder: (context, index) {
+                              final flight = _past[index];
+                              return PilotFlightCardPast(
+                                flight: flight,
+                                onViewLog: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          ViewFlightLogScreen(flight: flight),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                  ],
+                ),
     );
   }
 }

@@ -1,54 +1,121 @@
 ﻿namespace AeroRide.API.Models.Domain
 {
     /// <summary>
-    /// Entidad que representa una empresa o aerolínea registrada en el sistema AeroRide.
-    /// Cada empresa puede tener aeronaves, vuelos, reservas y personal (usuarios asociados).
-    /// Además, define políticas tarifarias específicas para costos de espera, pernocta e impuestos.
+    /// Entity that represents a company or airline registered in the AeroRide system.
+    /// Each company may own aircraft, operate flights, manage reservations,
+    /// and have associated staff (users).
+    /// It also defines company-specific pricing policies for waiting time,
+    /// overnight stays, and applicable taxes.
     /// </summary>
     public class Company
     {
+        /// <summary>
+        /// Unique identifier of the company.
+        /// </summary>
         public int Id { get; set; }
+
+        /// <summary>
+        /// Legal or commercial name of the company.
+        /// </summary>
         public string Name { get; set; } = null!;
+
+        /// <summary>
+        /// Contact email address of the company.
+        /// </summary>
         public string? Email { get; set; }
+
+        /// <summary>
+        /// Contact phone number of the company.
+        /// </summary>
         public string? PhoneNumber { get; set; }
+
+        /// <summary>
+        /// Physical or mailing address of the company.
+        /// </summary>
         public string? Address { get; set; }
 
-        /// <summary>Porcentaje de descuento aplicado a vuelos tipo "Empty Leg" (ej. 0.5 = 50%).</summary>
+        /// <summary>
+        /// Discount percentage applied to Empty Leg flights
+        /// (e.g., 0.5 represents a 50% discount).
+        /// </summary>
         public double EmptyLegDiscount { get; set; } = 0.5;
 
+        /// <summary>
+        /// Indicates whether the company is active in the system.
+        /// </summary>
         public bool IsActive { get; set; } = true;
+
+        /// <summary>
+        /// UTC date and time when the company record was created.
+        /// </summary>
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // ======================================================
-        // 💰 CONFIGURACIÓN TARIFARIA PERSONALIZADA POR EMPRESA
+        // 💰 COMPANY-SPECIFIC PRICING CONFIGURATION
         // ======================================================
 
-        /// <summary>Costo por hora de espera en vuelos nacionales.</summary>
+        /// <summary>
+        /// Cost per hour of waiting time for domestic flights.
+        /// </summary>
         public double DomesticWaitHourCost { get; set; } = 50;
 
-        /// <summary>Costo por hora de espera en vuelos internacionales.</summary>
+        /// <summary>
+        /// Cost per hour of waiting time for international flights.
+        /// </summary>
         public double InternationalWaitHourCost { get; set; } = 200;
 
-        /// <summary>Costo de pernocta (overnight) en vuelos nacionales.</summary>
+        /// <summary>
+        /// Overnight stay cost for domestic flights.
+        /// </summary>
         public double DomesticOvernightCost { get; set; } = 300;
 
-        /// <summary>Costo de pernocta (overnight) en vuelos internacionales.</summary>
+        /// <summary>
+        /// Overnight stay cost for international flights.
+        /// </summary>
         public double InternationalOvernightCost { get; set; } = 500;
 
-        /// <summary>Impuesto aeroportuario por pasajero (solo internacional).</summary>
+        /// <summary>
+        /// Airport tax applied per passenger for international flights.
+        /// </summary>
         public double AirportTaxPerPassenger { get; set; } = 30;
 
-        /// <summary>Costo de handling por pasajero (solo internacional).</summary>
+        /// <summary>
+        /// Handling cost applied per passenger for international flights.
+        /// </summary>
         public double HandlingPerPassenger { get; set; } = 100;
 
         // ======================================================
-        // 🔗 RELACIONES DE NAVEGACIÓN
+        // 🔗 NAVIGATION RELATIONSHIPS
         // ======================================================
+
+        /// <summary>
+        /// Collection of base airports associated with the company.
+        /// </summary>
         public ICollection<CompanyBase> Bases { get; set; } = new List<CompanyBase>();
+
+        /// <summary>
+        /// Collection of users (staff) associated with the company.
+        /// </summary>
         public ICollection<User> Users { get; set; } = new List<User>();
+
+        /// <summary>
+        /// Collection of aircraft owned or operated by the company.
+        /// </summary>
         public ICollection<Aircraft> Aircrafts { get; set; } = new List<Aircraft>();
+
+        /// <summary>
+        /// Collection of flights operated by the company.
+        /// </summary>
         public ICollection<Flight> Flights { get; set; } = new List<Flight>();
+
+        /// <summary>
+        /// Collection of reservations associated with the company.
+        /// </summary>
         public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
+
+        /// <summary>
+        /// Collection of flight charges applied to the company's flights.
+        /// </summary>
         public ICollection<FlightCharge> FlightCharges { get; set; } = new List<FlightCharge>();
     }
 }

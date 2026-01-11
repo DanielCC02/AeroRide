@@ -25,7 +25,7 @@ namespace AeroRide.API.Helpers.Templates
                                   font-weight:600;
                                   font-size:14px;
                                   display:inline-block;"">
-                            Ver piernas vacías disponibles
+                            View available empty legs
                         </a>
                     </td>
                 </tr>";
@@ -34,10 +34,10 @@ namespace AeroRide.API.Helpers.Templates
 
             sb.Append($@"
             <!DOCTYPE html>
-            <html lang=""es"">
+            <html lang=""en"">
             <head>
                 <meta charset=""UTF-8"" />
-                <title>Nuevas piernas vacías disponibles</title>
+                <title>New empty legs available</title>
             </head>
             <body style=""margin:0; padding:0; font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background-color:#f3f4f6;"">
                 <table width=""100%"" cellpadding=""0"" cellspacing=""0"" border=""0"">
@@ -47,10 +47,10 @@ namespace AeroRide.API.Helpers.Templates
                                 <tr>
                                     <td style=""background:linear-gradient(135deg,#7f1d1d,#b91c1c); padding:20px 24px; color:#fef2f2;"">
                                         <h1 style=""margin:0; font-size:20px; color:#fef2f2;"">
-                                            Nuevas piernas vacías en {country}
+                                            New empty legs in {country}
                                         </h1>
                                         <p style=""margin:6px 0 0 0; font-size:13px; color:#fde2e2;"">
-                                            Ofertas especiales de vuelo privado, sujetas a disponibilidad.
+                                            Special private flight offers, subject to availability.
                                         </p>
                                     </td>
                                 </tr>
@@ -58,15 +58,15 @@ namespace AeroRide.API.Helpers.Templates
                                 <tr>
                                     <td style=""padding:20px 24px 8px 24px; font-size:14px; color:#111827;"">
                                         <p style=""margin:0 0 12px 0;"">
-                                            Hola <strong>{System.Net.WebUtility.HtmlEncode(userName)}</strong>,
+                                            Hello <strong>{System.Net.WebUtility.HtmlEncode(userName)}</strong>,
                                         </p>
                                         <p style=""margin:0 0 12px 0; line-height:1.5;"">
-                                            Se han generado <strong>nuevas piernas vacías</strong> que salen desde aeropuertos de 
-                                            <strong>{System.Net.WebUtility.HtmlEncode(country)}</strong>. 
-                                            Estas rutas suelen tener tarifas especiales y disponibilidad limitada.
+                                            <strong>New empty legs</strong> have been generated departing from airports in
+                                            <strong>{System.Net.WebUtility.HtmlEncode(country)}</strong>.
+                                            These routes usually offer special fares and have limited availability.
                                         </p>
                                         <p style=""margin:0 0 8px 0; font-weight:600; font-size:13px; text-transform:uppercase; color:#7f1d1d;"">
-                                            Rutas disponibles:
+                                            Available routes:
                                         </p>
                                     </td>
                                 </tr>
@@ -77,7 +77,7 @@ namespace AeroRide.API.Helpers.Templates
                                             {legsListItemsHtml}
                                         </ul>
                                         <p style=""margin:12px 0 0 0; font-size:12px; color:#9ca3af;"">
-                                            * Los horarios están sujetos a cambios y se confirman al momento de la reserva.
+                                            * Schedules are subject to change and will be confirmed at the time of booking.
                                         </p>
                                     </td>
                                 </tr>
@@ -87,11 +87,11 @@ namespace AeroRide.API.Helpers.Templates
                                 <tr>
                                     <td style=""padding:20px 24px 16px 24px; font-size:11px; color:#9ca3af; border-top:1px solid #e5e7eb;"">
                                         <p style=""margin:0 0 4px 0;"">
-                                            Estás recibiendo este correo porque tienes una cuenta activa en <strong>AeroCaribe</strong> 
-                                            y te encuentras registrado en {System.Net.WebUtility.HtmlEncode(country)}.
+                                            You are receiving this email because you have an active account with <strong>AeroCaribe</strong>
+                                            and are registered in {System.Net.WebUtility.HtmlEncode(country)}.
                                         </p>
                                         <p style=""margin:0;"">
-                                            Si no deseas recibir notificaciones de piernas vacías, por favor contacta al soporte de AeroCaribe.
+                                            If you no longer wish to receive empty leg notifications, please contact AeroCaribe support.
                                         </p>
                                     </td>
                                 </tr>

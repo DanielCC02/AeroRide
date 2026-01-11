@@ -1,65 +1,66 @@
 ﻿namespace AeroRide.API.Models.Domain
 {
     /// <summary>
-    /// Entidad que representa el resumen de cargos e impuestos
-    /// asociados a un vuelo específico.
-    /// 
-    /// Contiene únicamente los valores esenciales para registrar
-    /// el costo total operativo del vuelo.
+    /// Entity that represents a summary of charges and taxes
+    /// associated with a specific flight.
+    ///
+    /// It contains only the essential values required to record
+    /// the total operational cost of the flight.
     /// </summary>
     public class FlightCharge
     {
         /// <summary>
-        /// Identificador único del registro de cargos asociados a un vuelo.
+        /// Unique identifier of the flight charge record.
         /// </summary>
         public int Id { get; set; }
 
         /// <summary>
-        /// Costo base del vuelo (precio de la aeronave × duración del vuelo).
+        /// Base cost of the flight (aircraft price × flight duration).
         /// </summary>
         public double BaseCost { get; set; }
 
         /// <summary>
-        /// Monto total de impuestos y tasas aplicados al vuelo.
+        /// Total amount of taxes and fees applied to the flight.
         /// </summary>
         public double TaxesAndFees { get; set; }
 
         /// <summary>
-        /// Porcentaje de descuento aplicado (por ejemplo: 0.5 = 50%).
+        /// Discount percentage applied to the flight
+        /// (e.g., 0.5 represents a 50% discount).
         /// </summary>
         public double DiscountApplied { get; set; }
 
         /// <summary>
-        /// Costo total final del vuelo, después de aplicar impuestos y descuentos.
+        /// Final total cost of the flight after applying taxes and discounts.
         /// </summary>
         public double TotalCharge { get; set; }
 
         /// <summary>
-        /// Fecha y hora en que se calculó el cargo total del vuelo.
+        /// UTC date and time when the total flight charge was calculated.
         /// </summary>
         public DateTime CalculatedAt { get; set; } = DateTime.UtcNow;
 
         // ======================================================
-        // 🔗 RELACIONES DE NAVEGACIÓN
+        // 🔗 NAVIGATION RELATIONSHIPS
         // ======================================================
 
         /// <summary>
-        /// Identificador del vuelo al que pertenece este cálculo.
+        /// Identifier of the flight to which this charge calculation belongs.
         /// </summary>
         public int FlightId { get; set; }
 
         /// <summary>
-        /// Vuelo asociado a los cargos registrados.
+        /// Reference to the associated flight.
         /// </summary>
         public Flight Flight { get; set; } = null!;
 
         /// <summary>
-        /// Identificador de la empresa operadora del vuelo.
+        /// Identifier of the company operating the flight.
         /// </summary>
         public int CompanyId { get; set; }
 
         /// <summary>
-        /// Empresa o aerolínea responsable de la operación del vuelo.
+        /// Reference to the company responsible for operating the flight.
         /// </summary>
         public Company Company { get; set; } = null!;
     }

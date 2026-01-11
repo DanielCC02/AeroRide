@@ -1,27 +1,30 @@
 ﻿namespace AeroRide.API.Models.Domain
 {
     /// <summary>
-    /// Representa una base operativa (aeropuerto) perteneciente a una compañía aérea.
-    /// Cada compañía puede tener múltiples bases y una marcada como principal.
+    /// Represents an operational base (airport) associated with an airline company.
+    /// Each company may have multiple bases, with one designated as the primary base.
     /// </summary>
     public class CompanyBase
     {
+        /// <summary>
+        /// Unique identifier of the company base record.
+        /// </summary>
         public int Id { get; set; }
 
         /// <summary>
-        /// Identificador de la compañía propietaria de esta base.
+        /// Identifier of the company that owns this operational base.
         /// </summary>
         public int CompanyId { get; set; }
         public Company Company { get; set; } = null!;
 
         /// <summary>
-        /// Identificador del aeropuerto que actúa como base operativa.
+        /// Identifier of the airport that serves as the operational base.
         /// </summary>
         public int AirportId { get; set; }
         public Airport Airport { get; set; } = null!;
 
         /// <summary>
-        /// Indica si esta base es la base principal de la compañía.
+        /// Indicates whether this base is the primary base of the company.
         /// </summary>
         public bool IsPrimary { get; set; } = false;
     }

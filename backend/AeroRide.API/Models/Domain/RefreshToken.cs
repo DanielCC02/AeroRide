@@ -1,45 +1,47 @@
 ﻿namespace AeroRide.API.Models.Domain
 {
     /// <summary>
-    /// Entidad que representa un Refresh Token emitido a un usuario.
-    /// 
-    /// Su propósito es permitir la renovación segura del token de acceso (JWT)
-    /// sin que el usuario deba volver a autenticarse con sus credenciales.
-    /// 
-    /// Cada usuario puede tener varios Refresh Tokens activos, asociados a distintos dispositivos o sesiones.
+    /// Entity that represents a Refresh Token issued to a user.
+    ///
+    /// Its purpose is to allow secure renewal of the access token (JWT)
+    /// without requiring the user to re-authenticate with their credentials.
+    ///
+    /// Each user may have multiple active Refresh Tokens, typically associated
+    /// with different devices or sessions.
     /// </summary>
     public class RefreshToken
     {
         /// <summary>
-        /// Identificador único del Refresh Token dentro del sistema.
+        /// Unique identifier of the Refresh Token within the system.
         /// </summary>
         public int Id { get; set; }
 
         /// <summary>
-        /// Cadena aleatoria única que representa el token de refresco entregado al cliente.
-        /// Se genera mediante <see cref="Guid.NewGuid()"/> u otro método criptográficamente seguro.
+        /// Unique random string that represents the refresh token provided to the client.
+        /// It is generated using <see cref="Guid.NewGuid()"/> or another cryptographically secure method.
         /// </summary>
         public string Token { get; set; } = null!;
 
         /// <summary>
-        /// Fecha y hora de expiración del Refresh Token.
-        /// Una vez vencido, ya no puede utilizarse para generar nuevos JWT.
+        /// Date and time when the Refresh Token expires.
+        /// Once expired, it can no longer be used to generate new JWTs.
         /// </summary>
         public DateTime Expiration { get; set; }
 
         /// <summary>
-        /// Indica si el token ha sido revocado manualmente (por ejemplo, durante un cierre de sesión o logout).
+        /// Indicates whether the token has been manually revoked
+        /// (for example, during logout or session invalidation).
         /// </summary>
         public bool IsRevoked { get; set; } = false;
 
         /// <summary>
-        /// Identificador del usuario propietario del Refresh Token.
+        /// Identifier of the user who owns this Refresh Token.
         /// </summary>
         public int UserId { get; set; }
 
         /// <summary>
-        /// Referencia al usuario asociado a este Refresh Token.
-        /// Representa una relación muchos a uno (<c>N:1</c>) con la entidad <see cref="User"/>.
+        /// Reference to the user associated with this Refresh Token.
+        /// Represents a many-to-one (<c>N:1</c>) relationship with the <see cref="User"/> entity.
         /// </summary>
         public User User { get; set; } = null!;
     }

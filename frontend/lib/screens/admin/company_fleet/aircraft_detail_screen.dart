@@ -88,7 +88,7 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
                               child: CircularProgressIndicator(),
                             );
                           },
-                          errorBuilder: (_, _, _) => Container(
+                          errorBuilder: (_, __, ___) => Container(
                             color: Colors.grey.shade200,
                             alignment: Alignment.center,
                             child: const Icon(
@@ -155,9 +155,8 @@ class _AircraftDetailScreenState extends State<AircraftDetailScreen> {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: aircraft.isActive
-                          ? Colors.redAccent
-                          : Colors.green,
+                      backgroundColor:
+                          aircraft.isActive ? Colors.redAccent : Colors.green,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),

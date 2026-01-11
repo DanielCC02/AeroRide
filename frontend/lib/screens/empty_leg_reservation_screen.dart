@@ -134,9 +134,8 @@ class _EmptyLegReservationScreenState extends State<EmptyLegReservationScreen> {
         final leg = snap.data!;
         final dep = leg.departureTime.toLocal();
         final arr = _tryArrivalTime(leg) ?? dep;
-        final eft = arr.isAfter(dep)
-            ? arr.difference(dep)
-            : const Duration(hours: 1);
+        final eft =
+            arr.isAfter(dep) ? arr.difference(dep) : const Duration(hours: 1);
 
         // Asegurar que el contador no supere el máximo
         final maxSeats = leg.maxPassengerCount.clamp(1, 999).toInt();
@@ -476,7 +475,7 @@ class _EmptyLegReservationScreenState extends State<EmptyLegReservationScreen> {
               ? Image.network(
                   img,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => Container(
+                  errorBuilder: (_, __, ___) => Container(
                     color: Colors.black12,
                     alignment: Alignment.center,
                     child: const Icon(Icons.broken_image, size: 48),
