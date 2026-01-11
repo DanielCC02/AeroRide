@@ -1,31 +1,31 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
 /// <summary>
-/// Objeto de transferencia para actualizar los datos personales
-/// del usuario autenticado.
-/// 
-/// Solo permite modificar información básica como nombre o teléfono.
+/// Data Transfer Object used to update the personal information
+/// of the authenticated user.
+///
+/// It only allows modifying basic information such as name or phone number.
 /// </summary>
 public class UserUpdateDto
 {
     /// <summary>
-    /// Nuevo nombre del usuario.
+    /// New first name of the user.
     /// </summary>
-    [Required(ErrorMessage = "El nombre es obligatorio.")]
-    [StringLength(50, ErrorMessage = "El nombre no debe exceder los 50 caracteres.")]
+    [Required(ErrorMessage = "First name is required.")]
+    [StringLength(50, ErrorMessage = "First name must not exceed 50 characters.")]
     public string Name { get; set; } = null!;
 
     /// <summary>
-    /// Nuevo apellido del usuario.
+    /// New last name of the user.
     /// </summary>
-    [Required(ErrorMessage = "El apellido es obligatorio.")]
-    [StringLength(50, ErrorMessage = "El apellido no debe exceder los 50 caracteres.")]
+    [Required(ErrorMessage = "Last name is required.")]
+    [StringLength(50, ErrorMessage = "Last name must not exceed 50 characters.")]
     public string LastName { get; set; } = null!;
 
     /// <summary>
-    /// Nuevo número de teléfono del usuario.
+    /// New phone number of the user.
     /// </summary>
-    [Required(ErrorMessage = "El número de teléfono es obligatorio.")]
-    [Phone(ErrorMessage = "Debe ingresar un número de teléfono válido.")]
+    [Required(ErrorMessage = "Phone number is required.")]
+    [Phone(ErrorMessage = "A valid phone number must be provided.")]
     public string PhoneNumber { get; set; } = null!;
 }
