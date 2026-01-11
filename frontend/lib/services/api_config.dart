@@ -15,9 +15,9 @@ class ApiConfig {
   // static const String baseUrl = 'http://localhost:5192';          // iOS Simulator
   // static const String baseUrl = 'http://192.168.1.34:5192';       // Teléfono físico en misma Wi-Fi
   // static const String baseUrl = 'https://<tu-dominio>.ngrok.app'; // Túnel HTTPS
-//}
+  //}
 
-// Tomas
-//class ApiConfig {
- static const String baseUrl = 'http://192.168.0.16:5192';
+  // Tomas
+  //class ApiConfig {
+  static const String baseUrl = 'http://192.168.1.17:5192';
 }

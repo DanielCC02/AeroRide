@@ -64,7 +64,7 @@ class _TripsScreenState extends State<TripsScreen>
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: trips.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 16),
+      separatorBuilder: (_, __) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
         final trip = trips[index];
 
@@ -82,7 +82,7 @@ class _TripsScreenState extends State<TripsScreen>
     );
   }
 
-   /// Lista de "Past trips".
+  /// Lista de "Past trips".
   /// - Usa el MISMO diseño de card para mantener consistencia.
   /// - Cambia únicamente la fuente de datos (mockPastTrips).
   Widget _buildPastTab(BuildContext context) {
@@ -93,7 +93,7 @@ class _TripsScreenState extends State<TripsScreen>
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: trips.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 16),
+      separatorBuilder: (_, __) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
         final trip = trips[index];
         return TripCard(
@@ -138,4 +138,3 @@ class _TripsScreenState extends State<TripsScreen>
     );
   }
 }
-
