@@ -36,7 +36,9 @@ class _ViewFlightLogScreenState extends State<ViewFlightLogScreen> {
     super.dispose();
   }
 
-  /// DESCARGA EL PDF COMO BYTES (para el visor PdfX)
+  // ============================================
+  // LOAD PDF BYTES
+  // ============================================
   Future<Uint8List> _loadPdfBytes(String url) async {
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
@@ -45,20 +47,71 @@ class _ViewFlightLogScreenState extends State<ViewFlightLogScreen> {
     throw Exception("Error loading PDF bytes");
   }
 
-  /// NORMALIZA LA URL — evita romper las URLs de Azure Blob Storage
+  // ============================================
+  // NORMALIZE URL (Azure-safe)
+  // ============================================
   String _normalizeUrl(String rawUrl) {
     final url = rawUrl.trim();
 
-    // ⚠️ Si es absoluta (como Azure Blob Storage), NO tocarla
     if (url.startsWith("http://") || url.startsWith("https://")) {
       return url;
     }
 
-    // ⚠️ Solo normalizar si es relativa
     return "${ApiConfig.baseUrl}$url"
         .replaceAll("//", "/")
         .replaceFirst("http:/", "http://")
         .replaceFirst("https:/", "https://");
+  }
+
+  // ============================================
+  // DOWNLOAD + FALLBACKS (iOS + Android)
+  // ============================================
+  Future<void> _handleDownload(String rawUrl) async {
+    final url = _normalizeUrl(rawUrl);
+    final uri = Uri.parse(url);
+
+    final bool isIOS = Theme.of(context).platform == TargetPlatform.iOS;
+
+    // ----------- iOS → abrir Safari directamente -----------
+    if (isIOS) {
+      try {
+        final launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+        if (launched) return;
+      } catch (_) {}
+    } else {
+      // ----------- Android → navegador externo -----------
+      try {
+        final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (launched) return;
+      } catch (_) {}
+    }
+
+    // ----------- Google Docs Viewer fallback universal -----------
+    final viewerUrl =
+        "https://docs.google.com/viewer?url=${Uri.encodeComponent(url)}&embedded=true";
+    final viewerUri = Uri.parse(viewerUrl);
+
+    try {
+      final launched = await launchUrl(
+        viewerUri,
+        mode: LaunchMode.inAppWebView,
+      );
+      if (launched) return;
+    } catch (_) {}
+
+    // ----------- iOS fallback final: reintentar Safari -----------
+    if (isIOS) {
+      try {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+        return;
+      } catch (_) {}
+    }
+
+    // ----------- Error final -----------
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Unable to open PDF:\n$url")),
+    );
   }
 
   @override
@@ -84,49 +137,7 @@ class _ViewFlightLogScreenState extends State<ViewFlightLogScreen> {
                 return;
               }
 
-              final url = _normalizeUrl(log.pdfUrl);
-              final uri = Uri.parse(url);
-
-              // =============================================
-              // Intentar abrir con un navegador externo
-              // =============================================
-              try {
-                final launched = await launchUrl(
-                  uri,
-                  mode: LaunchMode.externalApplication,
-                );
-
-                if (launched) return; // Success!
-              } catch (_) {
-                // Ignorar, pasamos al fallback
-              }
-
-              // =============================================
-              // FALLBACK: Abrir en Google Docs Viewer
-              // =============================================
-              final viewerUrl =
-                  "https://docs.google.com/viewer?url=${Uri.encodeComponent(url)}&embedded=true";
-
-              final viewerUri = Uri.parse(viewerUrl);
-
-              try {
-                final launched = await launchUrl(
-                  viewerUri,
-                  mode: LaunchMode.inAppWebView,
-                );
-
-                if (launched) return; // Success!
-              } catch (_) {
-                // ignorar y continuar al fallback final
-              }
-
-              // =============================================
-              // Si todo falla → mostrar error
-              // =============================================
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("Unable to open PDF:\n$url")),
-              );
+              await _handleDownload(log.pdfUrl);
             },
           ),
         ],
@@ -160,7 +171,7 @@ class _ViewFlightLogScreenState extends State<ViewFlightLogScreen> {
             );
           }
 
-          final String pdfUrl = _normalizeUrl(log.pdfUrl);
+          final pdfUrl = _normalizeUrl(log.pdfUrl);
 
           return FutureBuilder<Uint8List>(
             future: _loadPdfBytes(pdfUrl),
@@ -180,7 +191,6 @@ class _ViewFlightLogScreenState extends State<ViewFlightLogScreen> {
               }
 
               final pdfData = pdfSnapshot.data!;
-
               _pdfController ??= PdfController(
                 document: PdfDocument.openData(pdfData),
               );

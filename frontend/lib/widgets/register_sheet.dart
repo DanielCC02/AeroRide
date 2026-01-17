@@ -15,13 +15,13 @@ class _RegisterSheetState extends State<RegisterSheet> {
   final _firstName = TextEditingController();
   final _lastName = TextEditingController();
   final _email = TextEditingController();
-  final _phone = TextEditingController(text: '+506 ');
+  final _phone = TextEditingController(); // SOLO número
   final _password = TextEditingController();
   final _confirm = TextEditingController();
 
-  // Nacionalidad
-  String? _nationalityCode;
+  // Nacionalidad / teléfono
   String? _nationalityName;
+  String? _phoneCountryCode;
   bool _showNationalityError = false;
 
   bool _isLoading = false;
@@ -54,7 +54,6 @@ class _RegisterSheetState extends State<RegisterSheet> {
       _showNationalityError = _nationalityName == null;
     });
 
-    // valida todos los TextFormField + nacionalidad
     if (!_formKey.currentState!.validate() || _nationalityName == null) {
       return;
     }
@@ -79,8 +78,8 @@ class _RegisterSheetState extends State<RegisterSheet> {
         lastName: _lastName.text.trim(),
         email: _email.text.trim(),
         password: _password.text,
-        phoneNumber: _phone.text.trim(),
-        country: _nationalityName!, // 👈 se manda al backend
+        phoneNumber: '+$_phoneCountryCode${_phone.text.trim()}',
+        country: _nationalityName!,
       );
 
       if (!mounted) return;
@@ -99,8 +98,8 @@ class _RegisterSheetState extends State<RegisterSheet> {
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(ctx).pop(); // dialog
-                Navigator.of(context).pop(); // bottom sheet
+                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
               },
               child: const Text('Go to Home'),
             ),
@@ -110,9 +109,8 @@ class _RegisterSheetState extends State<RegisterSheet> {
     } on AuthServiceException catch (e) {
       setState(() => _fieldErrors = e.fieldErrors ?? {});
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -131,7 +129,7 @@ class _RegisterSheetState extends State<RegisterSheet> {
       height: MediaQuery.of(context).size.height * 0.92,
       child: Column(
         children: [
-          // Header
+          // HEADER
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             child: Row(
@@ -188,36 +186,26 @@ class _RegisterSheetState extends State<RegisterSheet> {
                         labelText: 'Email',
                         errorText: _errorFor('email'),
                       ),
-                      validator: (v) => (v == null || !v.contains('@'))
-                          ? 'Invalid email'
-                          : null,
-                    ),
-                    const SizedBox(height: 12),
-
-                    // PHONE
-                    TextFormField(
-                      controller: _phone,
-                      decoration: InputDecoration(
-                        labelText: 'Phone Number',
-                        errorText: _errorFor('phonenumber'),
-                      ),
                       validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'Required' : null,
+                          (v == null || !v.contains('@'))
+                              ? 'Invalid email'
+                              : null,
                     ),
                     const SizedBox(height: 12),
 
-                    // NATIONALITY SELECTOR
+                    // NATIONALITY
                     GestureDetector(
                       onTap: () {
                         showCountryPicker(
                           context: context,
-                          showPhoneCode: false,
+                          showPhoneCode: true,
                           showWorldWide: false,
                           onSelect: (Country c) {
                             setState(() {
-                              _nationalityCode = c.countryCode;
                               _nationalityName = c.name;
+                              _phoneCountryCode = c.phoneCode;
                               _showNationalityError = false;
+                              _phone.clear();
                             });
                           },
                         );
@@ -239,7 +227,7 @@ class _RegisterSheetState extends State<RegisterSheet> {
                           children: [
                             if (_nationalityName != null)
                               Text(
-                                '$_nationalityName ($_nationalityCode)',
+                                '$_nationalityName (+$_phoneCountryCode)',
                                 style: const TextStyle(fontSize: 16),
                               )
                             else
@@ -268,6 +256,28 @@ class _RegisterSheetState extends State<RegisterSheet> {
                           ),
                         ),
                       ),
+
+                    const SizedBox(height: 12),
+
+                    // PHONE (sin hint)
+                    TextFormField(
+                      controller: _phone,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: 'Phone Number',
+                        prefixText: _phoneCountryCode != null
+                            ? '+$_phoneCountryCode '
+                            : '',
+                        errorText: _errorFor('phonenumber'),
+                      ),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Required';
+                        if (!RegExp(r'^[0-9]+$').hasMatch(v)) {
+                          return 'Only numbers allowed';
+                        }
+                        return null;
+                      },
+                    ),
 
                     const SizedBox(height: 12),
 
@@ -302,8 +312,8 @@ class _RegisterSheetState extends State<RegisterSheet> {
                       validator: (v) => v == null
                           ? 'Required'
                           : (v != _password.text
-                                ? 'Passwords do not match'
-                                : null),
+                              ? 'Passwords do not match'
+                              : null),
                     ),
 
                     const SizedBox(height: 16),
@@ -336,7 +346,7 @@ class _RegisterSheetState extends State<RegisterSheet> {
 
                     const SizedBox(height: 20),
 
-                    // SUBMIT BUTTON
+                    // SUBMIT
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(

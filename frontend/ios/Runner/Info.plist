@@ -4,36 +4,66 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+
 	<key>CFBundleDisplayName</key>
 	<string>Frontend</string>
+
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
+
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+
 	<key>CFBundleName</key>
 	<string>frontend</string>
+
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
+
 	<key>CFBundleSignature</key>
 	<string>????</string>
+
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+
+	<!-- PERMITE ABRIR SAFARI, CHROME Y MANEJAR LINKS EXTERNOS -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>http</string>
+		<string>https</string>
+		<string>googlechrome</string>
+		<string>googlechromes</string>
+	</array>
+
+	<!-- PERMITE GOOGLE DOCS VIEWER EN WebView -->
+	<key>WKAppBoundDomains</key>
+	<array>
+		<string>docs.google.com</string>
+		<string>aeroridetest.blob.core.windows.net</string>
+	</array>
+
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -41,17 +71,22 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	<!-- Usamos la ubicación solo cuando la app está en uso -->
+
+	<!-- PERMISOS DE UBICACIÓN (OBLIGATORIOS PARA GOOGLE MAPS + GEOLOCATOR) -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>We use your location to show nearby airports on the map.</string>
 
-	<!-- Solo si alguna vez pidieras ubicación en background (no necesario ahora):
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>We use your location to improve map experience.</string>
+
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>We use your location to show nearby airports even in background.</string>
-	-->
+	<string>We use your location to show your position on the map.</string>
+
 </dict>
 </plist>
