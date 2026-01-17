@@ -2,42 +2,46 @@
 
 namespace AeroRide.API.Models.DTOs.Authorization
 {
-
     /// <summary>
-    /// Respuesta enviada al cliente después de un login o refresh exitoso.
-    /// Incluye un JWT válido y un Refresh Token asociado.
+    /// Response sent to the client after a successful login or token refresh.
+    /// It includes a valid JWT access token and an associated Refresh Token.
     /// </summary>
     public class AuthResponseDto
     {
         /// <summary>
-        /// Token JWT principal de acceso.
+        /// Primary JWT access token.
         /// </summary>
-        /// <remarks>Expira normalmente en 1 hora.</remarks>
+        /// <remarks>
+        /// Typically expires in 1 hour.
+        /// </remarks>
         public string Token { get; set; } = null!;
 
         /// <summary>
-        /// Refresh Token asociado para renovar la sesión sin volver a autenticarse.
+        /// Refresh Token used to renew the session without re-authentication.
         /// </summary>
-        /// <remarks>Expira normalmente en 7 días.</remarks>
+        /// <remarks>
+        /// Typically expires in 7 days.
+        /// </remarks>
         public string RefreshToken { get; set; } = null!;
 
         /// <summary>
-        /// Identificador único del usuario autenticado.
+        /// Unique identifier of the authenticated user.
         /// </summary>
         public int UserId { get; set; }
 
         /// <summary>
-        /// Correo electrónico del usuario autenticado.
+        /// Email address of the authenticated user.
         /// </summary>
         public string Email { get; set; } = null!;
 
         /// <summary>
-        /// Rol asignado al usuario dentro del sistema (Admin, Broker, Pilot o User).
+        /// Role assigned to the user within the system
+        /// (e.g., Admin, Broker, Pilot, or User).
         /// </summary>
         public string Role { get; set; } = null!;
 
         /// <summary>
-        /// Nombre de la empresa asociada al usuario (si aplica).
+        /// Name of the company associated with the user, if applicable.
         /// </summary>
         public string? CompanyName { get; set; }
     }

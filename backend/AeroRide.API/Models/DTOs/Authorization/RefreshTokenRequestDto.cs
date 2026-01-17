@@ -3,15 +3,15 @@
 namespace AeroRide.API.Models.DTOs.Authorization
 {
     /// <summary>
-    /// Objeto de entrada para solicitar un nuevo JWT
-    /// utilizando un Refresh Token válido.
+    /// Input object used to request a new JWT
+    /// using a valid Refresh Token.
     /// </summary>
     public class RefreshTokenRequestDto
     {
         /// <summary>
-        /// Token de refresco entregado al usuario durante el inicio de sesión.
+        /// Refresh Token provided to the user during login.
         /// </summary>
-        [Required(ErrorMessage = "El refresh token es obligatorio.")]
+        [Required(ErrorMessage = "The refresh token is required.")]
         public string RefreshToken { get; set; } = null!;
     }
 }

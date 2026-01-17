@@ -1,53 +1,91 @@
 ﻿namespace AeroRide.API.Models.DTOs.Airports
 {
     /// <summary>
-    /// DTO de respuesta utilizado al crear o actualizar un aeropuerto.
-    /// Contiene los datos finales almacenados en el sistema.
+    /// Response Data Transfer Object used when creating or updating an airport.
+    /// It contains the final data stored in the system.
     /// </summary>
     public class AirportResponseDto
     {
-        /// <summary>Identificador único del aeropuerto.</summary>
+        /// <summary>
+        /// Unique identifier of the airport.
+        /// </summary>
         public int Id { get; set; }
 
-        /// <summary>Nombre oficial del aeropuerto.</summary>
+        /// <summary>
+        /// Official name of the airport.
+        /// </summary>
         public string Name { get; set; } = null!;
 
-        /// <summary>Código IATA de tres letras.</summary>
+        /// <summary>
+        /// Three-letter IATA airport code.
+        /// </summary>
         public string CodeIATA { get; set; } = null!;
 
-        /// <summary>Código OACI de cuatro letras.</summary>
+        /// <summary>
+        /// Four-letter ICAO airport code.
+        /// </summary>
         public string CodeOACI { get; set; } = null!;
 
-        /// <summary>Ciudad donde se encuentra el aeropuerto.</summary>
+        /// <summary>
+        /// City where the airport is located.
+        /// </summary>
         public string City { get; set; } = null!;
 
-        /// <summary>País donde se localiza el aeropuerto.</summary>
+        /// <summary>
+        /// Country where the airport is located.
+        /// </summary>
         public string Country { get; set; } = null!;
 
+        /// <summary>
+        /// Time zone of the airport.
+        /// </summary>
         public string TimeZone { get; set; } = null!;
 
-        /// <summary>Hora de apertura (puede ser nula si opera 24/7).</summary>
+        /// <summary>
+        /// Airport opening time.
+        /// May be <c>null</c> if the airport operates 24/7.
+        /// </summary>
         public TimeSpan? OpeningTime { get; set; }
 
-        /// <summary>Hora de cierre (puede ser nula si opera 24/7).</summary>
+        /// <summary>
+        /// Airport closing time.
+        /// May be <c>null</c> if the airport operates 24/7.
+        /// </summary>
         public TimeSpan? ClosingTime { get; set; }
+
+        /// <summary>
+        /// Number of minutes before closing time during which departures are still allowed.
+        /// </summary>
         public int DepartureMarginMinutes { get; set; }
+
+        /// <summary>
+        /// Number of minutes before closing time during which arrivals are still allowed.
+        /// </summary>
         public int ArrivalMarginMinutes { get; set; }
 
-        /// <summary>Latitud geográfica en formato decimal.</summary>
+        /// <summary>
+        /// Geographic latitude expressed in decimal format.
+        /// </summary>
         public decimal Latitude { get; set; }
 
-        /// <summary>Longitud geográfica en formato decimal.</summary>
+        /// <summary>
+        /// Geographic longitude expressed in decimal format.
+        /// </summary>
         public decimal Longitude { get; set; }
 
-        /// <summary>URL de la imagen representativa del aeropuerto.</summary>
+        /// <summary>
+        /// URL of the image representing the airport.
+        /// </summary>
         public string Image { get; set; } = null!;
 
-        /// <summary>Indica si el aeropuerto está activo o no en el sistema.</summary>
+        /// <summary>
+        /// Indicates whether the airport is active in the system.
+        /// </summary>
         public bool IsActive { get; set; }
 
-        /// <summary>Peso máximo permitido en el aeropuerto (en kg).</summary>
+        /// <summary>
+        /// Maximum allowable aircraft weight at the airport, in kilograms.
+        /// </summary>
         public int MaxAllowedWeight { get; set; }
-
     }
 }

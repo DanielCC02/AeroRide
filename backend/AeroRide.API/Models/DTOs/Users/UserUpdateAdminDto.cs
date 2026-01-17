@@ -1,37 +1,51 @@
-﻿/// <summary>
-/// DTO utilizado por los administradores para modificar
-/// la información de un usuario existente.
-/// Permite cambiar nombre, teléfono, rol o estado activo.
-/// </summary>
-public class UserUpdateAdminDto
+﻿namespace AeroRide.API.Models.DTOs.Users
 {
-    /// <summary>Nuevo nombre del usuario (opcional).</summary>
-    public string? Name { get; set; }
-
-    /// <summary>Nuevo apellido del usuario (opcional).</summary>
-    public string? LastName { get; set; }
-
-    public string? Email { get; set; }
-
-    /// <summary>Nuevo número de teléfono del usuario (opcional).</summary>
-    public string? PhoneNumber { get; set; }
-
-    public string? Country { get; set; }
-
-
     /// <summary>
-    /// Identificador del nuevo rol asignado (opcional).
+    /// Data Transfer Object used by administrators to update
+    /// an existing user's information.
+    /// It allows updating the user's name, phone number, role, or active status.
     /// </summary>
-    public int? RoleId { get; set; }
+    public class UserUpdateAdminDto
+    {
+        /// <summary>
+        /// New first name of the user (optional).
+        /// </summary>
+        public string? Name { get; set; }
 
-    /// <summary>
-    /// Identificador de la empresa.
-    /// </summary>
-    public int? CompanyId { get; set; }
+        /// <summary>
+        /// New last name of the user (optional).
+        /// </summary>
+        public string? LastName { get; set; }
 
-    /// <summary>
-    /// Indica si el usuario debe estar activo o desactivado.
-    /// Permite control administrativo directo sobre el estado.
-    /// </summary>
-    public bool? IsActive { get; set; }
+        /// <summary>
+        /// New email address of the user (optional).
+        /// </summary>
+        public string? Email { get; set; }
+
+        /// <summary>
+        /// New phone number of the user (optional).
+        /// </summary>
+        public string? PhoneNumber { get; set; }
+
+        /// <summary>
+        /// Updated country of the user (optional).
+        /// </summary>
+        public string? Country { get; set; }
+
+        /// <summary>
+        /// Identifier of the new role assigned to the user (optional).
+        /// </summary>
+        public int? RoleId { get; set; }
+
+        /// <summary>
+        /// Identifier of the company associated with the user (optional).
+        /// </summary>
+        public int? CompanyId { get; set; }
+
+        /// <summary>
+        /// Indicates whether the user should be active or inactive.
+        /// Allows direct administrative control over the account status.
+        /// </summary>
+        public bool? IsActive { get; set; }
+    }
 }

@@ -1,38 +1,120 @@
-﻿public class FlightResponseDto
+﻿namespace AeroRide.API.Models.DTOs.Flights
 {
-    public int Id { get; set; }
-    public DateTime DepartureTime { get; set; }
-    public DateTime ArrivalTime { get; set; }
-    public double DurationMinutes { get; set; }
-    public bool IsEmptyLeg { get; set; }
-    public bool IsInternational { get; set; }
-    public string Status { get; set; } = string.Empty;
+    /// <summary>
+    /// Data Transfer Object that represents detailed information
+    /// about a flight.
+    /// </summary>
+    public class FlightResponseDto
+    {
+        /// <summary>
+        /// Unique identifier of the flight.
+        /// </summary>
+        public int Id { get; set; }
 
-    // =====================
-    // 🔗 Aeropuertos
-    // =====================
-    public string? DepartureAirportName { get; set; }
-    public string? DepartureAirportIATA { get; set; }
-    public string? DepartureAirportOACI { get; set; }
+        /// <summary>
+        /// Scheduled departure date and time.
+        /// </summary>
+        public DateTime DepartureTime { get; set; }
 
-    public string? ArrivalAirportName { get; set; }
-    public string? ArrivalAirportIATA { get; set; }
-    public string? ArrivalAirportOACI { get; set; }
+        /// <summary>
+        /// Scheduled arrival date and time.
+        /// </summary>
+        public DateTime ArrivalTime { get; set; }
 
-    // =====================
-    // 🛩️ Aeronave
-    // =====================
-    public string? AircraftModel { get; set; }
-    public string? AircraftPatent { get; set; }
+        /// <summary>
+        /// Total flight duration expressed in minutes.
+        /// </summary>
+        public double DurationMinutes { get; set; }
 
-    // =====================
-    // 🏢 Empresa
-    // =====================
-    public string? CompanyName { get; set; }
+        /// <summary>
+        /// Indicates whether the flight is an Empty Leg.
+        /// </summary>
+        public bool IsEmptyLeg { get; set; }
 
-    // 🧾 Reserva
-    public string? ReservationCode { get; set; }
+        /// <summary>
+        /// Indicates whether the flight is international.
+        /// </summary>
+        public bool IsInternational { get; set; }
 
-    public bool HasAssignedPilots { get; set; }
-    public int AssignedPilotCount { get; set; }
+        /// <summary>
+        /// Current operational status of the flight.
+        /// </summary>
+        public string Status { get; set; } = string.Empty;
+
+        // =====================
+        // 🛫 / 🛬 AIRPORTS
+        // =====================
+
+        /// <summary>
+        /// Name of the departure airport.
+        /// </summary>
+        public string? DepartureAirportName { get; set; }
+
+        /// <summary>
+        /// IATA code of the departure airport.
+        /// </summary>
+        public string? DepartureAirportIATA { get; set; }
+
+        /// <summary>
+        /// ICAO code of the departure airport.
+        /// </summary>
+        public string? DepartureAirportOACI { get; set; }
+
+        /// <summary>
+        /// Name of the arrival airport.
+        /// </summary>
+        public string? ArrivalAirportName { get; set; }
+
+        /// <summary>
+        /// IATA code of the arrival airport.
+        /// </summary>
+        public string? ArrivalAirportIATA { get; set; }
+
+        /// <summary>
+        /// ICAO code of the arrival airport.
+        /// </summary>
+        public string? ArrivalAirportOACI { get; set; }
+
+        // =====================
+        // ✈️ AIRCRAFT
+        // =====================
+
+        /// <summary>
+        /// Aircraft model assigned to the flight.
+        /// </summary>
+        public string? AircraftModel { get; set; }
+
+        /// <summary>
+        /// Aircraft registration or tail number.
+        /// </summary>
+        public string? AircraftPatent { get; set; }
+
+        // =====================
+        // 🏢 COMPANY
+        // =====================
+
+        /// <summary>
+        /// Name of the company operating the flight.
+        /// </summary>
+        public string? CompanyName { get; set; }
+
+        // =====================
+        // 🧾 RESERVATION
+        // =====================
+
+        /// <summary>
+        /// Reservation code associated with the flight, if applicable.
+        /// </summary>
+        public string? ReservationCode { get; set; }
+
+        /// <summary>
+        /// Indicates whether pilots have been assigned to the flight.
+        /// </summary>
+        public bool HasAssignedPilots { get; set; }
+
+        /// <summary>
+        /// Total number of pilots assigned to the flight.
+        /// </summary>
+        public int AssignedPilotCount { get; set; }
+    }
 }

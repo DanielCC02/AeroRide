@@ -3,38 +3,38 @@
 namespace AeroRide.API.Models.DTOs.Authorization
 {
     /// <summary>
-    /// Objeto de salida que representa la información de un usuario
-    /// después de un registro exitoso o consulta de perfil.
+    /// Output object that represents user information
+    /// after a successful registration or profile retrieval.
     /// </summary>
     public class UserResponseDto
     {
         /// <summary>
-        /// Identificador único del usuario.
+        /// Unique identifier of the user.
         /// </summary>
         public int Id { get; set; }
 
         /// <summary>
-        /// Nombre del usuario.
+        /// User's first name.
         /// </summary>
         public string Name { get; set; } = null!;
 
         /// <summary>
-        /// Apellido del usuario.
+        /// User's last name.
         /// </summary>
         public string LastName { get; set; } = null!;
 
         /// <summary>
-        /// Correo electrónico del usuario.
+        /// User's email address.
         /// </summary>
         public string Email { get; set; } = null!;
 
         /// <summary>
-        /// Rol asignado al usuario dentro del sistema.
+        /// Role assigned to the user within the system.
         /// </summary>
         public string Role { get; set; } = null!;
 
         /// <summary>
-        /// Nombre de la empresa asociada (si aplica).
+        /// Name of the associated company, if applicable.
         /// </summary>
         public string? CompanyName { get; set; }
     }

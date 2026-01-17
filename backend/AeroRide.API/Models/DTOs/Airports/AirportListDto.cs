@@ -1,47 +1,79 @@
 ﻿namespace AeroRide.API.Models.DTOs.Airports
 {
     /// <summary>
-    /// DTO para mostrar listados de aeropuertos en vistas o tablas administrativas.
+    /// Data Transfer Object used to display airport listings
+    /// in administrative views or tables.
     /// </summary>
     public class AirportListDto
     {
-        /// <summary>Identificador único del aeropuerto.</summary>
+        /// <summary>
+        /// Unique identifier of the airport.
+        /// </summary>
         public int Id { get; set; }
 
-        /// <summary>Nombre del aeropuerto.</summary>
+        /// <summary>
+        /// Airport name.
+        /// </summary>
         public string Name { get; set; } = null!;
 
-
-        /// <summary>Código IATA.</summary>
+        /// <summary>
+        /// IATA airport code.
+        /// </summary>
         public string CodeIATA { get; set; } = null!;
 
-        /// <summary>Código OACI (cuatro letras).</summary>
+        /// <summary>
+        /// Four-letter ICAO airport code.
+        /// </summary>
         public string CodeOACI { get; set; } = null!;
 
-        /// <summary>Ciudad donde se encuentra.</summary>
+        /// <summary>
+        /// City where the airport is located.
+        /// </summary>
         public string City { get; set; } = null!;
 
+        /// <summary>
+        /// Time zone of the airport.
+        /// </summary>
         public string TimeZone { get; set; } = null!;
 
-        /// <summary>País del aeropuerto.</summary>
+        /// <summary>
+        /// Country where the airport is located.
+        /// </summary>
         public string Country { get; set; } = null!;
 
-        /// <summary>Latitud geográfica (decimal).</summary>
+        /// <summary>
+        /// Geographic latitude expressed in decimal format.
+        /// </summary>
         public decimal Latitude { get; set; }
 
-        /// <summary>Longitud geográfica (decimal).</summary>
+        /// <summary>
+        /// Geographic longitude expressed in decimal format.
+        /// </summary>
         public decimal Longitude { get; set; }
+
+        /// <summary>
+        /// Number of minutes before closing time during which departures are still allowed.
+        /// </summary>
         public int DepartureMarginMinutes { get; set; }
+
+        /// <summary>
+        /// Number of minutes before closing time during which arrivals are still allowed.
+        /// </summary>
         public int ArrivalMarginMinutes { get; set; }
 
-        /// <summary>URL de la imagen principal del aeropuerto.</summary>
+        /// <summary>
+        /// URL of the main image representing the airport.
+        /// </summary>
         public string Image { get; set; } = null!;
 
-        /// <summary>Indica si el aeropuerto está activo o no.</summary>
+        /// <summary>
+        /// Indicates whether the airport is active in the system.
+        /// </summary>
         public bool IsActive { get; set; }
 
-        /// <summary>Peso máximo permitido en el aeropuerto (en kg).</summary>
+        /// <summary>
+        /// Maximum allowable aircraft weight at the airport, in kilograms.
+        /// </summary>
         public int MaxAllowedWeight { get; set; }
-
     }
 }

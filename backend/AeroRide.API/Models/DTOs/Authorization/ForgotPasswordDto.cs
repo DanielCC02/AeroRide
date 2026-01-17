@@ -3,15 +3,15 @@
 namespace AeroRide.API.Models.DTOs.Authorization
 {
     /// <summary>
-    /// DTO utilizado para solicitar un correo de recuperación de contraseña.
+    /// Data Transfer Object used to request a password recovery email.
     /// </summary>
     public class ForgotPasswordDto
     {
         /// <summary>
-        /// Correo electrónico del usuario que solicita el restablecimiento.
+        /// Email address of the user requesting the password reset.
         /// </summary>
-        [Required(ErrorMessage = "El correo es obligatorio.")]
-        [EmailAddress(ErrorMessage = "Debe ingresar un correo electrónico válido.")]
+        [Required(ErrorMessage = "The email address is required.")]
+        [EmailAddress(ErrorMessage = "A valid email address must be provided.")]
         public string Email { get; set; } = null!;
     }
 }

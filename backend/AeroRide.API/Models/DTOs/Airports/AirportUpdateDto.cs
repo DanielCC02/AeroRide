@@ -1,60 +1,86 @@
 ﻿namespace AeroRide.API.Models.DTOs.Airports
 {
     /// <summary>
-    /// DTO utilizado para modificar los datos de un aeropuerto existente.
-    /// Permite actualizar uno o varios campos de forma opcional.
+    /// Data Transfer Object used to update an existing airport.
+    /// It allows one or more fields to be updated optionally.
     /// </summary>
     public class AirportUpdateDto
     {
-        /// <summary>Nuevo nombre oficial del aeropuerto (opcional).</summary>
+        /// <summary>
+        /// Updated official name of the airport (optional).
+        /// </summary>
         public string? Name { get; set; }
 
-        /// <summary>Nuevo código IATA de tres letras (opcional).</summary>
+        /// <summary>
+        /// Updated three-letter IATA code (optional).
+        /// </summary>
         public string? CodeIATA { get; set; }
 
-        /// <summary>Nuevo código OACI de cuatro letras (opcional).</summary>
+        /// <summary>
+        /// Updated four-letter ICAO code (optional).
+        /// </summary>
         public string? CodeOACI { get; set; }
 
-        /// <summary>Nueva ciudad donde se ubica el aeropuerto (opcional).</summary>
+        /// <summary>
+        /// Updated city where the airport is located (optional).
+        /// </summary>
         public string? City { get; set; }
 
-        /// <summary>Nuevo país donde se localiza el aeropuerto (opcional).</summary>
+        /// <summary>
+        /// Updated country where the airport is located (optional).
+        /// </summary>
         public string? Country { get; set; }
 
-        public string? TimeZone { get; set; }  // agregado
+        /// <summary>
+        /// Updated time zone of the airport (optional).
+        /// </summary>
+        public string? TimeZone { get; set; }
 
-        /// <summary>Hora de apertura actualizada (opcional).</summary>
+        /// <summary>
+        /// Updated airport opening time (optional).
+        /// </summary>
         public TimeSpan? OpeningTime { get; set; }
 
-        /// <summary>Hora de cierre actualizada (opcional).</summary>
+        /// <summary>
+        /// Updated airport closing time (optional).
+        /// </summary>
         public TimeSpan? ClosingTime { get; set; }
 
-        /// <summary>Actualiza el margen de despegue antes del cierre (en minutos).</summary>
+        /// <summary>
+        /// Updates the departure margin before closing time, in minutes (optional).
+        /// </summary>
         public int? DepartureMarginMinutes { get; set; }
 
-        /// <summary>Actualiza el margen de aterrizaje antes del cierre (en minutos).</summary>
+        /// <summary>
+        /// Updates the arrival margin before closing time, in minutes (optional).
+        /// </summary>
         public int? ArrivalMarginMinutes { get; set; }
 
-        /// <summary>Nueva latitud geográfica (opcional).</summary>
+        /// <summary>
+        /// Updated geographic latitude, in decimal format (optional).
+        /// </summary>
         public decimal? Latitude { get; set; }
 
-        /// <summary>Nueva longitud geográfica (opcional).</summary>
+        /// <summary>
+        /// Updated geographic longitude, in decimal format (optional).
+        /// </summary>
         public decimal? Longitude { get; set; }
 
         /// <summary>
-        /// URL de la nueva imagen representativa del aeropuerto (opcional).
-        /// Si se cambia, la imagen anterior será eliminada del contenedor de Azure.
+        /// URL of the updated airport image (optional).
+        /// If changed, the previous image will be removed from Azure Storage.
         /// </summary>
         public string? Image { get; set; }
 
         /// <summary>
-        /// Indica si el aeropuerto debe estar activo o desactivado (opcional).
-        /// Si se envía <c>true</c>, se reactiva; si se envía <c>false</c>, se desactiva.
+        /// Indicates whether the airport should be active or inactive (optional).
+        /// If <c>true</c>, the airport is activated; if <c>false</c>, it is deactivated.
         /// </summary>
         public bool? IsActive { get; set; }
 
-        /// <summary>Actualiza el peso máximo permitido en el aeropuerto (en kg).</summary>
+        /// <summary>
+        /// Updates the maximum allowable aircraft weight at the airport, in kilograms (optional).
+        /// </summary>
         public int? MaxAllowedWeight { get; set; }
-
     }
 }
