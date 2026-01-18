@@ -4,6 +4,7 @@ using AeroRide.API.Services.Interfaces;
 using AeroRide.Helpers.Templates;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace AeroRide.API.Controllers
 {
@@ -30,11 +31,24 @@ namespace AeroRide.API.Controllers
                 var user = await _authService.RegisterAsync(dto);
                 return CreatedAtAction(nameof(Register), new { user.Id }, user);
             }
-            catch (Exception ex)
+            catch (ValidationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                // Errores de validación (consentimiento, email duplicado, etc.)
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (Exception)
+            {
+                // Error inesperado (no se expone detalle interno)
+                return StatusCode(500, new
+                {
+                    message = "An unexpected error occurred. Please try again later."
+                });
             }
         }
+
 
         // ======================================================
         // 2️⃣ LOGIN

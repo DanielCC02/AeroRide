@@ -3,6 +3,7 @@ using AeroRide.API.Helpers;
 using AeroRide.API.Interfaces;
 using AeroRide.API.Models.Domain;
 using AeroRide.API.Models.DTOs.Aircrafts;
+using AeroRide.API.Models.DTOs.Flights;
 using AeroRide.API.Models.Enums;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
@@ -218,8 +219,7 @@ namespace AeroRide.API.Services
             return aircraft == null ? null : _mapper.Map<AircraftResponseDto>(aircraft);
         }
 
-        public async Task<IEnumerable<AircraftCategoryDto>> GetAvailableForCriteriaAsync(
-            AircraftAvailabilityCriteriaDto criteria)
+        public async Task<IEnumerable<AircraftCategoryDto>> GetAvailableForCriteriaAsync(AircraftAvailabilityCriteriaDto criteria)
         {
             // 1️⃣ Fetch airports
             var depAirport = await _db.Airports.FirstAsync(a => a.Id == criteria.DepartureAirportId);
@@ -488,5 +488,6 @@ namespace AeroRide.API.Services
             return false;
         }
 
+        
     }
 }
