@@ -1,4 +1,5 @@
 ﻿using AeroRide.API.Models.DTOs.Aircrafts;
+using AeroRide.API.Models.DTOs.Flights;
 using AeroRide.API.Models.Enums;
 
 namespace AeroRide.API.Interfaces

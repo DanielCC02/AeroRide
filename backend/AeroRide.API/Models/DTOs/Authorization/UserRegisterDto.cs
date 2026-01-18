@@ -50,13 +50,16 @@ namespace AeroRide.API.Models.DTOs.Authorization
         public string PhoneNumber { get; set; } = null!;
 
         /// <summary>
-        /// Indicates whether the user accepts the Terms of Use.
+        /// Indicates whether the user explicitly accepts the Terms of Use.
+        /// This value must be true to complete the registration.
         /// </summary>
         public bool TermsOfUse { get; set; }
 
         /// <summary>
-        /// Indicates whether the user accepts the Privacy Notice.
+        /// Indicates whether the user explicitly accepts the Privacy Notice.
+        /// This value must be true to complete the registration.
         /// </summary>
         public bool PrivacyNotice { get; set; }
+
     }
 }

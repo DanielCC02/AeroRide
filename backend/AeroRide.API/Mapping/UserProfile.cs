@@ -64,10 +64,18 @@ namespace AeroRide.API.Mappings
                 .ForMember(dest => dest.Password, opt => opt.MapFrom(src => src.Password))
                 .ForMember(dest => dest.RoleId, opt => opt.MapFrom(_ => 4)) // Rol por defecto: User
                 .ForMember(dest => dest.RegistrationDate, opt => opt.MapFrom(_ => DateTime.UtcNow))
-                .ForMember(dest => dest.IsVerified, opt => opt.MapFrom(_ => false)) 
+                .ForMember(dest => dest.IsVerified, opt => opt.MapFrom(_ => false))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true))
-                .ForMember(dest => dest.TermsOfUse, opt => opt.MapFrom(_ => true))
-                .ForMember(dest => dest.PrivacyNotice, opt => opt.MapFrom(_ => true));
+
+                // 🔐 CONSENTIMIENTO (desde el DTO)
+                .ForMember(dest => dest.TermsOfUse, opt => opt.MapFrom(src => src.TermsOfUse))
+                .ForMember(dest => dest.PrivacyNotice, opt => opt.MapFrom(src => src.PrivacyNotice))
+
+                // 🔐 VERSIONES Y FECHA (backend decide)
+                .ForMember(dest => dest.TermsOfUseVersion, opt => opt.Ignore())
+                .ForMember(dest => dest.PrivacyNoticeVersion, opt => opt.Ignore())
+                .ForMember(dest => dest.LegalAcceptanceDate, opt => opt.Ignore());
+
 
             // 6️⃣ Creación manual por admin
             CreateMap<CreateUserDto, User>()
