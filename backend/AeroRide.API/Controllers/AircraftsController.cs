@@ -1,6 +1,7 @@
 ﻿using AeroRide.API.Helpers;
 using AeroRide.API.Interfaces;
 using AeroRide.API.Models.DTOs.Aircrafts;
+using AeroRide.API.Models.DTOs.Flights;
 using AeroRide.API.Models.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

@@ -67,14 +67,40 @@
         // ======================================================
 
         /// <summary>
-        /// Indicates whether the user has accepted the platform's Terms of Use.
+        /// Indicates whether the user has explicitly accepted the platform's Terms of Use.
+        /// Acceptance is mandatory to create an account.
         /// </summary>
         public bool TermsOfUse { get; set; }
 
         /// <summary>
-        /// Indicates whether the user has accepted the Privacy Notice.
+        /// Version of the Terms of Use document accepted by the user.
+        /// This value allows legal auditing and enforcement of re-acceptance
+        /// when the document is updated.
+        /// Example: "2026-01".
+        /// </summary>
+        public string? TermsOfUseVersion { get; set; }
+
+        /// <summary>
+        /// Indicates whether the user has explicitly accepted the platform's Privacy Notice.
+        /// Acceptance is mandatory to create an account.
         /// </summary>
         public bool PrivacyNotice { get; set; }
+
+        /// <summary>
+        /// Version of the Privacy Notice document accepted by the user.
+        /// This value allows legal auditing and enforcement of re-acceptance
+        /// when the document is updated.
+        /// Example: "2026-01".
+        /// </summary>
+        public string? PrivacyNoticeVersion { get; set; }
+
+        /// <summary>
+        /// Date and time (UTC) when the user accepted the Terms of Use
+        /// and the Privacy Notice.
+        /// This timestamp represents the legal moment of consent.
+        /// </summary>
+        public DateTime? LegalAcceptanceDate { get; set; }
+
 
         // ======================================================
         // 🔐 ACCOUNT VERIFICATION AND SECURITY

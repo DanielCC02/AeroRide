@@ -1,4 +1,5 @@
-﻿using AeroRide.API.Data;
+﻿using AeroRide.API.Configuration;
+using AeroRide.API.Data;
 using AeroRide.API.Helpers;
 using AeroRide.API.Helpers.Templates;
 using AeroRide.API.Models.Domain;
@@ -7,6 +8,7 @@ using AeroRide.API.Models.DTOs.Users;
 using AeroRide.API.Services.Interfaces;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
 namespace AeroRide.API.Services.Implementations
 {
@@ -37,38 +39,64 @@ namespace AeroRide.API.Services.Implementations
         // ======================================================
         public async Task<UserResponseDto> RegisterAsync(UserRegisterDto dto)
         {
-            // Validar correo único
-            if (await _db.Users.AnyAsync(u => u.Email == dto.Email))
-                throw new Exception("El correo ya está registrado.");
+            // ======================================================
+            // 🔐 VALIDACIÓN LEGAL OBLIGATORIA
+            // ======================================================
+            if (!dto.TermsOfUse || !dto.PrivacyNotice)
+            {
+                throw new ValidationException(
+                    "You must accept the Terms of Use and the Privacy Notice to create an account."
+                );
+            }
 
-            // Mapear DTO → entidad User
+            // ======================================================
+            // 📧 VALIDAR CORREO ÚNICO
+            // ======================================================
+            if (await _db.Users.AnyAsync(u => u.Email == dto.Email))
+            {
+                throw new ValidationException("The email address is already registered.");
+            }
+
+            // ======================================================
+            // 🔄 MAPEO DTO → ENTIDAD USER
+            // ======================================================
             var user = _mapper.Map<User>(dto);
 
-            // Asegurar campos críticos
+            // ======================================================
+            // 🔐 SEGURIDAD Y DATOS CRÍTICOS
+            // ======================================================
             user.Password = PasswordHelper.HashPassword(dto.Password);
             user.EmailVerificationToken = Guid.NewGuid().ToString();
 
-            // 🔴 IMPORTANTE: asegurar que Country / TermsOfUse / PrivacyNotice
-            // queden explícitamente seteados (por si el Profile de AutoMapper
-            // todavía no contemplaba estas propiedades).
+            // Asegurar valores explícitos
             user.Country = dto.Country;
-            user.TermsOfUse = dto.TermsOfUse;
-            user.PrivacyNotice = dto.PrivacyNotice;
+            user.TermsOfUse = true;
+            user.PrivacyNotice = true;
 
-            // Opcional: si no se setea en otro lado, puedes fijar RegistrationDate
-            if (user.RegistrationDate == default)
-            {
-                user.RegistrationDate = DateTime.UtcNow;
-            }
+            // Fecha de registro
+            user.RegistrationDate = DateTime.UtcNow;
 
+            // ======================================================
+            // ⚖️ CONSENTIMIENTO LEGAL (BACKEND DECIDE)
+            // ======================================================
+            user.TermsOfUseVersion = LegalVersions.TermsOfUse;
+            user.PrivacyNoticeVersion = LegalVersions.PrivacyPolicy;
+            user.LegalAcceptanceDate = DateTime.UtcNow;
+
+            // ======================================================
+            // 💾 PERSISTENCIA
+            // ======================================================
             _db.Users.Add(user);
             await _db.SaveChangesAsync();
 
-            // Enviar correo de verificación
+            // ======================================================
+            // ✉️ EMAIL DE VERIFICACIÓN
+            // ======================================================
             await EmailHelper.SendVerificationEmailAsync(user, _config);
 
             return _mapper.Map<UserResponseDto>(user);
         }
+
 
         // ======================================================
         // 2️⃣ LOGIN
