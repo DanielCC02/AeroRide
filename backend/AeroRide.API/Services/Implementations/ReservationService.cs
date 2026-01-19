@@ -850,106 +850,48 @@ namespace AeroRide.API.Services.Implementations
             var total = await _db.Reservations.CountAsync() + 1;
             return $"AERO-{DateTime.UtcNow.Year}-{total:D5}";
         }
+        // ======================================================
+        // 🧭 TRIPS – UPCOMING
+        // ======================================================
+        public async Task<IEnumerable<ReservationTripItemDto>> GetUpcomingTripsAsync(int userId)
+        {
+            var now = DateTime.UtcNow;
 
-        //// ======================================================
-        //// 🔍 VALIDACIÓN DE DISPONIBILIDAD
-        //// ======================================================
-        ///// <summary>
-        ///// Verifica si una aeronave está disponible durante el rango horario solicitado.
-        ///// Considera estado operativo, ocupaciones previas y ventanas libres (>6h).
-        ///// Si la aeronave ya está en la base después del último vuelo, no descuenta traslados.
-        ///// </summary>
-        //private async Task<AircraftAvailabilityResult> CheckAircraftAvailabilityAsync(
-        //    int companyId,
-        //    string model,
-        //    int totalPassengers,
-        //    DateTime requestedStart,
-        //    DateTime requestedEnd)
-        //{
-        //    const int turnaroundMinutes = 30;       // 🔹 margen estándar entre vuelos
-        //    const int ventanaMinimaLibreHoras = 6;  // 🔹 si el hueco es mayor a 6h, se considera ventana aprovechable
+            var reservations = await _db.Reservations
+                .Include(r => r.Flights)
+                    .ThenInclude(f => f.DepartureAirport)
+                .Include(r => r.Flights)
+                    .ThenInclude(f => f.ArrivalAirport)
+                .Where(r =>
+                    r.UserId == userId &&
+                    r.Flights.Any(f => !f.IsEmptyLeg && f.DepartureTime > now))
+                .OrderBy(r => r.Flights.Min(f => f.DepartureTime))
+                .ToListAsync();
 
-        //    var aircrafts = await _db.Aircrafts
-        //        .Include(a => a.BaseAirport)
-        //        .Where(a =>
-        //            a.CompanyId == companyId &&
-        //            a.Model.ToLower() == model.ToLower() &&
-        //            a.IsActive &&
-        //            a.State == AircraftState.Disponible &&
-        //            a.Seats >= totalPassengers)
-        //        .ToListAsync();
+            return _mapper.Map<IEnumerable<ReservationTripItemDto>>(reservations);
+        }
 
-        //    if (!aircrafts.Any())
-        //        return new AircraftAvailabilityResult { Reason = "No hay aeronaves activas disponibles de este modelo." };
+        // ======================================================
+        // 🧭 TRIPS – PAST
+        // ======================================================
+        public async Task<IEnumerable<ReservationTripItemDto>> GetPastTripsAsync(int userId)
+        {
+            var now = DateTime.UtcNow;
 
-        //    foreach (var aircraft in aircrafts)
-        //    {
-        //        var ocupaciones = await _db.AircraftAvailabilities
-        //            .Where(av => av.AircraftId == aircraft.Id && av.Status == "Confirmado")
-        //            .OrderBy(av => av.StartTime)
-        //            .ToListAsync();
+            var reservations = await _db.Reservations
+                .Include(r => r.Flights)
+                    .ThenInclude(f => f.DepartureAirport)
+                .Include(r => r.Flights)
+                    .ThenInclude(f => f.ArrivalAirport)
+                .Where(r =>
+                    r.UserId == userId &&
+                    r.Flights.All(f => f.ArrivalTime < now))
+                .OrderByDescending(r => r.Flights.Max(f => f.ArrivalTime))
+                .ToListAsync();
 
-        //        // ✅ Sin reservas → libre
-        //        if (!ocupaciones.Any())
-        //            return new AircraftAvailabilityResult { Aircraft = aircraft, Reason = "Aeronave libre (sin reservas previas)." };
+            return _mapper.Map<IEnumerable<ReservationTripItemDto>>(reservations);
+        }
 
-        //        // ⚠️ Conflicto directo con otra reserva
-        //        bool conflicto = ocupaciones.Any(av =>
-        //            requestedStart < av.EndTime.AddMinutes(turnaroundMinutes) &&
-        //            requestedEnd > av.StartTime.AddMinutes(-turnaroundMinutes));
-
-        //        if (!conflicto)
-        //            return new AircraftAvailabilityResult { Aircraft = aircraft, Reason = "Aeronave libre (sin solapamientos directos)." };
-
-        //        // 🧩 Buscar ventanas disponibles entre reservas
-        //        for (int i = 0; i < ocupaciones.Count - 1; i++)
-        //        {
-        //            var actual = ocupaciones[i];
-        //            var siguiente = ocupaciones[i + 1];
-        //            var gap = siguiente.StartTime - actual.EndTime;
-
-        //            if (gap.TotalHours >= ventanaMinimaLibreHoras)
-        //            {
-        //                var ventanaInicio = actual.EndTime.AddMinutes(turnaroundMinutes);
-        //                var ventanaFin = siguiente.StartTime.AddMinutes(-turnaroundMinutes);
-        //                double minutosVentana = (ventanaFin - ventanaInicio).TotalMinutes;
-
-        //                // 🕓 calcular distancia (ida y vuelta a base)
-        //                var baseAirport = await _db.Airports.FirstAsync(a => a.Id == aircraft.BaseAirportId);
-        //                double duracionIda = 0, duracionVuelta = 0;
-
-        //                // Determinar aeropuerto actual del avión (por ahora tomamos base)
-        //                var aeropuertoActual = baseAirport;
-
-        //                // Calcular tiempos de traslado desde/hacia base
-        //                if (aeropuertoActual.Id != baseAirport.Id)
-        //                {
-        //                    duracionIda = FlightMathHelper.CalcularDuracionVuelo(aeropuertoActual, baseAirport, aircraft);
-        //                    duracionVuelta = FlightMathHelper.CalcularDuracionVuelo(baseAirport, aeropuertoActual, aircraft);
-        //                }
-
-        //                // Duración total estimada (vuelo solicitado + traslado base ↔ origen + margen 30 min)
-        //                double duracionSolicitada = (requestedEnd - requestedStart).TotalMinutes;
-        //                double duracionTotal = duracionIda + duracionVuelta + duracionSolicitada + (turnaroundMinutes * 2);
-
-        //                if (requestedStart >= ventanaInicio && requestedEnd <= ventanaFin && duracionTotal <= minutosVentana)
-        //                {
-        //                    return new AircraftAvailabilityResult
-        //                    {
-        //                        Aircraft = aircraft,
-        //                        Reason = $"Disponible en ventana libre ({ventanaInicio:t}–{ventanaFin:t}). Duración total: {duracionTotal:F0} min"
-        //                    };
-        //                }
-        //            }
-        //        }
-        //    }
-
-        //    // 🚫 Ninguna aeronave aplicó
-        //    return new AircraftAvailabilityResult
-        //    {
-        //        Reason = "Todas las aeronaves del modelo están ocupadas o sin suficiente ventana libre."
-        //    };
-        //}
 
         private async Task<bool> IsAircraftAvailableInRangeAsync(
             int aircraftId,

@@ -46,6 +46,8 @@ namespace AeroRide.API.Services.Interfaces
         Task<ReservationEstimateResponseDto> EstimatePriceAsync(ReservationEstimateDto dto);
 
         Task<ReservationResponseDto> ReserveEmptyLegAsync(EmptyLegReservationCreateDto dto);
+        Task<IEnumerable<ReservationTripItemDto>> GetUpcomingTripsAsync(int userId);
+        Task<IEnumerable<ReservationTripItemDto>> GetPastTripsAsync(int userId);
 
     }
 }

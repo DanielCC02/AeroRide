@@ -128,5 +128,24 @@ namespace AeroRide.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("my/upcoming")]
+        [Authorize]
+        public async Task<IActionResult> GetUpcomingTrips()
+        {
+            int userId = int.Parse(User.FindFirst("id")!.Value);
+            var trips = await _reservationService.GetUpcomingTripsAsync(userId);
+            return Ok(trips);
+        }
+
+        [HttpGet("my/past")]
+        [Authorize]
+        public async Task<IActionResult> GetPastTrips()
+        {
+            int userId = int.Parse(User.FindFirst("id")!.Value);
+            var trips = await _reservationService.GetPastTripsAsync(userId);
+            return Ok(trips);
+        }
+
+
     }
 }
