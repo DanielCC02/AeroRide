@@ -27,6 +27,24 @@ namespace AeroRide.API.Mappings
                 .ForMember(dest => dest.Company, opt => opt.Ignore())
                 .ForMember(dest => dest.Flights, opt => opt.Ignore())
                 .ForMember(dest => dest.Passengers, opt => opt.Ignore());
+
+            CreateMap<Reservation, ReservationTripItemDto>()
+                .ForMember(dest => dest.ReservationId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.ReservationCode, opt => opt.MapFrom(src => src.ReservationCode))
+                .ForMember(dest => dest.DepartureTime, opt => opt.MapFrom(src =>
+                    src.Flights.OrderBy(f => f.DepartureTime).First().DepartureTime))
+                .ForMember(dest => dest.FromCity, opt => opt.MapFrom(src =>
+                    src.Flights.OrderBy(f => f.DepartureTime).First().DepartureAirport.City))
+                .ForMember(dest => dest.FromCode, opt => opt.MapFrom(src =>
+                    src.Flights.OrderBy(f => f.DepartureTime).First().DepartureAirport.CodeIATA))
+                .ForMember(dest => dest.ToCity, opt => opt.MapFrom(src =>
+                    src.Flights.OrderBy(f => f.DepartureTime).First().ArrivalAirport.City))
+                .ForMember(dest => dest.ToCode, opt => opt.MapFrom(src =>
+                    src.Flights.OrderBy(f => f.DepartureTime).First().ArrivalAirport.CodeIATA))
+                .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src =>
+                    src.Flights.OrderBy(f => f.DepartureTime).First().ArrivalAirport.Image))
+                .ForMember(dest => dest.IsUpcoming, opt => opt.MapFrom(src =>
+                    src.Flights.Any(f => f.DepartureTime > DateTime.UtcNow)));
         }
     }
 }
