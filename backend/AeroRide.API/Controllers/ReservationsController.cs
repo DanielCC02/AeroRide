@@ -132,7 +132,10 @@ namespace AeroRide.API.Controllers
         [Authorize]
         public async Task<IActionResult> GetUpcomingTrips()
         {
-            int userId = int.Parse(User.FindFirst("id")!.Value);
+            int userId = int.Parse(
+                User.FindFirstValue(ClaimTypes.NameIdentifier)!
+            );
+
             var trips = await _reservationService.GetUpcomingTripsAsync(userId);
             return Ok(trips);
         }
@@ -141,11 +144,12 @@ namespace AeroRide.API.Controllers
         [Authorize]
         public async Task<IActionResult> GetPastTrips()
         {
-            int userId = int.Parse(User.FindFirst("id")!.Value);
+            int userId = int.Parse(
+                User.FindFirstValue(ClaimTypes.NameIdentifier)!
+            );
+
             var trips = await _reservationService.GetPastTripsAsync(userId);
             return Ok(trips);
         }
-
-
     }
 }

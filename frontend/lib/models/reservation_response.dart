@@ -1,4 +1,5 @@
 // lib/models/reservation_response.dart
+
 class PassengerRes {
   final int id;
   final String name;
@@ -23,18 +24,21 @@ class PassengerRes {
   });
 
   factory PassengerRes.fromJson(Map<String, dynamic> j) => PassengerRes(
-    id: (j['id'] as num).toInt(),
-    name: j['name'] as String? ?? '',
-    middleName: j['middleName'] as String? ?? '',
-    lastName: j['lastName'] as String? ?? '',
-    passport: j['passport'] as String? ?? '',
-    nationality: j['nationality'] as String? ?? '',
-    dateOfBirth: DateTime.parse(j['dateOfBirth'] as String).toUtc(),
-    gender: j['gender'] as String? ?? '',
-    age: (j['age'] as num?)?.toInt() ?? 0,
-  );
+        id: (j['id'] as num).toInt(),
+        name: j['name'] as String? ?? '',
+        middleName: j['middleName'] as String? ?? '',
+        lastName: j['lastName'] as String? ?? '',
+        passport: j['passport'] as String? ?? '',
+        nationality: j['nationality'] as String? ?? '',
+        dateOfBirth: DateTime.parse(j['dateOfBirth'] as String).toUtc(),
+        gender: j['gender'] as String? ?? '',
+        age: (j['age'] as num?)?.toInt() ?? 0,
+      );
 }
 
+// ==========================================================
+// ✈️ Flight
+// ==========================================================
 class FlightRes {
   final int id;
   final DateTime departureTime;
@@ -43,10 +47,12 @@ class FlightRes {
   final bool isEmptyLeg;
   final bool isInternational;
   final String status;
-  final String departureAirportName;
-  final String arrivalAirportName;
-  final String aircraftModel;
-  final String companyName;
+
+  // ⚠️ Campos que pueden venir null desde backend
+  final String? departureAirportName;
+  final String? arrivalAirportName;
+  final String? aircraftModel;
+  final String? companyName;
 
   FlightRes({
     required this.id,
@@ -56,41 +62,51 @@ class FlightRes {
     required this.isEmptyLeg,
     required this.isInternational,
     required this.status,
-    required this.departureAirportName,
-    required this.arrivalAirportName,
-    required this.aircraftModel,
-    required this.companyName,
+    this.departureAirportName,
+    this.arrivalAirportName,
+    this.aircraftModel,
+    this.companyName,
   });
 
   factory FlightRes.fromJson(Map<String, dynamic> j) => FlightRes(
-    id: (j['id'] as num).toInt(),
-    departureTime: DateTime.parse(j['departureTime'] as String).toUtc(),
-    arrivalTime: DateTime.parse(j['arrivalTime'] as String).toUtc(),
-    durationMinutes: (j['durationMinutes'] as num?)?.toInt() ?? 0,
-    isEmptyLeg: j['isEmptyLeg'] as bool? ?? false,
-    isInternational: j['isInternational'] as bool? ?? false,
-    status: j['status'] as String? ?? '',
-    departureAirportName: j['departureAirportName'] as String? ?? '',
-    arrivalAirportName: j['arrivalAirportName'] as String? ?? '',
-    aircraftModel: j['aircraftModel'] as String? ?? '',
-    companyName: j['companyName'] as String? ?? '',
-  );
+        id: (j['id'] as num).toInt(),
+        departureTime: DateTime.parse(j['departureTime'] as String).toUtc(),
+        arrivalTime: DateTime.parse(j['arrivalTime'] as String).toUtc(),
+        durationMinutes: (j['durationMinutes'] as num?)?.toInt() ?? 0,
+        isEmptyLeg: j['isEmptyLeg'] as bool? ?? false,
+        isInternational: j['isInternational'] as bool? ?? false,
+        status: j['status'] as String? ?? '',
+        departureAirportName: j['departureAirportName'] as String?,
+        arrivalAirportName: j['arrivalAirportName'] as String?,
+        aircraftModel: j['aircraftModel'] as String?,
+        companyName: j['companyName'] as String?,
+      );
 }
 
+// ==========================================================
+// 📋 Reservation
+// ==========================================================
 class ReservationResponse {
   final int id;
   final String reservationCode;
   final int userId;
-  final String companyName;
+
+  // ⚠️ Puede venir null si backend falla en join
+  final String? companyName;
+
   final int porcentPrice;
   final num totalPrice;
   final bool isRoundTrip;
   final bool lapChild;
   final bool assistanceAnimal;
+
+  // ⚠️ Status / Notes pueden venir null
   final String status;
   final String notes;
+
   final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? updatedAt;
+
   final List<PassengerRes> passengers;
   final List<FlightRes> flights;
 
@@ -98,7 +114,7 @@ class ReservationResponse {
     required this.id,
     required this.reservationCode,
     required this.userId,
-    required this.companyName,
+    this.companyName,
     required this.porcentPrice,
     required this.totalPrice,
     required this.isRoundTrip,
@@ -107,7 +123,7 @@ class ReservationResponse {
     required this.status,
     required this.notes,
     required this.createdAt,
-    required this.updatedAt,
+    this.updatedAt,
     required this.passengers,
     required this.flights,
   });
@@ -117,7 +133,7 @@ class ReservationResponse {
         id: (j['id'] as num).toInt(),
         reservationCode: j['reservationCode'] as String? ?? '',
         userId: (j['userId'] as num?)?.toInt() ?? 0,
-        companyName: j['companyName'] as String? ?? '',
+        companyName: j['companyName'] as String?,
         porcentPrice: (j['porcentPrice'] as num?)?.toInt() ?? 0,
         totalPrice: (j['totalPrice'] as num?) ?? 0,
         isRoundTrip: j['isRoundTrip'] as bool? ?? false,
@@ -126,7 +142,9 @@ class ReservationResponse {
         status: j['status'] as String? ?? '',
         notes: j['notes'] as String? ?? '',
         createdAt: DateTime.parse(j['createdAt'] as String).toUtc(),
-        updatedAt: DateTime.parse(j['updatedAt'] as String).toUtc(),
+        updatedAt: j['updatedAt'] != null
+            ? DateTime.parse(j['updatedAt'] as String).toUtc()
+            : null,
         passengers: (j['passengers'] as List? ?? const [])
             .map((x) => PassengerRes.fromJson(x as Map<String, dynamic>))
             .toList(),

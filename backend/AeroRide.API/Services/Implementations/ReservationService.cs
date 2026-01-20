@@ -864,7 +864,11 @@ namespace AeroRide.API.Services.Implementations
                     .ThenInclude(f => f.ArrivalAirport)
                 .Where(r =>
                     r.UserId == userId &&
-                    r.Flights.Any(f => !f.IsEmptyLeg && f.DepartureTime > now))
+                    r.Flights.Any(f =>
+                        !f.IsEmptyLeg &&
+                        f.Status != FlightStatus.Completed &&
+                        f.DepartureTime > now
+                    ))
                 .OrderBy(r => r.Flights.Min(f => f.DepartureTime))
                 .ToListAsync();
 
@@ -885,7 +889,11 @@ namespace AeroRide.API.Services.Implementations
                     .ThenInclude(f => f.ArrivalAirport)
                 .Where(r =>
                     r.UserId == userId &&
-                    r.Flights.All(f => f.ArrivalTime < now))
+                    r.Flights.All(f =>
+                        f.IsEmptyLeg ||
+                        f.Status == FlightStatus.Completed ||
+                        f.ArrivalTime < now
+                    ))
                 .OrderByDescending(r => r.Flights.Max(f => f.ArrivalTime))
                 .ToListAsync();
 

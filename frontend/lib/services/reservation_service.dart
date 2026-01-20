@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../models/reservation_estimate_request.dart';
 import '../models/reservation_estimate_response.dart';
 import '../models/reservation_create_request.dart';
+import '../models/reservation_response.dart';
 import 'api_config.dart';
 import 'token_storage.dart';
 
@@ -107,6 +108,49 @@ class ReservationService {
 
     throw ReservationServiceException(
       'Error al crear la reserva: $detail',
+      statusCode: r.statusCode,
+    );
+  }
+
+  Future<ReservationResponse> getById(int reservationId) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) {
+      throw ReservationServiceException('Token no disponible');
+    }
+
+    final url =
+        Uri.parse('${ApiConfig.baseUrl}/api/Reservations/$reservationId');
+
+    // ignore: avoid_print
+    print('[GET RESERVATION] GET $url');
+
+    final r = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      },
+    );
+
+    if (r.statusCode == 200) {
+      final data = jsonDecode(r.body) as Map<String, dynamic>;
+      return ReservationResponse.fromJson(data);
+    }
+
+    String detail;
+    try {
+      final data = jsonDecode(r.body);
+      if (data is Map) {
+        detail = (data['message'] ?? data['detail'] ?? r.body).toString();
+      } else {
+        detail = r.body.isNotEmpty ? r.body : 'sin detalle';
+      }
+    } catch (_) {
+      detail = r.body.isNotEmpty ? r.body : 'sin detalle';
+    }
+
+    throw ReservationServiceException(
+      'Error obteniendo la reserva: $detail',
       statusCode: r.statusCode,
     );
   }

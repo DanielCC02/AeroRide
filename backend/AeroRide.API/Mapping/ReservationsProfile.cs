@@ -29,22 +29,76 @@ namespace AeroRide.API.Mappings
                 .ForMember(dest => dest.Passengers, opt => opt.Ignore());
 
             CreateMap<Reservation, ReservationTripItemDto>()
-                .ForMember(dest => dest.ReservationId, opt => opt.MapFrom(src => src.Id))
-                .ForMember(dest => dest.ReservationCode, opt => opt.MapFrom(src => src.ReservationCode))
-                .ForMember(dest => dest.DepartureTime, opt => opt.MapFrom(src =>
-                    src.Flights.OrderBy(f => f.DepartureTime).First().DepartureTime))
-                .ForMember(dest => dest.FromCity, opt => opt.MapFrom(src =>
-                    src.Flights.OrderBy(f => f.DepartureTime).First().DepartureAirport.City))
-                .ForMember(dest => dest.FromCode, opt => opt.MapFrom(src =>
-                    src.Flights.OrderBy(f => f.DepartureTime).First().DepartureAirport.CodeIATA))
-                .ForMember(dest => dest.ToCity, opt => opt.MapFrom(src =>
-                    src.Flights.OrderBy(f => f.DepartureTime).First().ArrivalAirport.City))
-                .ForMember(dest => dest.ToCode, opt => opt.MapFrom(src =>
-                    src.Flights.OrderBy(f => f.DepartureTime).First().ArrivalAirport.CodeIATA))
-                .ForMember(dest => dest.ImageUrl, opt => opt.MapFrom(src =>
-                    src.Flights.OrderBy(f => f.DepartureTime).First().ArrivalAirport.Image))
-                .ForMember(dest => dest.IsUpcoming, opt => opt.MapFrom(src =>
-                    src.Flights.Any(f => f.DepartureTime > DateTime.UtcNow)));
+                .ForMember(dest => dest.ReservationId,
+                    opt => opt.MapFrom(src => src.Id))
+
+                .ForMember(dest => dest.ReservationCode,
+                    opt => opt.MapFrom(src => src.ReservationCode))
+
+                .ForMember(dest => dest.DepartureTime,
+                    opt => opt.MapFrom(src =>
+                        src.Flights
+                            .Where(f => !f.IsEmptyLeg)
+                            .OrderBy(f => f.DepartureTime)
+                            .Select(f => (DateTime?)f.DepartureTime)
+                            .FirstOrDefault() ?? DateTime.MinValue
+                    ))
+
+                // ORIGEN
+                .ForMember(dest => dest.FromCity,
+                    opt => opt.MapFrom(src =>
+                        src.Flights
+                            .Where(f => !f.IsEmptyLeg)
+                            .OrderBy(f => f.DepartureTime)
+                            .Select(f => f.DepartureAirport != null ? f.DepartureAirport.City : "")
+                            .FirstOrDefault() ?? ""
+                    ))
+
+                .ForMember(dest => dest.FromCode,
+                    opt => opt.MapFrom(src =>
+                        src.Flights
+                            .Where(f => !f.IsEmptyLeg)
+                            .OrderBy(f => f.DepartureTime)
+                            .Select(f => f.DepartureAirport != null ? f.DepartureAirport.CodeIATA : "")
+                            .FirstOrDefault() ?? ""
+                    ))
+
+                // DESTINO
+                .ForMember(dest => dest.ToCity,
+                    opt => opt.MapFrom(src =>
+                        src.Flights
+                            .Where(f => !f.IsEmptyLeg)
+                            .OrderBy(f => f.DepartureTime)
+                            .Select(f => f.ArrivalAirport != null ? f.ArrivalAirport.City : "")
+                            .FirstOrDefault() ?? ""
+                    ))
+
+                .ForMember(dest => dest.ToCode,
+                    opt => opt.MapFrom(src =>
+                        src.Flights
+                            .Where(f => !f.IsEmptyLeg)
+                            .OrderBy(f => f.DepartureTime)
+                            .Select(f => f.ArrivalAirport != null ? f.ArrivalAirport.CodeIATA : "")
+                            .FirstOrDefault() ?? ""
+                    ))
+
+                // IMAGEN (DESTINO)
+                .ForMember(dest => dest.ImageUrl,
+                    opt => opt.MapFrom(src =>
+                        src.Flights
+                            .Where(f => !f.IsEmptyLeg)
+                            .OrderBy(f => f.DepartureTime)
+                            .Select(f => f.ArrivalAirport != null ? f.ArrivalAirport.Image : null)
+                            .FirstOrDefault()
+                            ?? "https://images.unsplash.com/photo-1502082553048-f009c37129b9"
+                    ))
+
+                // UPCOMING FLAG
+                .ForMember(dest => dest.IsUpcoming,
+                    opt => opt.MapFrom(src =>
+                        src.Flights.Any(f => !f.IsEmptyLeg && f.DepartureTime > DateTime.UtcNow)
+                    ));
+
         }
     }
 }
