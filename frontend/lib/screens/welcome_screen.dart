@@ -43,7 +43,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(title: const Text(''), backgroundColor: Colors.white),
@@ -113,25 +112,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         child: const Text('Log in'),
                       ),
                       const SizedBox(height: 16),
-
-                      // Privacy
-                      TextButton(
-                        onPressed: () {},
-                        child: Text(
-                          'Privacy Settings',
-                          style: Theme.of(context).textTheme.bodyMedium!
-                              .copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: cs.primary,
-                              ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'By using Aeroride’s service, you agree to our Terms & Conditions and applicable Privacy Policy',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
                     ],
                   ),
                 ),

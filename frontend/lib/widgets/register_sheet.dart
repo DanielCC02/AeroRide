@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:country_picker/country_picker.dart';
 import '../services/auth_service.dart';
+import '../screens/legal_document_screen.dart';
 
 class RegisterSheet extends StatefulWidget {
   const RegisterSheet({super.key});
@@ -10,18 +11,27 @@ class RegisterSheet extends StatefulWidget {
 }
 
 class _RegisterSheetState extends State<RegisterSheet> {
+  // ======================================================
+  // LEGAL DOCS URLS (Azure Blob)
+  // ======================================================
+  static const String _termsUrl =
+      'https://aeroridetest.blob.core.windows.net/legal/terms-of-use-2026-01.pdf';
+
+  static const String _privacyUrl =
+      'https://aeroridetest.blob.core.windows.net/legal/privacy-policy-2026-01.pdf';
+
   final _formKey = GlobalKey<FormState>();
 
   final _firstName = TextEditingController();
   final _lastName = TextEditingController();
   final _email = TextEditingController();
-  final _phone = TextEditingController(text: '+506 ');
+  final _phone = TextEditingController();
   final _password = TextEditingController();
   final _confirm = TextEditingController();
 
-  // Nacionalidad
-  String? _nationalityCode;
+  // Nacionalidad / teléfono
   String? _nationalityName;
+  String? _phoneCountryCode;
   bool _showNationalityError = false;
 
   bool _isLoading = false;
@@ -48,24 +58,57 @@ class _RegisterSheetState extends State<RegisterSheet> {
     return errs.join('\n');
   }
 
+  // ======================================================
+  // OPEN LEGAL DOC (FORCED SCROLL)
+  // ======================================================
+  Future<void> _openLegalDoc({
+    required String title,
+    required String url,
+    required VoidCallback onAccepted,
+  }) async {
+    final accepted = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => LegalDocumentScreen(
+          title: title,
+          url: url,
+        ),
+      ),
+    );
+
+    if (accepted == true) {
+      onAccepted();
+    }
+  }
+
+  // ======================================================
+  // SUBMIT
+  // ======================================================
   Future<void> _submit() async {
     setState(() {
       _fieldErrors = {};
       _showNationalityError = _nationalityName == null;
     });
 
-    // valida todos los TextFormField + nacionalidad
     if (!_formKey.currentState!.validate() || _nationalityName == null) {
       return;
     }
 
     if (!_agreeTerms || !_agreePrivacy) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'You must accept the Terms of Use and the Privacy Notice.',
+
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Action required'),
+          content: const Text(
+            'You must accept both the Terms of Use and the Privacy Notice in order to create an account.',
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
         ),
       );
       return;
@@ -79,14 +122,17 @@ class _RegisterSheetState extends State<RegisterSheet> {
         lastName: _lastName.text.trim(),
         email: _email.text.trim(),
         password: _password.text,
-        phoneNumber: _phone.text.trim(),
-        country: _nationalityName!, // 👈 se manda al backend
+        phoneNumber: '+$_phoneCountryCode${_phone.text.trim()}',
+        country: _nationalityName!,
+        termsOfUse: _agreeTerms,
+        privacyNotice: _agreePrivacy,
       );
 
       if (!mounted) return;
 
       await showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (ctx) => AlertDialog(
           title: const Text('Account created!'),
           content: const Text(
@@ -94,13 +140,9 @@ class _RegisterSheetState extends State<RegisterSheet> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('OK'),
-            ),
-            TextButton(
               onPressed: () {
-                Navigator.of(ctx).pop(); // dialog
-                Navigator.of(context).pop(); // bottom sheet
+                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
               },
               child: const Text('Go to Home'),
             ),
@@ -110,9 +152,8 @@ class _RegisterSheetState extends State<RegisterSheet> {
     } on AuthServiceException catch (e) {
       setState(() => _fieldErrors = e.fieldErrors ?? {});
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -123,15 +164,17 @@ class _RegisterSheetState extends State<RegisterSheet> {
     }
   }
 
+  // ======================================================
+  // UI
+  // ======================================================
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
 
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.92,
       child: Column(
         children: [
-          // Header
+          // HEADER
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             child: Row(
@@ -157,7 +200,6 @@ class _RegisterSheetState extends State<RegisterSheet> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    // FIRST NAME
                     TextFormField(
                       controller: _firstName,
                       decoration: InputDecoration(
@@ -169,7 +211,6 @@ class _RegisterSheetState extends State<RegisterSheet> {
                     ),
                     const SizedBox(height: 12),
 
-                    // LAST NAME
                     TextFormField(
                       controller: _lastName,
                       decoration: InputDecoration(
@@ -181,43 +222,32 @@ class _RegisterSheetState extends State<RegisterSheet> {
                     ),
                     const SizedBox(height: 12),
 
-                    // EMAIL
                     TextFormField(
                       controller: _email,
                       decoration: InputDecoration(
                         labelText: 'Email',
                         errorText: _errorFor('email'),
                       ),
-                      validator: (v) => (v == null || !v.contains('@'))
-                          ? 'Invalid email'
-                          : null,
-                    ),
-                    const SizedBox(height: 12),
-
-                    // PHONE
-                    TextFormField(
-                      controller: _phone,
-                      decoration: InputDecoration(
-                        labelText: 'Phone Number',
-                        errorText: _errorFor('phonenumber'),
-                      ),
                       validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'Required' : null,
+                          (v == null || !v.contains('@'))
+                              ? 'Invalid email'
+                              : null,
                     ),
                     const SizedBox(height: 12),
 
-                    // NATIONALITY SELECTOR
+                    // NATIONALITY
                     GestureDetector(
                       onTap: () {
                         showCountryPicker(
                           context: context,
-                          showPhoneCode: false,
+                          showPhoneCode: true,
                           showWorldWide: false,
                           onSelect: (Country c) {
                             setState(() {
-                              _nationalityCode = c.countryCode;
                               _nationalityName = c.name;
+                              _phoneCountryCode = c.phoneCode;
                               _showNationalityError = false;
+                              _phone.clear();
                             });
                           },
                         );
@@ -239,7 +269,7 @@ class _RegisterSheetState extends State<RegisterSheet> {
                           children: [
                             if (_nationalityName != null)
                               Text(
-                                '$_nationalityName ($_nationalityCode)',
+                                '$_nationalityName (+$_phoneCountryCode)',
                                 style: const TextStyle(fontSize: 16),
                               )
                             else
@@ -257,106 +287,120 @@ class _RegisterSheetState extends State<RegisterSheet> {
                       ),
                     ),
 
-                    if (_showNationalityError)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 4, left: 4),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Required',
-                            style: TextStyle(color: Colors.red, fontSize: 12),
-                          ),
-                        ),
+                    const SizedBox(height: 12),
+
+                    TextFormField(
+                      controller: _phone,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: 'Phone Number',
+                        prefixText: _phoneCountryCode != null
+                            ? '+$_phoneCountryCode '
+                            : '',
                       ),
+                      validator: (v) =>
+                          (v == null || v.isEmpty) ? 'Required' : null,
+                    ),
 
                     const SizedBox(height: 12),
 
-                    // PASSWORD
                     TextFormField(
                       controller: _password,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        errorText: _errorFor('password'),
-                      ),
                       obscureText: true,
-                      validator: (v) {
-                        if (v == null || v.length < 8) {
-                          return 'Min 8 characters';
-                        }
-                        final hasNum = RegExp(r'[0-9]').hasMatch(v);
-                        final hasLet = RegExp(r'[A-Za-z]').hasMatch(v);
-                        if (!hasNum || !hasLet) {
-                          return 'Include letters and numbers';
-                        }
-                        return null;
-                      },
+                      decoration: const InputDecoration(labelText: 'Password'),
                     ),
+
                     const SizedBox(height: 12),
 
                     TextFormField(
                       controller: _confirm,
-                      decoration: const InputDecoration(
-                        labelText: 'Confirm password',
-                      ),
                       obscureText: true,
-                      validator: (v) => v == null
-                          ? 'Required'
-                          : (v != _password.text
-                                ? 'Passwords do not match'
-                                : null),
+                      decoration:
+                          const InputDecoration(labelText: 'Confirm password'),
                     ),
 
                     const SizedBox(height: 16),
 
-                    // AGREEMENTS
+                    // TERMS
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Checkbox(
-                          value: _agreeTerms,
-                          onChanged: (v) =>
-                              setState(() => _agreeTerms = v ?? false),
-                        ),
-                        const Expanded(
-                          child: Text('I agree to the Terms of Use'),
+                        Checkbox(value: _agreeTerms, onChanged: null),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: Wrap(
+                              children: [
+                                const Text('I agree to the '),
+                                GestureDetector(
+                                  onTap: () {
+                                    _openLegalDoc(
+                                      title: 'Terms of Use',
+                                      url: _termsUrl,
+                                      onAccepted: () {
+                                        setState(() => _agreeTerms = true);
+                                      },
+                                    );
+                                  },
+                                  child: const Text(
+                                    'Terms of Use',
+                                    style: TextStyle(
+                                      color: Colors.blue,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
+
+                    // PRIVACY
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Checkbox(
-                          value: _agreePrivacy,
-                          onChanged: (v) =>
-                              setState(() => _agreePrivacy = v ?? false),
-                        ),
-                        const Expanded(
-                          child: Text('I agree to the Privacy Notice'),
+                        Checkbox(value: _agreePrivacy, onChanged: null),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: Wrap(
+                              children: [
+                                const Text('I agree to the '),
+                                GestureDetector(
+                                  onTap: () {
+                                    _openLegalDoc(
+                                      title: 'Privacy Notice',
+                                      url: _privacyUrl,
+                                      onAccepted: () {
+                                        setState(() => _agreePrivacy = true);
+                                      },
+                                    );
+                                  },
+                                  child: const Text(
+                                    'Privacy Notice',
+                                    style: TextStyle(
+                                      color: Colors.blue,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
 
                     const SizedBox(height: 20),
 
-                    // SUBMIT BUTTON
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _submit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: cs.primary,
-                          foregroundColor: cs.onPrimary,
-                          minimumSize: const Size.fromHeight(44),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
                         child: _isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
+                            ? const CircularProgressIndicator()
                             : const Text('Submit'),
                       ),
                     ),

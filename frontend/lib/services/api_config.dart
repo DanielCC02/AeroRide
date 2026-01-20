@@ -19,5 +19,5 @@ class ApiConfig {
 
   // Tomas
   //class ApiConfig {
-  static const String baseUrl = 'http://192.168.1.17:5192';
+  static const String baseUrl = 'http://192.168.1.191:5192';
 }

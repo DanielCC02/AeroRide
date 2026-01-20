@@ -74,19 +74,35 @@ class _AdminViewFlightLogScreenState extends State<AdminViewFlightLogScreen> {
     final url = _normalizeUrl(rawUrl);
     final uri = Uri.parse(url);
 
-    // -------- Intento abrir navegador externo ----------
-    try {
-      final launched = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
+    final bool isIOS = Theme.of(context).platform == TargetPlatform.iOS;
 
-      if (launched) return; // ¡Éxito!
-    } catch (_) {
-      // Ignorar, pasamos al fallback
+    // =============================================
+    // iOS → ABRIR EN SAFARI (platformDefault)
+    // =============================================
+    if (isIOS) {
+      try {
+        final launched = await launchUrl(
+          uri,
+          mode: LaunchMode.platformDefault,
+        );
+        if (launched) return;
+      } catch (_) {}
+    } else {
+      // =============================================
+      // Android → navegador externo
+      // =============================================
+      try {
+        final launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        if (launched) return;
+      } catch (_) {}
     }
 
-    // -------- Google Docs Viewer (fallback universal) --------
+    // =============================================
+    // Google Docs Viewer fallback universal
+    // =============================================
     final viewerUrl =
         "https://docs.google.com/viewer?url=${Uri.encodeComponent(url)}&embedded=true";
 
@@ -97,13 +113,22 @@ class _AdminViewFlightLogScreenState extends State<AdminViewFlightLogScreen> {
         viewerUri,
         mode: LaunchMode.inAppWebView,
       );
+      if (launched) return;
+    } catch (_) {}
 
-      if (launched) return; // ¡Éxito!
-    } catch (_) {
-      // Continuar al fallback final
+    // =============================================
+    // iOS fallback final → Safari sí o sí
+    // =============================================
+    if (isIOS) {
+      try {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+        return;
+      } catch (_) {}
     }
 
-    // -------- Error final --------
+    // =============================================
+    // FALLO FINAL
+    // =============================================
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Unable to open PDF:\n$url")),
