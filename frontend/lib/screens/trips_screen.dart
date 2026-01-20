@@ -4,7 +4,7 @@ import 'package:frontend/screens/trip_details_screen.dart';
 import '../models/trip.dart';
 import '../services/trip_service.dart';
 
-// ⚠️ Estos widgets los haremos después
+// Estos widgets los haremos después
 import '../widgets/user_trips/upcoming_trips_empty.dart';
 import '../widgets/user_trips/past_trips_empty.dart';
 import '../widgets/user_trips/trip_card.dart';

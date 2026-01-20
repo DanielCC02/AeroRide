@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/reservation_response.dart';
 import '../services/reservation_service.dart';
+import '../widgets/user_trips/contact_operators.dart';
 
 class TripDetailsScreen extends StatefulWidget {
   final int reservationId;
@@ -50,6 +51,21 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     }
   }
 
+  // ==========================================================
+  // UPCOMING CHECK
+  // ==========================================================
+  bool get _isUpcomingTrip {
+    if (_reservation == null) return false;
+
+    final now = DateTime.now();
+    return _reservation!.flights.any(
+      (f) => f.status != 'Completed' && f.departureTime.toLocal().isAfter(now),
+    );
+  }
+
+  // ==========================================================
+  // UI
+  // ==========================================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -65,9 +81,42 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
               : _reservation == null
                   ? const Center(child: Text('Reservation not found'))
                   : _buildContent(),
+
+      // 👇 BOTÓN SOLO SI ES UPCOMING
+      bottomNavigationBar: _isUpcomingTrip
+          ? SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.support_agent),
+                    label: const Text(
+                      'Contact operator',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 0,
+                    ),
+                    onPressed: _openContactOperatorSheet,
+                  ),
+                ),
+              ),
+            )
+          : null,
     );
   }
 
+  // ==========================================================
+  // CONTENT
+  // ==========================================================
   Widget _buildContent() {
     final r = _reservation!;
 
@@ -85,7 +134,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
               _InfoRow('Total', '\$${r.totalPrice}'),
             ],
           ),
-
           _SectionCard(
             title: 'Flights',
             icon: Icons.flight,
@@ -101,7 +149,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                   ]
                 : r.flights.map(_buildFlightCard).toList(),
           ),
-
           _SectionCard(
             title: 'Passengers',
             icon: Icons.group,
@@ -124,7 +171,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                     )
                     .toList(),
           ),
-
           _SectionCard(
             title: 'Options',
             icon: Icons.tune,
@@ -137,7 +183,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
               ),
             ],
           ),
-
           if (r.notes.isNotEmpty)
             _SectionCard(
               title: 'Notes',
@@ -154,6 +199,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     );
   }
 
+  // ==========================================================
+  // FLIGHT CARD
+  // ==========================================================
   Widget _buildFlightCard(FlightRes f) {
     return Container(
       margin: const EdgeInsets.only(top: 12),
@@ -186,10 +234,24 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     final m = d.minute.toString().padLeft(2, '0');
     return '${d.day}/${d.month}/${d.year} $h:$m';
   }
+
+  // ==========================================================
+  // CONTACT OPERATOR
+  // ==========================================================
+  void _openContactOperatorSheet() {
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => const ContactOperatorsSheet(),
+    );
+  }
 }
 
 // ==========================================================
-// UI Components
+// UI COMPONENTS
 // ==========================================================
 class _SectionCard extends StatelessWidget {
   final String title;
