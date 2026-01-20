@@ -1,30 +1,14 @@
 import 'package:flutter/material.dart';
-import '../widgets/upcoming_trips_empty.dart';
-import '../widgets/past_trips_empty.dart';
-import '../widgets/trip_card.dart';
-import '../models/mock_trips.dart';
+import 'package:frontend/screens/trip_details_screen.dart';
 
-/// TripsScreen
-/// ---------------------------------------------------------------------------
-/// Pantalla principal del módulo de “Trips”. Contiene dos pestañas:
-///  - "Upcoming": lista de vuelos futuros (usa dummy data por ahora).
-///  - "Past trips": muestra historial de vuelos (o vacío si no hay).
-///
-/// ARQUITECTURA / RESPONSABILIDADES:
-/// - Controla las tabs vía TabController.
-/// - Lee la fuente de datos (por ahora el mock `mockUpcomingTrips`).
-/// - Decide si mostrar la lista de tarjetas o el estado vacío
-///   (`UpcomingTripsEmpty`) cuando no hay elementos.
-/// Por ahora consume datos mock (`mockUpcomingTrips` y `mockPastTrips`).
-/// Cuando esté la API:
-///  - Sustituir por provider/repositorio con estados: loading/empty/error/success.
-///  - Mantener la UI de tarjetas (reutilizamos `UpcomingTripCard`).
-///
-/// FUTURO (INTEGRACIÓN BACKEND):
-/// - Sustituir `mockUpcomingTrips` por un provider/repositorio que
-///   consuma el endpoint real (capa data).
-/// - Manejar estados: loading / empty / error / success.
-/// - Extraer los colores fijos a Theme/ColorScheme para M3 y dark mode.
+import '../models/trip.dart';
+import '../services/trip_service.dart';
+
+// ⚠️ Estos widgets los haremos después
+import '../widgets/user_trips/upcoming_trips_empty.dart';
+import '../widgets/user_trips/past_trips_empty.dart';
+import '../widgets/user_trips/trip_card.dart';
+
 class TripsScreen extends StatefulWidget {
   const TripsScreen({super.key});
 
@@ -35,12 +19,19 @@ class TripsScreen extends StatefulWidget {
 class _TripsScreenState extends State<TripsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final TripService _service = TripService();
+
+  List<Trip> _upcoming = [];
+  List<Trip> _past = [];
+
+  bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    // Controlador de 2 pestañas: Upcoming y Past trips.
     _tabController = TabController(length: 2, vsync: this);
+    _loadTrips();
   }
 
   @override
@@ -49,73 +40,40 @@ class _TripsScreenState extends State<TripsScreen>
     super.dispose();
   }
 
-  /// Builder de la lista de “Upcoming”.
-  /// - Lee trips dummy desde `mockUpcomingTrips`.
-  /// - Muestra `UpcomingTripsEmpty` si no hay elementos.
-  /// - Renderiza tarjetas `UpcomingTripCard` separadas por espaciado.
-  Widget _buildUpcomingTab(BuildContext context) {
-    // Reemplazar por lectura desde provider/repositorio.
-    final trips = mockUpcomingTrips;
+  // ==========================================================
+  // Cargar trips del usuario (backend)
+  // ==========================================================
+  Future<void> _loadTrips() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
 
-    if (trips.isEmpty) {
-      return const UpcomingTripsEmpty();
+    try {
+      final upcoming = await _service.getUpcomingTrips();
+      final past = await _service.getPastTrips();
+
+      setState(() {
+        _upcoming = upcoming;
+        _past = past;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _loading = false;
+        _error = e.toString();
+      });
     }
-
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: trips.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 16),
-      itemBuilder: (context, index) {
-        final trip = trips[index];
-
-        return TripCard(
-          trip: trip,
-          // Acción temporal: muestra un SnackBar.
-          // FUTURO: navegar a pantalla de detalles (pasando `trip.id`).
-          onDetails: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Details coming soon')),
-            );
-          },
-        );
-      },
-    );
   }
 
-  /// Lista de "Past trips".
-  /// - Usa el MISMO diseño de card para mantener consistencia.
-  /// - Cambia únicamente la fuente de datos (mockPastTrips).
-  Widget _buildPastTab(BuildContext context) {
-    final trips = mockPastTrips; // reemplazar por provider
-
-    if (trips.isEmpty) return const PastTripsEmpty();
-
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: trips.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 16),
-      itemBuilder: (context, index) {
-        final trip = trips[index];
-        return TripCard(
-          trip: trip,
-          onDetails: () {
-            // FUTURO: navegar a detalles del viaje realizado (recibo/bitácora)
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Past trip details coming soon')),
-            );
-          },
-        );
-      },
-    );
-  }
-
+  // ==========================================================
+  // MAIN UI
+  // ==========================================================
   @override
   Widget build(BuildContext context) {
-    // NOTA: Colores fijos por ahora. Cuando migremos a M3,
-    // mover a Theme/ColorScheme y habilitar dark mode.
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Trips'),
+        title: const Text("Trips"),
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
@@ -123,18 +81,86 @@ class _TripsScreenState extends State<TripsScreen>
           unselectedLabelColor: Colors.black,
           indicatorColor: Colors.red,
           tabs: const [
-            Tab(text: 'Upcoming'),
-            Tab(text: 'Past trips'),
+            Tab(text: "Upcoming"),
+            Tab(text: "Past trips"),
           ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildUpcomingTab(context),
-          _buildPastTab(context),
+        actions: [
+          // 🔄 Refresh (igual que pilotos)
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadTrips,
+          ),
         ],
       ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Text(
+                    "Error loading trips:\n$_error",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                )
+              : TabBarView(
+                  controller: _tabController,
+                  children: [
+                    // ====================================================
+                    // UPCOMING TAB
+                    // ====================================================
+                    _upcoming.isEmpty
+                        ? const UpcomingTripsEmpty()
+                        : ListView.separated(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _upcoming.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 16),
+                            itemBuilder: (context, index) {
+                              final trip = _upcoming[index];
+                              return TripCard(
+                                  trip: trip,
+                                  onDetails: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => TripDetailsScreen(
+                                          reservationId: trip.reservationId,
+                                        ),
+                                      ),
+                                    );
+                                  });
+                            },
+                          ),
+
+                    // ====================================================
+                    // PAST TAB
+                    // ====================================================
+                    _past.isEmpty
+                        ? const PastTripsEmpty()
+                        : ListView.separated(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _past.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 16),
+                            itemBuilder: (context, index) {
+                              final trip = _past[index];
+                              return TripCard(
+                                  trip: trip,
+                                  onDetails: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => TripDetailsScreen(
+                                          reservationId: trip.reservationId,
+                                        ),
+                                      ),
+                                    );
+                                  });
+                            },
+                          ),
+                  ],
+                ),
     );
   }
 }
