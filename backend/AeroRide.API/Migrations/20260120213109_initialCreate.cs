@@ -10,7 +10,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AeroRide.API.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class initialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -170,7 +170,10 @@ namespace AeroRide.API.Migrations
                     Country = table.Column<string>(type: "text", nullable: true),
                     RegistrationDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     TermsOfUse = table.Column<bool>(type: "boolean", nullable: false),
+                    TermsOfUseVersion = table.Column<string>(type: "text", nullable: true),
                     PrivacyNotice = table.Column<bool>(type: "boolean", nullable: false),
+                    PrivacyNoticeVersion = table.Column<string>(type: "text", nullable: true),
+                    LegalAcceptanceDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     RoleId = table.Column<int>(type: "integer", nullable: true),
                     EmailVerificationToken = table.Column<string>(type: "text", nullable: true),
                     IsVerified = table.Column<bool>(type: "boolean", nullable: false),

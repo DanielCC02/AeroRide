@@ -6,6 +6,7 @@ import '../widgets/search_form.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../screens/trips_screen.dart';
 import '../screens/map_screen.dart';
+import '../screens/profile/profile_tab.dart';
 import '../services/token_storage.dart';
 import '../screens/welcome_screen.dart';
 import '../widgets/todays_deals_section.dart';
@@ -24,7 +25,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
     _BookTab(), // Book (search + today's deals)
     TripsScreen(), // Trips
     MapScreen(), // Map
-    Center(child: Text("Profile screen placeholder")), // Profile
+    ProfileTab(), // Profile ✅
   ];
 
   void _onItemTapped(int index) {

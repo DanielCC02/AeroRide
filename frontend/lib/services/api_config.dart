@@ -9,7 +9,7 @@
 /// =============================================================
 class ApiConfig {
   /// Para Android Emulator + backend en tu PC con dotnet run en http://localhost:5192
-  //static const String baseUrl = 'http://10.0.2.2:5192';
+  static const String baseUrl = 'http://10.0.2.2:5192';
 
   // Ejemplos alternativos:
   // static const String baseUrl = 'http://localhost:5192';          // iOS Simulator
@@ -18,6 +18,5 @@ class ApiConfig {
   //}
 
   // Tomas
-  //class ApiConfig {
-  static const String baseUrl = 'http://192.168.1.191:5192';
+  //static const String baseUrl = 'http://192.168.1.191:5192';
 }

@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AeroRide.API.Migrations
 {
     [DbContext(typeof(AeroRideDbContext))]
-    [Migration("20260118174959_UpdateVuelosPasajeros")]
-    partial class UpdateVuelosPasajeros
+    [Migration("20260120213109_initialCreate")]
+    partial class initialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
