@@ -41,13 +41,13 @@ dependencies:
   google_maps_flutter: ^2.9.0      # Renderiza el mapa nativo
   geolocator: ^14.0.2              # Obtiene ubicación + permisos
 
-  google_fonts: ^6.3.2
+  google_fonts: ^7.1.0
  
   intl: ^0.20.2
   signature: ^6.3.0
   pdf: ^3.10.8
   path_provider: ^2.1.5
-  flutter_secure_storage: ^9.2.4
+  flutter_secure_storage: ^10.0.0
   flutter_cached_pdfview: ^0.4.2  
   url_launcher: ^6.2.5 
   pdfx: ^2.3.1

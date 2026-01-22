@@ -9,6 +9,82 @@ import '../services/token_storage.dart';
 /// Servicio encargado de la comunicación con el backend
 /// para operaciones relacionadas con usuarios (solo accesible por admin).
 class UserService {
+  // ===========================================================
+  // PERFIL DEL USUARIO AUTENTICADO (CLIENT)
+  // ===========================================================
+
+  /// Obtiene el perfil del usuario actualmente autenticado.
+  /// Endpoint: GET /api/users/profile
+  Future<UserModel> getMyProfile() async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
+
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/users/profile');
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    debugPrint('👤 GET $url');
+    debugPrint('Status: ${response.statusCode}');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return UserModel.fromJson(data);
+    }
+
+    throw Exception(
+        'Error al cargar el perfil (status: ${response.statusCode})');
+  }
+
+  /// Actualiza la información personal del usuario autenticado.
+  /// Endpoint: PUT /api/users/profile
+  Future<UserModel> updateMyProfile({
+    required String name,
+    required String lastName,
+    required String phoneNumber,
+  }) async {
+    final token = await TokenStorage.getAccessToken();
+    if (token == null) throw Exception('Token no disponible');
+
+    final url = Uri.parse('${ApiConfig.baseUrl}/api/users/profile');
+
+    final body = {
+      'name': name,
+      'lastName': lastName,
+      'phoneNumber': phoneNumber,
+    };
+
+    debugPrint('👤 PUT $url');
+    debugPrint('Body enviado: $body');
+
+    final response = await http.put(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    );
+
+    debugPrint('Status: ${response.statusCode}');
+    debugPrint('Response: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return UserModel.fromJson(data);
+    } else if (response.statusCode == 404) {
+      throw Exception('Usuario no encontrado');
+    }
+
+    throw Exception(
+        'Error al actualizar perfil (status: ${response.statusCode})');
+  }
+
   /// Crea un nuevo usuario en el sistema (solo administradores o CompanyAdmin).
   Future<void> createUser({
     required String name,
